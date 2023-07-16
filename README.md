@@ -1,15 +1,12 @@
-# frog 
-
+# frog ![Unit Tests](https://github.com/geohot/tinygrad/workflows/Unit%20Tests/badge.svg)
 
 <p align="center" >
-  <img src="https://github.com/kevbuh/frog/blob/main/froog.jpeg" alt="froog the frog" height="300">
+  <img src="https://github.com/kevbuh/frog/blob/main/assets/froog.jpeg" alt="froog the frog" height="300">
   <br/>
   fast real-time optimization of gradients 
   <br/>
   a machine learning library
 </p>
-
-
 
 Features
 - Tensors

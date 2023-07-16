@@ -23,4 +23,6 @@ jobs:
     - name: Install Dependencies
       run: pip install numpy tqdm requests torch
     - name: Run Tesnor Tests
-      run: python3 tests/test_tensor.py
+      run: |
+        export PYTHONPATH=$PYTHONPATH:.
+        python3 tests/test_tensor.py
