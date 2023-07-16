@@ -1,12 +1,12 @@
 import numpy as np
 import torch
-from tensor import Tensor
+from frog.tensor import Tensor
 
 x_init = np.random.randn(1,3).astype(np.float32)
 W_init = np.random.randn(3,3).astype(np.float32)
 m_init = np.random.randn(1,3).astype(np.float32)
 
-def test_tinygrad():
+def test_frog():
   x = Tensor(x_init)
   W = Tensor(W_init)
   m = Tensor(m_init)
@@ -32,8 +32,7 @@ def test_pytorch():
   outx.backward()
   return outx.detach().numpy(), x.grad, W.grad
 
-for x,y in zip(test_tinygrad(), test_pytorch()):
-	print(x,y)
-	np.testing.assert_allclose(x, y, atol=1e-6)
-	
-
+for x,y in zip(test_frog(), test_pytorch()):
+  print("frog: ",x)
+  print("torch: ",y)
+  np.testing.assert_allclose(x, y, atol=1e-6)

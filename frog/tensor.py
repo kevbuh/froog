@@ -81,7 +81,6 @@ class Add(Function):
         return x + y
     
     def backward(ctx, grad_output):
-        x,y = ctx.saved_tensor
         return grad_output, grad_output # TODO: equal to 1, 1? 
 register("add", Add)
 

@@ -68,8 +68,6 @@ for i in (t := trange(3000)):
     x = x.dot(l1) 
     x = x.relu()
     x = x_l2 = x.dot(l2)
-    # x = x.relu()
-    # x = x_l3 = x.dot(l3)
     x = x.logsoftmax()
     x = x.mul(y)
     x = x.mean()
@@ -83,7 +81,6 @@ for i in (t := trange(3000)):
     # SGD
     l1.data = l1.data - lr*l1.grad
     l2.data = l2.data - lr*l2.grad
-    # l3.data = l3.data - lr*l3.grad
 
     losses.append(loss)
     accuracies.append(accuracy)
@@ -94,8 +91,6 @@ def forward(x):
   x = x.dot(l1.data)
   x = np.maximum(x, 0)
   x = x.dot(l2.data)
-#   x = np.maximum(x, 0)
-#   x = x.dot(l3.data)
   return x
 
 def numpy_eval():
