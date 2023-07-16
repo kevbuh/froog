@@ -16,6 +16,8 @@ Features
 - Automatic Differentiation
     - Forward and Backward passes
 - Input/Grad shape-tracking
+- MNIST example
+- Tests against pytorch
 
 Math
 - Scalar-Matrix Multiplication
@@ -25,4 +27,10 @@ Math
 - Log Softmax
 
 # TODO:
-- MNIST
+- Make more elegant
+- Implement gradcheck
+- Implement convolutions
+- Implement ADAM
+- Implement Stable Diffusion
+- Implement EfficientNet v2
+- Implement Transformers
