@@ -72,8 +72,18 @@ def register(name, fxn):
     setattr(Tensor, name, partialmethod(fxn.apply, fxn))
 
 
-# ********* Mul, ReLU, Dot, Sum *********
+# ********* Add, Mul, ReLU, Dot, Sum *********
 # grad_output is the gradient of the loss with respect to the output of the operation.
+
+class Add(Function):
+    @staticmethod
+    def forward(ctx, x, y):
+        return x + y
+    
+    def backward(ctx, grad_output):
+        x,y = ctx.saved_tensor
+        return grad_output, grad_output # TODO: equal to 1, 1? 
+register("add", Add)
 
 class Mul(Function):
     @staticmethod
