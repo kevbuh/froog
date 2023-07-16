@@ -1,12 +1,12 @@
+# inspired by pytorch
 # inspired by https://github.com/karpathy/micrograd/blob/master/micrograd/engine.py
 # inspired by tinygrad
 
 from functools import partialmethod
 import numpy as np
 
-# **** start with three base classes ****
-
-
+# ********* three base classes *********
+# ********* Context, Tensor, Function *********
 class Context:
     def __init__(self, arg, *tensors):
         self.arg = arg
@@ -16,12 +16,10 @@ class Context:
     def save_for_backward(self, *x):
         self.saved_tensors.extend(x)
 
-
 class Tensor:
     def __init__(self, data):
-        # print(type(data), data)
         if type(data) != np.ndarray:
-            print("error constructing tensor with %r" % data)
+            print(f"error constructing tensor with {data}")
             assert False
         self.data = data
         self.grad = None
@@ -30,10 +28,9 @@ class Tensor:
         self._ctx = None
 
     def __str__(self):
-        return "Tensor %r with grad %r" % (self.data, self.grad)
+        return f"Tensor {self.data} with grad {self.grad}" 
 
     def backward(self, allow_fill=True):
-        # print("running backward on", self)
         if self._ctx is None:
             return
 
@@ -43,23 +40,23 @@ class Tensor:
             self.grad = np.ones_like(self.data)
 
         assert self.grad is not None
-
+        
+        # autograd engine
         grads = self._ctx.arg.backward(self._ctx, self.grad)
         if len(self._ctx.parents) == 1:
             grads = [grads]
         for t, g in zip(self._ctx.parents, grads):
             if g.shape != t.data.shape:
                 print(
-                    "grad shape must match tensor shape in %r, %r != %r"
-                    % (self._ctx.arg, g.shape, t.data.shape)
+                    f"grad shape must match tensor shape in {self._ctx.arg}, {g.shape} != {t.data.shape}"
                 )
                 assert False
             t.grad = g
             t.backward(False)
 
-        def mean(self):
-            div = Tensor(np.array([1 / self.data.size]))
-            return self.sum().mul(div)
+    def mean(self):
+        div = Tensor(np.array([1 / self.data.size]))
+        return self.sum().mul(div)
 
 
 class Function:
@@ -69,13 +66,14 @@ class Function:
         ret._ctx = ctx
         return ret
 
-
+# mechanism that allows you to chain methods in an intuitive and Pythonic way
+# e.g. t.dot(w).relu(), where w is a tensor.
 def register(name, fxn):
     setattr(Tensor, name, partialmethod(fxn.apply, fxn))
 
 
-# **** implement a few functions ****
-
+# ********* Mul, ReLU, Dot, Sum *********
+# grad_output is the gradient of the loss with respect to the output of the operation.
 
 class Mul(Function):
     @staticmethod
@@ -87,8 +85,6 @@ class Mul(Function):
     def backward(ctx, grad_output):
         x, y = ctx.saved_tensors
         return y * grad_output, x * grad_output
-
-
 register("mul", Mul)
 
 
@@ -101,11 +97,9 @@ class ReLU(Function):
     @staticmethod
     def backward(ctx, grad_output):
         (input,) = ctx.saved_tensors
-        grad_input = grad_output.copy()
+        grad_input = grad_output.copy() # numpy only creates reference if you don't .copy()
         grad_input[input < 0] = 0
         return grad_input
-
-
 register("relu", ReLU)
 
 
@@ -121,11 +115,9 @@ class Dot(Function):
         grad_input = grad_output.dot(weight.T)
         grad_weight = grad_output.T.dot(input).T
         return grad_input, grad_weight
-
-
 register("dot", Dot)
 
-
+# reduces its input tensor to a single value by summing all the elements
 class Sum(Function):
     @staticmethod
     def forward(ctx, input):
@@ -136,17 +128,16 @@ class Sum(Function):
     def backward(ctx, grad_output):
         (input,) = ctx.saved_tensors
         return grad_output * np.ones_like(input)
-
-
 register("sum", Sum)
 
-
+# converts a vector of numbers into a vector of probabilities
+# probabilities of each value are proportional to the scale of each value 
 class LogSoftmax(Function):
     @staticmethod
     def forward(ctx, input):
         def logsumexp(x):
             c = x.max(axis=1)
-            return c + np.log(np.exp(x - c.reshape((-1, 1))).sum(axis=1))
+            return c + np.log(np.exp(x - c.reshape((-1, 1))).sum(axis=1)) # axis=1 refers to the columns
 
         output = input - logsumexp(input).reshape((-1, 1))
         ctx.save_for_backward(output)
@@ -156,6 +147,4 @@ class LogSoftmax(Function):
     def backward(ctx, grad_output):
         (output,) = ctx.saved_tensors
         return grad_output - np.exp(output) * grad_output.sum(axis=1).reshape((-1, 1))
-
-
 register("logsoftmax", LogSoftmax)
