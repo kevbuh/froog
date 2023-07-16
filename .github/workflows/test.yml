@@ -1,4 +1,4 @@
-name: Tensor Unit Tests
+name: Unit Tests
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
 
 jobs:
   test:
-    name: Test
+    name: Tensor Test
     runs-on: ubuntu-latest
 
     steps:
@@ -22,5 +22,5 @@ jobs:
         python-version: 3.11
     - name: Install Dependencies
       run: pip install numpy tqdm requests torch
-    - name: Run Tests
-      run: python3 frog/tests/test_tensor.py
+    - name: Run Tesnor Tests
+      run: python3 tests/test_tensor.py
