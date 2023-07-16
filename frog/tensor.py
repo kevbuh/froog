@@ -5,17 +5,8 @@
 from functools import partialmethod
 import numpy as np
 
-# ********* three base classes *********
-# ********* Context, Tensor, Function *********
-class Context:
-    def __init__(self, arg, *tensors):
-        self.arg = arg
-        self.parents = tensors
-        self.saved_tensors = []
-
-    def save_for_backward(self, *x):
-        self.saved_tensors.extend(x)
-
+# *********** Main Classes ***********
+# ********* Tensor, Function *********
 class Tensor:
     def __init__(self, data):
         if type(data) != np.ndarray:
@@ -42,13 +33,13 @@ class Tensor:
         assert self.grad is not None
         
         # autograd engine
-        grads = self._ctx.arg.backward(self._ctx, self.grad)
+        grads = self._ctx.backward(self._ctx, self.grad)
         if len(self._ctx.parents) == 1:
             grads = [grads]
         for t, g in zip(self._ctx.parents, grads):
             if g.shape != t.data.shape:
                 print(
-                    f"grad shape must match tensor shape in {self._ctx.arg}, {g.shape} != {t.data.shape}"
+                    f"grad shape must match tensor shape in {self._ctx}, {g.shape} != {t.data.shape}"
                 )
                 assert False
             t.grad = g
@@ -58,10 +49,23 @@ class Tensor:
         div = Tensor(np.array([1 / self.data.size]))
         return self.sum().mul(div)
 
-
+# Function class includes the context
 class Function:
+    def __init__(self, *tensors):
+        self.parents = tensors
+        self.saved_tensors = []
+
+    def save_for_backward(self, *x):
+        self.saved_tensors.extend(x)
+
+    # note that due to how partialmethod works, self and arg are switched
+    # self is the tensor                   (a)
+    # arg is the method                    (.dot, .relu) 
+    # *x is b --> the input to the method  (a.dot(b), a.add(b))
     def apply(self, arg, *x):
-        ctx = Context(arg, self, *x)
+        print(f"arg: {arg}, self:{self}, *x=", *x)
+        print(f"self data", self.data)
+        ctx = arg(self, *x)
         ret = Tensor(arg.forward(ctx, self.data, *[t.data for t in x]))
         ret._ctx = ctx
         return ret
@@ -71,17 +75,19 @@ class Function:
 def register(name, fxn):
     setattr(Tensor, name, partialmethod(fxn.apply, fxn))
 
-
+# *********** Elementary Functions ***********
 # ********* Add, Mul, ReLU, Dot, Sum *********
 # grad_output is the gradient of the loss with respect to the output of the operation.
 
 class Add(Function):
-    @staticmethod
+    @staticmethod # @staticmethod doesn't require an instance of Add to work
     def forward(ctx, x, y):
         return x + y
     
+    @staticmethod
     def backward(ctx, grad_output):
-        return grad_output, grad_output # TODO: equal to 1, 1? 
+        print("***", grad_output)
+        return grad_output, grad_output 
 register("add", Add)
 
 class Mul(Function):
@@ -124,7 +130,7 @@ class Dot(Function):
         grad_input = grad_output.dot(weight.T)
         grad_weight = grad_output.T.dot(input).T
         return grad_input, grad_weight
-register("dot", Dot)
+register('dot', Dot)
 
 # reduces its input tensor to a single value by summing all the elements
 class Sum(Function):
