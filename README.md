@@ -1,6 +1,8 @@
 # froog 
 
-fast real-time optimization of gradients
+fast real-time optimization of gradients 
+
+aka machine learning library
 
 Features:
 - Tensors
