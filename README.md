@@ -1,4 +1,4 @@
-# froog 
+# frog 
 
 fast real-time optimization of gradients 
 
