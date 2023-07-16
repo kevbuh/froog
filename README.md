@@ -23,3 +23,6 @@ Math
 - Sum
 - ReLU
 - Log Softmax
+
+# TODO:
+- MNIST

@@ -67,7 +67,7 @@ class Function:
         return ret
 
 # mechanism that allows you to chain methods in an intuitive and Pythonic way
-# e.g. t.dot(w).relu(), where w is a tensor.
+# e.g. x.dot(w).relu(), where w is a tensor.
 def register(name, fxn):
     setattr(Tensor, name, partialmethod(fxn.apply, fxn))
 
