@@ -2,7 +2,7 @@ import numpy as np
 from tqdm import trange
 from frog.tensor import Tensor
 from frog.utils import fetch_mnist
-from frog.optim import SGD
+import frog.optim as optim
 
 # ********* load the mnist dataset *********
 X_train, Y_train, X_test, Y_test = fetch_mnist()
@@ -33,7 +33,8 @@ class SGD:
             t.data -= self.lr * t.grad
 
 model = SimpleMLP()
-optim = SGD([model.l1, model.l2], lr=0.01)
+# optim = optim.SGD([model.l1, model.l2], lr=0.01)
+optim = optim.Adam([model.l1, model.l2])
 
 # number of samples processed before the model is updated
 BS = 128 
@@ -41,7 +42,7 @@ BS = 128
 # ********* training the model *********
 losses, accuracies = [], []
 
-for i in (t := trange(3000)):
+for i in (t := trange(2000)):
     # X_train.shape[0] == 60,000 --> number of images in MNIST
     # this is choosing a random training image
     samp = np.random.randint(0, X_train.shape[0], size=(BS))
@@ -73,6 +74,7 @@ for i in (t := trange(3000)):
     pred = np.argmax(model_outputs.data, axis=1)
     accuracy = (pred == Y).mean()
 
+
     loss = loss.data
     losses.append(loss)
     accuracies.append(accuracy)
@@ -85,5 +87,5 @@ def numpy_eval():
   return (Y_test == Y_test_preds).mean()
 
 accuracy = numpy_eval()
-f"loss: {float(loss[0]):.2f} accuracy: {float(accuracy):.2f}"
+print(f"loss: {float(loss[0]):.2f} accuracy: {float(accuracy):.2f}")
 assert accuracy > 0.95
