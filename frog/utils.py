@@ -1,4 +1,5 @@
 def fetch_mnist():
+  
   def fetch(url):
     import requests, gzip, os, hashlib, numpy
     fp = os.path.join("/tmp", hashlib.md5(url.encode('utf-8')).hexdigest())
@@ -10,6 +11,8 @@ def fetch_mnist():
         dat = requests.get(url).content
         f.write(dat)
     return numpy.frombuffer(gzip.decompress(dat), dtype=numpy.uint8).copy()
+  
+  print("loading mnist...")
   X_train = fetch("http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz")[0x10:].reshape((-1, 28, 28))
   Y_train = fetch("http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz")[8:]
   X_test = fetch("http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz")[0x10:].reshape((-1, 28, 28))
