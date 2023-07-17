@@ -1,7 +1,7 @@
 import numpy as np
 from tqdm import trange
 from frog.tensor import Tensor
-from frog.utils import fetch_mnist
+from frog.utils import fetch_mnist, dense_layer
 import frog.optim as optim
 
 # ********* load the mnist dataset *********
@@ -9,32 +9,32 @@ X_train, Y_train, X_test, Y_test = fetch_mnist()
 
 # ********* creating a simple mlp *********
 def layer_init(in_dim,out_dim):
-    # TODO: why dividing by sqrt?
-    ret = np.random.uniform(-1., 1., size=(in_dim,out_dim))/np.sqrt(in_dim*out_dim) 
-    return ret.astype(np.float32)
+  # TODO: why dividing by sqrt?
+  ret = np.random.uniform(-1., 1., size=(in_dim,out_dim))/np.sqrt(in_dim*out_dim) 
+  return ret.astype(np.float32)
 
 class SimpleMLP:
-    def __init__(self):
-        # 784 pixel inputs -> 128 -> 10 output
-        # TODO: why down to 128? maybe because its the BS?
-        self.l1 = Tensor(layer_init(784, 128))
-        self.l2 = Tensor(layer_init(128, 10))
+  def __init__(self):
+    # 784 pixel inputs -> 128 -> 10 output
+    # TODO: why down to 128? maybe because its the BS?
+    self.l1 = Tensor(dense_layer(784, 128))
+    self.l2 = Tensor(dense_layer(128, 10))
 
-    def forward(self, x):
-        return x.dot(self.l1).relu().dot(self.l2).logsoftmax()
+  def forward(self, x):
+    return x.dot(self.l1).relu().dot(self.l2).logsoftmax()
 
 class SGD:
-    def __init__(self, tensors, lr):
-        self.tensors = tensors
-        self.lr = lr
+  def __init__(self, tensors, lr):
+    self.tensors = tensors
+    self.lr = lr
     
-    def step(self):
-        for t in self.tensors:
-            t.data -= self.lr * t.grad
+  def step(self):
+    for t in self.tensors:
+      t.data -= self.lr * t.grad
 
 model = SimpleMLP()
 # optim = optim.SGD([model.l1, model.l2], lr=0.01)
-optim = optim.Adam([model.l1, model.l2])
+optim = optim.Adam([model.l1, model.l2], lr=0.001)
 
 # number of samples processed before the model is updated
 BS = 128 
@@ -60,7 +60,8 @@ for i in (t := trange(2000)):
 
     # selects the element of y that corresponds 
     # to the true class for each example
-    y[range(y.shape[0]),Y] = -1.0
+    # NLL loss
+    y[range(y.shape[0]),Y] = -10.0
     y = Tensor(y)
 
     # ********* foward/backward pass *********
@@ -73,7 +74,7 @@ for i in (t := trange(2000)):
 
     pred = np.argmax(model_outputs.data, axis=1)
     accuracy = (pred == Y).mean()
-
+  
 
     loss = loss.data
     losses.append(loss)

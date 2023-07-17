@@ -13,12 +13,13 @@ class SGD(Optimizer):
     for t in self.params:
       t.data -= self.lr * t.grad
 
-class Adam(Optimizer):
-    def __init__(self, params, alpha=0.001, b1=0.9, b2=0.999, eps=10e-8):
+#https://arxiv.org/pdf/1412.6980.pdf
+class Adam(Optimizer):  
+    def __init__(self, params, lr=0.001, b1=0.9, b2=0.999, eps=10e-8):
         super(Adam, self).__init__(params)
         self.params = params
 
-        self.alpha = alpha
+        self.alpha = lr
         self.b1 = b1
         self.b2 = b2
         self.eps = eps # should be 1e-8?
