@@ -12,15 +12,33 @@
 
 No extra clutter. An autograd & tensor library with the basics done right.
 
-Features
+### Creating an MNIST classifier (from examples/mnist.py)
+
+```python
+from frog.tensor import Tensor
+import frog.optim as optim
+
+class mnistMLP:
+  def __init__(self):
+    self.l1 = Tensor(layer_init(784, 128))
+    self.l2 = Tensor(layer_init(128, 10))
+
+  def forward(self, x):
+    return x.dot(self.l1).relu().dot(self.l2).logsoftmax()
+
+model = mnistMLP()
+optim = optim.SGD([model.l1, model.l2], lr=0.001)
+```
+
+### Overview of Features
 - Tensors
 - Automatic Differentiation
     - Forward and Backward passes
 - Input/Grad shape-tracking
 - MNIST example
-- Tests against pytorch
+- Compares data against PyTorch to ensure correctness
 
-Math
+### Math Operations
 - Scalar-Matrix Multiplication
 - Dot Product
 - Sum
@@ -28,10 +46,9 @@ Math
 - Log Softmax
 
 # TODO:
-- Make more elegant
-- Implement gradcheck
-- Implement convolutions
-- Implement ADAM
-- Implement Stable Diffusion
-- Implement EfficientNet v2
-- Implement Transformers
+- Simplify
+- Numerical Gradcheck
+- Convolutions
+- Stable Diffusion
+- EfficientNet v2
+- Transformers
