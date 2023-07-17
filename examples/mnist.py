@@ -1,26 +1,11 @@
 import numpy as np
 from tqdm import trange
 from frog.tensor import Tensor
+from frog.utils import fetch_mnist
+from frog.nn import layer_init, SGD
 
 # ********* load the mnist dataset *********
-def fetch(url):
-    import requests, gzip, os, hashlib, numpy
-    fp = os.path.join("/tmp", hashlib.md5(url.encode('utf-8')).hexdigest())
-    if os.path.isfile(fp):
-        with open(fp, "rb") as f:
-            dat = f.read()
-    else:
-        with open(fp, "wb") as f:
-            dat = requests.get(url).content
-            f.write(dat)
-    return numpy.frombuffer(gzip.decompress(dat), dtype=np.uint8).copy()
-
-
-X_train = fetch("http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz")[0x10:].reshape((-1, 28, 28))
-Y_train = fetch("http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz")[8:]
-X_test = fetch("http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz")[0x10:].reshape((-1, 28, 28))
-Y_test = fetch("http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz")[8:]
-
+X_train, Y_train, X_test, Y_test = fetch_mnist()
 
 # ********* creating a simple mlp *********
 def layer_init(in_dim,out_dim):

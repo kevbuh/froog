@@ -49,7 +49,7 @@ class Tensor:
         div = Tensor(np.array([1 / self.data.size]))
         return self.sum().mul(div)
 
-# Function class includes the context
+# An instantiation of the Function class includes the context
 class Function:
     def __init__(self, *tensors):
         self.parents = tensors
