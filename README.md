@@ -12,7 +12,7 @@
 
 No extra clutter. An autograd & tensor library with the basics done right.
 
-### Creating an MNIST classifier (from examples/mnist.py)
+### Creating an MNIST classifier (from tests/test_mnist.py)
 
 ```python
 from frog.tensor import Tensor
