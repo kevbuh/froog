@@ -63,8 +63,6 @@ class Function:
     # arg is the method                    (.dot, .relu) 
     # *x is b --> the input to the method  (a.dot(b), a.add(b))
     def apply(self, arg, *x):
-        print(f"arg: {arg}, self:{self}, *x=", *x)
-        print(f"self data", self.data)
         ctx = arg(self, *x)
         ret = Tensor(arg.forward(ctx, self.data, *[t.data for t in x]))
         ret._ctx = ctx
@@ -86,7 +84,6 @@ class Add(Function):
     
     @staticmethod
     def backward(ctx, grad_output):
-        print("***", grad_output)
         return grad_output, grad_output 
 register("add", Add)
 

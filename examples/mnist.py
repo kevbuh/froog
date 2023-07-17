@@ -28,14 +28,27 @@ def layer_init(in_dim,out_dim):
     ret = np.random.uniform(-1., 1., size=(in_dim,out_dim))/np.sqrt(in_dim*out_dim) 
     return ret.astype(np.float32)
 
-# 784 pixel inputs -> 128 -> 10 output
-# TODO: why down to 128? maybe because its the BS?
-l1 = Tensor(layer_init(784, 128))
-# l2 = Tensor(layer_init(128, 64))
-l2 = Tensor(layer_init(128, 10))
+class SimpleMLP:
+    def __init__(self):
+        # 784 pixel inputs -> 128 -> 10 output
+        # TODO: why down to 128? maybe because its the BS?
+        self.l1 = Tensor(layer_init(784, 128))
+        self.l2 = Tensor(layer_init(128, 10))
 
-# determines step size at each iteration
-lr = 0.01 
+    def forward(self, x):
+        return x.dot(self.l1).relu().dot(self.l2).logsoftmax()
+
+class SGD:
+    def __init__(self, tensors, lr):
+        self.tensors = tensors
+        self.lr = lr
+    
+    def step(self):
+        for t in self.tensors:
+            t.data -= self.lr * t.grad
+
+model = SimpleMLP()
+optim = SGD([model.l1, model.l2], lr=0.01)
 
 # number of samples processed before the model is updated
 BS = 128 
@@ -65,37 +78,27 @@ for i in (t := trange(3000)):
     y = Tensor(y)
 
     # ********* foward/backward pass *********
-    x = x.dot(l1) 
-    x = x.relu()
-    x = x_l2 = x.dot(l2)
-    x = x.logsoftmax()
-    x = x.mul(y)
-    x = x.mean()
-    x.backward()
+    model_outputs = model.forward(x)
 
     # ********* backward pass *********
-    loss = x.data
-    pred = np.argmax(x_l2.data, axis=1)
+    loss = model_outputs.mul(y).mean() # NLL loss function
+    loss.backward()
+    optim.step()
+
+    pred = np.argmax(model_outputs.data, axis=1)
     accuracy = (pred == Y).mean()
 
-    # SGD
-    l1.data = l1.data - lr*l1.grad
-    l2.data = l2.data - lr*l2.grad
-
+    loss = loss.data
     losses.append(loss)
     accuracies.append(accuracy)
     t.set_description(f"loss: {float(loss):.2f} accuracy: {float(accuracy):.2f}")
 
-# numpy forward pass
-def forward(x):
-  x = x.dot(l1.data)
-  x = np.maximum(x, 0)
-  x = x.dot(l2.data)
-  return x
-
+# evaluate
 def numpy_eval():
-  Y_test_preds_out = forward(X_test.reshape((-1, 28*28)))
-  Y_test_preds = np.argmax(Y_test_preds_out, axis=1)
+  Y_test_preds_out = model.forward(Tensor(X_test.reshape((-1, 28*28))))
+  Y_test_preds = np.argmax(Y_test_preds_out.data, axis=1)
   return (Y_test == Y_test_preds).mean()
 
+accuracy = numpy_eval()
 print(f"test set accuracy is {numpy_eval()}")
+assert accuracy > 0.95
