@@ -170,59 +170,27 @@ register("logsoftmax", LogSoftmax)
 # https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md
 class Conv2D(Function): 
 	@staticmethod
-	def forward(ctx, x, w):
+	def forward(ctx, input_image, conv_kernel):
+		# Args:
 		# x.shape[0] 									  --> number of input examples (batch size)
 		# cout 			 								    --> number of output channels
-		# x.shape[2]-(H-1)					 	  --> height of output 
+		# x.shape[2]-(H-1)					 	  --> non-padded height of conv output, need to subtract because this is an unpadded conv
 		# x.shape[3]-(W-1)						  --> width of output
-		cout, cin, H, W = w.shape
-		ret = np.zeros((x.shape[0], cout, x.shape[2]-(H-1), x.shape[3]-(W-1)), dtype=w.dtype)
-		
-		
+		# Shape: 
+		# (a, b, c, d)(e, f, g, h)      --> (a, e, c-(g-1), d-(h-1)) 
 
-		# for Y in range(ret.shape[2]):   	# 8, apply the convolution operation
-		# 	for X in range(ret.shape[3]): 	# 5, apply the convolution operation
-		# 		for j in range(H):
-		# 			for i in range(W):
-		# 				# for c in range(cout):     # loops over height and width of the kernel
-		# 				# 	tx = x[:, :, Y+j, X+i]
-		# 				# 	tw = w[c, :, j, i]
-		# 				# 	ret[:, c, Y, X] += tx.dot(tw.reshape(-1, 1)).reshape(-1)
+		cout, cin, H, W = conv_kernel.shape
+		conv_to_return = np.zeros((input_image.shape[0], cout, input_image.shape[2]-(H-1), input_image.shape[3]-(W-1)), dtype=conv_kernel.dtype)
 
-		# 				tx = x[:, :, Y+j, X+i]
-		# 				tw = w[:, :, j, i]
-		# 				ret[:, :, Y, X] += tx.dot(tw.T)
-
-
-		for j in range(H):
-			for i in range(W):
-				tw = w[:, :, j, i]
-				for kernel_y in range(ret.shape[2]):
-					for kernel_x in range(ret.shape[3]):
-						ret[:, :, kernel_y, kernel_x] += x[:, :, j+kernel_y, i+kernel_x].dot(tw.T) #(t[:,:,Y-i,X-j])
-				
-		return ret
+		for kernel_height in range(H):
+			for kernel_width in range(W):
+				conv_slice = conv_kernel[:, :, kernel_height, kernel_width]
+				for non_padded_height in range(conv_to_return.shape[2]):
+					for non_padded_width in range(conv_to_return.shape[3]):
+						conv_to_return[:, :, non_padded_height, non_padded_width] += input_image[:, :, kernel_height+non_padded_height, kernel_width+non_padded_width].dot(conv_slice.T) 
+		return conv_to_return
 
 	@staticmethod
 	def backward(ctx, grad_output):
 		raise Exception("backward pass not implemented for Conv2D")
 register('conv2d', Conv2D)
-
-# [
-# 	[[[-0.08935708  1.1038396   0.34856108]  	 [[-1.7737967   0.76953167  0.03195499]
-# 	[-1.428373    0.9385773   0.0973578 ]    	[ 0.0231209  -0.40871364  0.47527528]
-# 	[-0.25498754 -0.5977416   1.0945355 ]]  	[ 0.40307844  0.4211204   1.5786228 ]]]
-
-# 	[[[-0.08935708  1.1038396   0.34856108]  	 [[-1.7737967   0.76953167  0.03195499]
-# 	[-1.428373    0.9385773   0.0973578 ]   	 [ 0.0231209  -0.40871364  0.47527528]
-# 	[-0.25498754 -0.5977416   1.0945355 ]]  	[ 0.40307844  0.4211204   1.5786228 ]]]
-
-
-# 	[[[-0.08935708  1.1038396   0.34856108] 	  [[-1.7737967   0.76953167  0.03195499]
-# 	[-1.428373    0.9385773   0.0973578 ]   	 [ 0.0231209  -0.40871364  0.47527528]
-# 	[-0.25498754 -0.5977416   1.0945355 ]]  	[ 0.40307844  0.4211204   1.5786228 ]]]
-
-# 	[[[-0.08935708  1.1038396   0.34856108] 	  [[-1.7737967   0.76953167  0.03195499]
-# 	[-1.428373    0.9385773   0.0973578 ]   	 [ 0.0231209  -0.40871364  0.47527528]
-# 	[-0.25498754 -0.5977416   1.0945355 ]]  	[ 0.40307844  0.4211204   1.5786228 ]]]
-#  ]
