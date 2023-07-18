@@ -28,9 +28,39 @@ def numerical_jacobian(model, input, eps=1e-6):
     for i in range(ji):
         for o in range(jo):
             eps_pertub = mask_like(input.data, i, mask_value=eps) # TODO: what is the perturbation step?
-            output_perturb_add = model.forward(Tensor(input.data + eps_pertub)).data.reshape(-1)[o] # TODO: f(x + h)
-            output_perturb_sub = model.forward(Tensor(input.data - eps_pertub)).data.reshape(-1)[o] # TODO: f(x - h)
+            output_perturb_add = model.forward(Tensor(input.data + eps_pertub)).data.reshape(-1)[o] 
+            output_perturb_sub = model.forward(Tensor(input.data - eps_pertub)).data.reshape(-1)[o] 
             
             grad_approx = ((output_perturb_add) - (output_perturb_sub)) / (2*eps) # CDM: (f(x + h) - f(x - h)) / (2 * h)
             NJ[i,o] = grad_approx
     return NJ
+
+def gradcheck(model, input, eps=1e-6, atol=1e-5, rtol=0.001):
+    """
+    Checks whether computed gradient is close to numerical approximation of the Jacobian
+    Params:
+      model       : frog model   
+      eps         : eps used to see if gradient is within tolerances
+      atol        : absolute tolerance
+      rtol        : relative tolerance 
+    Returns:
+      test_passed : Bool, whether the test passed
+      J           : Analytical Jacobian (from model)
+      NJ          : Finite-Difference approx. Jacobian
+    """
+    NJ = numerical_jacobian(model, input, eps)
+    output = model.forward(input)
+
+    ji_shape = input.data.reshape(-1).shape[-1]
+    jo_shape = output.data.reshape(-1).shape[-1]
+    J = np.zeros((ji_shape, jo_shape))
+
+    for o in range(jo_shape):
+      o_scalar = Tensor(mask_like(output.data, o, 1.)).mul(output).sum() # to make isolate output, and make scalar for gradient 
+      o_scalar.backward()
+
+      for i, grad in enumerate(input.grad.reshape(-1)):
+        J[i][o] = grad
+
+    test_passed = np.allclose(J, NJ, atol=atol, rtol=rtol)
+    return test_passed, J, NJ
