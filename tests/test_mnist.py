@@ -40,11 +40,11 @@ class TestMNIST(unittest.TestCase):
 
     if os.getenv("CONV") == "1":
       model = SimpleConvNet()
-      optim = optim.Adam([model.c1, model.l1, model.l2], lr=0.001)
+      optimizer = optim.Adam([model.c1, model.l1, model.l2], lr=0.001)
       steps = 400
     else:
       model = SimpleMLP()
-      optim = optim.SGD([model.l1, model.l2], lr=0.001)
+      optimizer = optim.SGD([model.l1, model.l2], lr=0.001)
       steps = 1000
 
     # number of samples processed before the model is updated
@@ -80,9 +80,9 @@ class TestMNIST(unittest.TestCase):
         model_outputs = model.forward(x)
 
         # ********* backward pass *********
-        loss = model_outputs.mul(y).mean() # NLL loss function
+        loss = model_outputs.mul(y).mean() # TODO: what is NLL loss function?
         loss.backward()
-        optim.step()
+        optimizer.step()
 
         pred = np.argmax(model_outputs.data, axis=1)
         accuracy = (pred == Y).mean()
@@ -92,7 +92,6 @@ class TestMNIST(unittest.TestCase):
         accuracies.append(accuracy)
         t.set_description(f"loss: {float(loss[0]):.2f} accuracy: {float(accuracy):.2f}")
 
-    # evaluate
     def numpy_eval():
       Y_test_preds_out = model.forward(Tensor(X_test.reshape((-1, 28*28))))
       Y_test_preds = np.argmax(Y_test_preds_out.data, axis=1)
