@@ -12,7 +12,7 @@
 
 No extra clutter. An autograd & tensor library with the basics done right.
 
-### Creating an MNIST classifier (from tests/test_mnist.py)
+### Creating an MNIST classifier
 
 ```python
 from frog.tensor import Tensor
@@ -37,6 +37,7 @@ optim = optim.SGD([model.l1, model.l2], lr=0.001)
 - Input/Grad shape-tracking
 - MNIST example
 - Compares data against PyTorch to ensure correctness
+- 2D Convolutions
 
 ### Math Operations
 - Scalar-Matrix Multiplication
@@ -44,11 +45,12 @@ optim = optim.SGD([model.l1, model.l2], lr=0.001)
 - Sum
 - ReLU
 - Log Softmax
+- 2D Convolution
 
 # TODO:
 - Simplify
 - Numerical Gradcheck
-- Convolutions
+- Winograd Conv
 - Stable Diffusion
 - EfficientNet v2
 - Transformers
