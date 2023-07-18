@@ -1,8 +1,9 @@
 import numpy as np
 
-def dense_layer(in_dim,out_dim):
+def dense_layer(*tensor_size):
   # TODO: why dividing by sqrt?
-  ret = np.random.uniform(-1., 1., size=(in_dim,out_dim))/np.sqrt(in_dim*out_dim) 
+  # ret = np.random.uniform(-1., 1., size=(in_dim,out_dim))/np.sqrt(in_dim*out_dim) 
+  ret = np.random.uniform(-1., 1., size=tensor_size)/np.sqrt(np.prod(tensor_size)) 
   return ret.astype(np.float32)
 
 def fetch_mnist():
