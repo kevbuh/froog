@@ -22,26 +22,18 @@ class SimpleMLP:
   def forward(self, x):
     return x.dot(self.l1).relu().dot(self.l2).logsoftmax()
 
-class SGD:
-  def __init__(self, tensors, lr):
-    self.tensors = tensors
-    self.lr = lr
-    
-  def step(self):
-    for t in self.tensors:
-      t.data -= self.lr * t.grad
-
 class SimpleConvNet:
   def __init__(self):
-    self.chans = 4
-    self.c1 = Tensor(dense_layer(self.chans,1,3,3))
-    self.l1 = Tensor(dense_layer(26*26*self.chans, 128))
-    self.l2 = Tensor(dense_layer(128, 10))
+    self.channels = 4
+    self.c1 = Tensor(dense_layer(self.channels,1,3,3)) # (num_filters, color_channels, kernel_h, kernel_w)
+    self.l1 = Tensor(dense_layer(26*26*self.channels, 128)) # (28-2)(28-2) since kernel isn't padded
+    self.l2 = Tensor(dense_layer(128, 10)) # MNIST output is 10 classes
 
   def forward(self, x):
     x.data = x.data.reshape((-1, 1, 28, 28)) 
-    x = x.conv2d(self.c1).reshape(Tensor(np.array((-1, 26*26*self.chans)))).relu()
-    return x.dot(self.l1).relu().dot(self.l2).logsoftmax()
+    x = x.conv2d(self.c1).reshape(Tensor(np.array((-1, 26*26*self.channels)))) # pass through conv first
+    x = x.relu()
+    return x.dot(self.l1).relu().dot(self.l2).logsoftmax() # then go down to mlp and softmax to get probs
 
 if os.getenv("CONV") == "1":
   model = SimpleConvNet()
