@@ -4,7 +4,12 @@
 
 from functools import partialmethod
 import numpy as np
-from numba import jit, float32
+
+# optional jit
+try:
+  from numba import jit
+except ImportError:
+  jit = lambda x: x
 
 # *********** Main Classes ***********
 # ********* Tensor, Function *********
