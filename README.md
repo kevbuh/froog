@@ -36,7 +36,6 @@ optim = optim.SGD([model.l1, model.l2], lr=0.001)
     - Forward and Backward passes
 - Input/Grad shape-tracking
 - MNIST example
-- Compares data against PyTorch to ensure correctness
 - JIT 2D Convolutions
 
 ### Math Operations
@@ -48,9 +47,10 @@ optim = optim.SGD([model.l1, model.l2], lr=0.001)
 - 2D Convolution
 
 # TODO:
-- Simplify
 - Numerical Gradcheck
-- Winograd Conv
-- Stable Diffusion
 - EfficientNet v2
-- Transformers
+<!-- goal is to get effecientnetv2 working -->
+<!-- - Transformers -->
+<!-- - Stable Diffusion -->
+<!-- - Simplify & Refactor -->
+<!-- - Winograd Conv -->
