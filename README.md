@@ -37,7 +37,7 @@ optim = optim.SGD([model.l1, model.l2], lr=0.001)
 - Input/Grad shape-tracking
 - MNIST example
 - Compares data against PyTorch to ensure correctness
-- 2D Convolutions
+- JIT 2D Convolutions
 
 ### Math Operations
 - Scalar-Matrix Multiplication
