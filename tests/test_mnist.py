@@ -1,9 +1,10 @@
+import os
 import numpy as np
 from tqdm import trange
 from frog.tensor import Tensor
 from frog.utils import fetch_mnist, dense_layer
 import frog.optim as optim
-import os
+import unittest
 
 np.random.seed(1337)
 
@@ -34,66 +35,73 @@ class SimpleConvNet:
     x = x.relu()
     return x.dot(self.l1).relu().dot(self.l2).logsoftmax() # then go down to mlp and softmax to get probs
 
-if os.getenv("CONV") == "1":
-  model = SimpleConvNet()
-  optim = optim.Adam([model.c1, model.l1, model.l2], lr=0.001)
-  steps = 400
-else:
-  model = SimpleMLP()
-  optim = optim.SGD([model.l1, model.l2], lr=0.001)
-  steps = 1000
+class TestMNIST(unittest.TestCase):
+  def test_mnist(self):
 
-# number of samples processed before the model is updated
-BS = 128 
+    if os.getenv("CONV") == "1":
+      model = SimpleConvNet()
+      optim = optim.Adam([model.c1, model.l1, model.l2], lr=0.001)
+      steps = 400
+    else:
+      model = SimpleMLP()
+      optim = optim.SGD([model.l1, model.l2], lr=0.001)
+      steps = 1000
 
-# ********* training the model *********
-losses, accuracies = [], []
+    # number of samples processed before the model is updated
+    BS = 128 
 
-for i in (t := trange(steps)):
-    # X_train.shape[0] == 60,000 --> number of images in MNIST
-    # this is choosing a random training image
-    samp = np.random.randint(0, X_train.shape[0], size=(BS))
+    # ********* training the model *********
+    losses, accuracies = [], []
+
+    for i in (t := trange(steps)):
+        # X_train.shape[0] == 60,000 --> number of images in MNIST
+        # this is choosing a random training image
+        samp = np.random.randint(0, X_train.shape[0], size=(BS))
 
 
-    # X_train[samp] is selecting a random batch of training examples
-    # 28x28 pixel size of MNIST images
-    # TODO: why reshaping?
-    x = Tensor(X_train[samp].reshape((-1, 28*28)).astype(np.float32))
-    Y = Y_train[samp]
+        # X_train[samp] is selecting a random batch of training examples
+        # 28x28 pixel size of MNIST images
+        # TODO: why reshaping?
+        x = Tensor(X_train[samp].reshape((-1, 28*28)).astype(np.float32))
+        Y = Y_train[samp]
 
-    # 2D array where each row corresponds to an example in
-    # the batch and each column corresponds to a class.
-    # len(samp) is the number of examples in the batch
-    y = np.zeros((len(samp),10), np.float32)
+        # 2D array where each row corresponds to an example in
+        # the batch and each column corresponds to a class.
+        # len(samp) is the number of examples in the batch
+        y = np.zeros((len(samp),10), np.float32)
 
-    # selects the element of y that corresponds 
-    # to the true class for each example
-    # NLL loss
-    y[range(y.shape[0]),Y] = -10.0
-    y = Tensor(y)
+        # selects the element of y that corresponds 
+        # to the true class for each example
+        # NLL loss
+        y[range(y.shape[0]),Y] = -10.0
+        y = Tensor(y)
 
-    # ********* foward/backward pass *********
-    model_outputs = model.forward(x)
+        # ********* foward/backward pass *********
+        model_outputs = model.forward(x)
 
-    # ********* backward pass *********
-    loss = model_outputs.mul(y).mean() # NLL loss function
-    loss.backward()
-    optim.step()
+        # ********* backward pass *********
+        loss = model_outputs.mul(y).mean() # NLL loss function
+        loss.backward()
+        optim.step()
 
-    pred = np.argmax(model_outputs.data, axis=1)
-    accuracy = (pred == Y).mean()
-  
-    loss = loss.data
-    losses.append(loss)
-    accuracies.append(accuracy)
-    t.set_description(f"loss: {float(loss[0]):.2f} accuracy: {float(accuracy):.2f}")
+        pred = np.argmax(model_outputs.data, axis=1)
+        accuracy = (pred == Y).mean()
+      
+        loss = loss.data
+        losses.append(loss)
+        accuracies.append(accuracy)
+        t.set_description(f"loss: {float(loss[0]):.2f} accuracy: {float(accuracy):.2f}")
 
-# evaluate
-def numpy_eval():
-  Y_test_preds_out = model.forward(Tensor(X_test.reshape((-1, 28*28))))
-  Y_test_preds = np.argmax(Y_test_preds_out.data, axis=1)
-  return (Y_test == Y_test_preds).mean()
+  # evaluate
+  def numpy_eval():
+    Y_test_preds_out = model.forward(Tensor(X_test.reshape((-1, 28*28))))
+    Y_test_preds = np.argmax(Y_test_preds_out.data, axis=1)
+    return (Y_test == Y_test_preds).mean()
 
-accuracy = numpy_eval()
-print(f"loss: {float(loss[0]):.2f} accuracy: {float(accuracy):.2f}")
-assert accuracy > 0.95
+  accuracy = numpy_eval()
+  print(f"loss: {float(loss[0]):.2f} accuracy: {float(accuracy):.2f}")
+  assert accuracy > 0.95
+
+
+if __name__ == '__main__':
+  unittest.main()

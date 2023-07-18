@@ -17,12 +17,6 @@ jobs:
       with:
         python-version: 3.11
     - name: Install Dependencies
-      run: pip install numpy tqdm requests torch
-    - name: Tensor 
-      run: |
-        export PYTHONPATH=$PYTHONPATH:.
-        python3 tests/test_tensor.py
-    - name: MNIST
-      run: |
-        export PYTHONPATH=$PYTHONPATH:.
-        python3 tests/test_mnist.py
+      run: pip install numpy tqdm requests torch pytest
+    - name: Run Pytest 
+      run: python -m pytest -s -v
