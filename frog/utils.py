@@ -6,7 +6,6 @@ def dense_layer(*tensor_size):
   return ret.astype(np.float32)
 
 def fetch_mnist():
-
   def fetch(url):
     import requests, gzip, os, hashlib, numpy
     fp = os.path.join("/tmp", hashlib.md5(url.encode('utf-8')).hexdigest())

@@ -13,8 +13,10 @@ class SGD(Optimizer):
     for t in self.params:
       t.data -= self.lr * t.grad
 
-#https://arxiv.org/pdf/1412.6980.pdf
 class Adam(Optimizer):  
+    """
+    Default ADAM opimizer from https://arxiv.org/pdf/1412.6980.pdf algorithm
+    """
     def __init__(self, params, lr=0.001, b1=0.9, b2=0.999, eps=10e-8):
         super(Adam, self).__init__(params)
         self.params = params

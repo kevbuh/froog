@@ -58,8 +58,10 @@ class Tensor:
     div = Tensor(np.array([1 / self.data.size], dtype=self.data.dtype))
     return self.sum().mul(div)
 
-# An instantiation of the Function class includes the context
 class Function:
+  """
+  An instantiation of the Function class includes the context
+  """
   def __init__(self, *tensors):
     self.parents = tensors
     self.saved_tensors = []
@@ -67,12 +69,14 @@ class Function:
   def save_for_backward(self, *x):
     self.saved_tensors.extend(x)
 
-  # note that due to how partialmethod works, self and arg are switched
-  # self is the tensor                   (a)
-  # arg is the method                    (.dot, .relu) 
-  # *x is b --> the input to the method  (a.dot(b), a.add(b))
   def apply(self, arg, *x):
-    # support the args in both orders
+    """
+    note that due to how partialmethod works, self and arg are switched
+    self is the tensor                   (a)
+    arg is the method                    (.dot, .relu) 
+    *x is b --> the input to the method  (a.dot(b), a.add(b))
+    support the args in both orders
+    """
     if type(arg) == Tensor:
       op = self
       x = [arg]+list(x)
@@ -84,9 +88,11 @@ class Function:
     ret._ctx = ctx
     return ret
 
-# mechanism that allows you to chain methods in an intuitive and Pythonic way
-# e.g. x.dot(w).relu(), where w is a tensor.
 def register(name, fxn):
+  """
+  mechanism that allows you to chain methods in an intuitive and Pythonic way
+  e.g. x.dot(w).relu(), where w is a tensor.
+  """
   setattr(Tensor, name, partialmethod(fxn.apply, fxn))
 
 # *********** Elementary Functions ***********
@@ -158,8 +164,10 @@ class Dot(Function):
     return grad_input, grad_weight
 register('dot', Dot)
 
-# reduces its input tensor to a single value by summing all the elements
 class Sum(Function):
+  """
+  reduces its input tensor to a single value by summing all the elements
+  """
   @staticmethod
   def forward(ctx, input):
     ctx.save_for_backward(input)
@@ -171,9 +179,11 @@ class Sum(Function):
     return grad_output * np.ones_like(input)
 register("sum", Sum)
 
-# converts a vector of numbers into a vector of probabilities
-# probabilities of each value are proportional to the scale of each value 
 class LogSoftmax(Function):
+  """
+  converts a vector of numbers into a vector of probabilities
+  probabilities of each value are proportional to the scale of each value 
+  """
   @staticmethod
   def forward(ctx, input):
     def logsumexp(x):
@@ -190,19 +200,20 @@ class LogSoftmax(Function):
     return grad_output - np.exp(output) * grad_output.sum(axis=1).reshape((-1, 1))
 register("logsoftmax", LogSoftmax)
 
-# doesn't handle padding or strides yet
-# https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md
 class Conv2D(Function): 
   @jit()
   def conv2d_inner_forward(input_image, conv_kernel):
-    # Args:
-    # x.shape[0] 									  --> number of input examples (batch size)
-    # cout 			 								    --> number of output channels
-    # x.shape[2]-(H-1)					 	  --> non-padded height of conv output, need to subtract because this is an unpadded conv
-    # x.shape[3]-(W-1)						  --> width of output
-    # Shape: 
-    # (a, b, c, d)(e, f, g, h)      --> (a, e, c-(g-1), d-(h-1)) 
-
+    """
+    https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md
+    WARNING: doesn't handle padding or strides yet
+    Args:
+      x.shape[0] 									  --> number of input examples (batch size)
+      cout 			 								    --> number of output channels
+      x.shape[2]-(H-1)					 	  --> non-padded height of conv output, need to subtract because this is an unpadded conv
+      x.shape[3]-(W-1)						  --> width of output
+    Shape: 
+      (a, b, c, d)(e, f, g, h)      --> (a, e, c-(g-1), d-(h-1)) 
+    """
     cout, cin, H, W = conv_kernel.shape
     conv_to_return = np.zeros((input_image.shape[0], cout, input_image.shape[2]-(H-1), input_image.shape[3]-(W-1)), dtype=conv_kernel.dtype)
 
