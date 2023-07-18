@@ -185,8 +185,11 @@ class LogSoftmax(Function):
     return grad_output - np.exp(output) * grad_output.sum(axis=1).reshape((-1, 1))
 register("logsoftmax", LogSoftmax)
 
-@jit()
-def conv2d_inner_forward(input_image, conv_kernel):
+# doesn't handle padding or strides yet
+# https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md
+class Conv2D(Function): 
+  @jit()
+  def conv2d_inner_forward(input_image, conv_kernel):
     # Args:
     # x.shape[0] 									  --> number of input examples (batch size)
     # cout 			 								    --> number of output channels
@@ -206,39 +209,32 @@ def conv2d_inner_forward(input_image, conv_kernel):
             conv_to_return[:, :, non_padded_height, non_padded_width] += input_image[:, :, kernel_height+non_padded_height, kernel_width+non_padded_width].dot(conv_slice.T) 
     return conv_to_return
 
-@jit()
-def conv2d_inner_backward(grad_output, input_image, conv_kernel):
-  # input_image, conv_kernel = ctx.saved_tensors
+  @jit()
+  def conv2d_inner_backward(grad_output, input_image, conv_kernel):
+    dx = np.zeros_like(input_image)
+    dw = np.zeros_like(conv_kernel)
 
-  dx = np.zeros_like(input_image)
-  dw = np.zeros_like(conv_kernel)
+    cout, cin, H, W = conv_kernel.shape
 
-  cout, cin, H, W = conv_kernel.shape
+    for j in range(H):
+      for i in range(W):
+        tw = conv_kernel[:, :, j, i]
+        for Y in range(grad_output.shape[2]):
+          for X in range(grad_output.shape[3]):
+            gg = grad_output[:, :, Y, X]        # backprop gradients from previous layer
+            tx = input_image[:, :, Y+j, X+i]    # slice of tensor at current conv op
+            dx[:, :, Y+j, X+i] += gg.dot(tw)    # accumulate gradient of input (current multiply element in chain rule)
+            dw[:, :, j, i] += gg.T.dot(tx)      # gradient with respect to conv kernel
+    return dx, dw
 
-  for j in range(H):
-    for i in range(W):
-      tw = conv_kernel[:, :, j, i]
-      for Y in range(grad_output.shape[2]):
-        for X in range(grad_output.shape[3]):
-          gg = grad_output[:, :, Y, X]        # backprop gradients from previous layer
-          tx = input_image[:, :, Y+j, X+i]    # slice of tensor at current conv op
-          dx[:, :, Y+j, X+i] += gg.dot(tw)    # accumulate gradient of input (current multiply element in chain rule)
-          dw[:, :, j, i] += gg.T.dot(tx)      # gradient with respect to conv kernel
-  return dx, dw
-
-
-
-# doesn't handle padding or strides yet
-# https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md
-class Conv2D(Function): 
   @staticmethod
   def forward(ctx, input_image, conv_kernel):
     ctx.save_for_backward(input_image, conv_kernel)
-    return conv2d_inner_forward(input_image, conv_kernel)
+    return Conv2D.conv2d_inner_forward(input_image, conv_kernel)
 
   @staticmethod
   def backward(ctx, grad_output):
-    return conv2d_inner_backward(grad_output, *ctx.saved_tensors)
+    return Conv2D.conv2d_inner_backward(grad_output, *ctx.saved_tensors)
 
 
 register('conv2d', Conv2D)
