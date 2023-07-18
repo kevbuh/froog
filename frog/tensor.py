@@ -12,6 +12,8 @@ class Tensor:
     if type(data) != np.ndarray:
       print(f"error constructing tensor with {data}")
       assert False
+    if data.dtype == np.float64:
+      print(f"sure you want to use float64 with {data}")
     self.data = data
     self.grad = None
 
@@ -46,8 +48,9 @@ class Tensor:
       t.backward(False)
 
   def mean(self):
-      div = Tensor(np.array([1 / self.data.size]))
-      return self.sum().mul(div)
+    # TODO: why taking mean? 
+    div = Tensor(np.array([1 / self.data.size], dtype=self.data.dtype))
+    return self.sum().mul(div)
 
 # An instantiation of the Function class includes the context
 class Function:

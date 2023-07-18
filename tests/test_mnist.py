@@ -11,7 +11,6 @@ np.random.seed(1337)
 X_train, Y_train, X_test, Y_test = fetch_mnist()
 
 # ********* creating a simple mlp *********
-
 class SimpleMLP:
   def __init__(self):
     # 784 pixel inputs -> 128 -> 10 output
