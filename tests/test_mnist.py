@@ -92,15 +92,15 @@ class TestMNIST(unittest.TestCase):
         accuracies.append(accuracy)
         t.set_description(f"loss: {float(loss[0]):.2f} accuracy: {float(accuracy):.2f}")
 
-  # evaluate
-  def numpy_eval():
-    Y_test_preds_out = model.forward(Tensor(X_test.reshape((-1, 28*28))))
-    Y_test_preds = np.argmax(Y_test_preds_out.data, axis=1)
-    return (Y_test == Y_test_preds).mean()
+    # evaluate
+    def numpy_eval():
+      Y_test_preds_out = model.forward(Tensor(X_test.reshape((-1, 28*28))))
+      Y_test_preds = np.argmax(Y_test_preds_out.data, axis=1)
+      return (Y_test == Y_test_preds).mean()
 
-  accuracy = numpy_eval()
-  print(f"loss: {float(loss[0]):.2f} accuracy: {float(accuracy):.2f}")
-  assert accuracy > 0.95
+    accuracy = numpy_eval()
+    print(f"loss: {float(loss[0]):.2f} accuracy: {float(accuracy):.2f}")
+    assert accuracy > 0.95
 
 
 if __name__ == '__main__':
