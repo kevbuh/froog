@@ -5,14 +5,12 @@ from frog.utils import fetch_mnist, dense_layer
 import frog.optim as optim
 import os
 
+np.random.seed(1337)
+
 # ********* load the mnist dataset *********
 X_train, Y_train, X_test, Y_test = fetch_mnist()
 
 # ********* creating a simple mlp *********
-def layer_init(in_dim,out_dim):
-  # TODO: why dividing by sqrt?
-  ret = np.random.uniform(-1., 1., size=(in_dim,out_dim))/np.sqrt(in_dim*out_dim) 
-  return ret.astype(np.float32)
 
 class SimpleMLP:
   def __init__(self):
@@ -46,13 +44,12 @@ class SimpleConvNet:
     return x.dot(self.l1).relu().dot(self.l2).logsoftmax()
 
 if os.getenv("CONV") == "1":
-  print("using conv")
-  model = TinyConvNet()
+  model = SimpleConvNet()
   optim = optim.Adam([model.c1, model.l1, model.l2], lr=0.001)
   steps = 400
 else:
   model = SimpleMLP()
-  optim = optim.SGD([model.l1, model.l2], lr=0.01)
+  optim = optim.SGD([model.l1, model.l2], lr=0.001)
   steps = 1000
 
 # number of samples processed before the model is updated
@@ -66,12 +63,11 @@ for i in (t := trange(steps)):
     # this is choosing a random training image
     samp = np.random.randint(0, X_train.shape[0], size=(BS))
 
-    x = Tensor(X_train[samp].reshape((-1, 28*28)).astype(np.float32))
 
     # X_train[samp] is selecting a random batch of training examples
     # 28x28 pixel size of MNIST images
     # TODO: why reshaping?
-    # x = Tensor(X_train[samp].reshape((-1, 28*28)))
+    x = Tensor(X_train[samp].reshape((-1, 28*28)).astype(np.float32))
     Y = Y_train[samp]
 
     # 2D array where each row corresponds to an example in
@@ -96,7 +92,6 @@ for i in (t := trange(steps)):
     pred = np.argmax(model_outputs.data, axis=1)
     accuracy = (pred == Y).mean()
   
-
     loss = loss.data
     losses.append(loss)
     accuracies.append(accuracy)
