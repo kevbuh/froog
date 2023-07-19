@@ -5,6 +5,11 @@ def dense_layer(*tensor_size):
   ret = np.random.uniform(-1., 1., size=tensor_size)/np.sqrt(np.prod(tensor_size)) 
   return ret.astype(np.float32)
 
+def mask_like(like, mask_inx, mask_value=1.0):
+  mask = np.zeros_like(like).reshape(-1) # flatten
+  mask[mask_inx] = mask_value            # fill 
+  return mask.reshape(like.shape)
+
 def fetch_mnist():
   def fetch(url):
     import requests, gzip, os, hashlib, numpy
