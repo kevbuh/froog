@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import unittest
 from frog.tensor import Tensor, Conv2D
-from frog.gradcheck import numerical_jacobian, gradcheck
+from frog.gradcheck import numerical_jacobian, gradcheck, jacobian
 
 x_init = np.random.randn(1,3).astype(np.float32)
 W_init = np.random.randn(3,3).astype(np.float32)
@@ -30,16 +30,16 @@ class TestTensor(unittest.TestCase):
       torch_func = lambda x: torch.nn.functional.log_softmax(x.matmul(torch_W).relu(), dim=1)
       torch_out = torch_func(torch_x)
 
-      # autograd.grad computes the _sum_ of gradients of given tensors
-      J_sum1 = torch.autograd.grad(list(torch_out[0]), torch_x)[0].squeeze().numpy()
-      print("***", J_sum1)
       frog_x = Tensor(x)
       frog_W = Tensor(W)
       frog_func = lambda x: x.dot(frog_W).relu().logsoftmax()
-      NJ = numerical_jacobian(frog_func, frog_x)
-      NJ_sum = NJ.sum(axis = -1)
 
-      np.testing.assert_allclose(J_sum1, NJ_sum, atol = 1e-5)
+      J = jacobian(tiny_func, tiny_x)
+      PJ = torch.autograd.functional.jacobian(torch_func, torch_x).squeeze().numpy()
+      NJ = numerical_jacobian(frog_func, frog_x)
+
+      np.testing.assert_allclose(PJ, J, atol = 1e-5)
+      np.testing.assert_allclose(PJ, NJ, atol = 1e-5)
 
     def test_pytorch():
       x = torch.tensor(x_init, requires_grad=True)
@@ -53,8 +53,6 @@ class TestTensor(unittest.TestCase):
 
     for x,y in zip(test_frog(), test_pytorch()):
       np.testing.assert_allclose(x, y, atol=1e-5)
-
-
 
   def test_conv2d(self):
     x = torch.randn((5,2,10,7), requires_grad=True)
@@ -73,12 +71,6 @@ class TestTensor(unittest.TestCase):
     np.testing.assert_allclose(x.grad, xt.grad, atol=1e-5)
 
   def test_gradcheck(self):
-    class FrogModel:
-      def __init__(self, weights_init):
-        self.l1 = Tensor(weights_init)
-      def forward(self, x):
-        return x.dot(self.l1).relu().logsoftmax()
-
     class TorchModel(torch.nn.Module):
       def __init__(self, weights_init):
         super(TorchModel, self).__init__()
@@ -88,22 +80,23 @@ class TestTensor(unittest.TestCase):
       def forward(self, x):
         return torch.nn.functional.log_softmax(self.l1(x).relu(), dim=1)
 
-    layer_weights = np.random.RandomState(1337).random((10, 5))
-    input_data = np.random.RandomState(7331).random((1, 10)) - 0.5
+    x = np.random.RandomState(7331).random((1, 10)) - 0.5
+    W = np.random.RandomState(1337).random((10, 5))
 
-    torch_input = torch.tensor(input_data, requires_grad = True)
-    torch_model = TorchModel(layer_weights)
+    tiny_x = Tensor(x)
+    tiny_W = Tensor(W)
+    tiny_func = lambda x: x.dot(tiny_W).relu().logsoftmax()
 
-    Frog_model = FrogModel(layer_weights)
-    Frog_input = Tensor(input_data)
+    self.assertTrue(gradcheck(tiny_func, tiny_x))
+    
+    torch_input = torch.tensor(x, requires_grad = True)
+    torch_model = TorchModel(W)
 
     # test frog frog
-    gradcheck_test, _, _ = gradcheck(Frog_model.forward, Frog_input)
-    self.assertTrue(gradcheck_test)
+    self.assertTrue(gradcheck(tiny_func, tiny_x))
 
     # test gradcheck
-    gradcheck_test, _, _ = gradcheck(Frog_model.forward, Frog_input, eps = 0.1)
-    self.assertFalse(gradcheck_test)
+    self.assertFalse(gradcheck(tiny_func, tiny_x, eps = 0.1))
 
 
 if __name__ == '__main__':
