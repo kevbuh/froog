@@ -49,7 +49,7 @@ class RMSprop(Optimizer):
   The reason RPROP doesn’t work is that it violates the central idea behind stochastic gradient descent, 
   which is when we have small enough learning rate, it averages the gradients over successive mini-batches.
   """
-  def __init__(self, params, decay=0.9, lr=0.001, eps=1e-6):
+  def __init__(self, params, decay=0.9, lr=0.001, eps=1e-8):
     super(RMSprop, self).__init__(params)
     self.lr = lr
     self.decay = decay
