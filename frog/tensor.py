@@ -212,20 +212,17 @@ class Conv2D(Function):
   @staticmethod
   def backward(ctx, grad_output):
     input_image, conv_kernel = ctx.saved_tensors
-    dx = np.zeros_like(input_image)
-    dw = np.zeros_like(conv_kernel)
-
     cout, cin, H, W = conv_kernel.shape
+    dx, dw = np.zeros_like(input_image), np.zeros_like(conv_kernel)
 
-    for j in range(H):
-      for i in range(W):
-        tw = conv_kernel[:, :, j, i]
-        for Y in range(grad_output.shape[2]):
-          for X in range(grad_output.shape[3]):
-            gg = grad_output[:, :, Y, X]        # backprop gradients from previous layer
-            tx = input_image[:, :, Y+j, X+i]    # slice of tensor at current conv op
-            dx[:, :, Y+j, X+i] += gg.dot(tw)    # accumulate gradient of input (current multiply element in chain rule)
-            dw[:, :, j, i] += gg.T.dot(tx)      # gradient with respect to conv kernel
+    tw = conv_kernel.reshape(conv_kernel.shape[0], -1)  # slice of kernel
+
+    for Y in range(grad_output.shape[2]):
+      for X in range(grad_output.shape[3]):
+        gg = grad_output[:, :, Y, X]                                                 # backprop gradients from previous layer 
+        tx = input_image[:, :, Y:Y+H, X:X+W].reshape(input_image.shape[0], -1)       # slice of tensor at current conv op                                                                                # 
+        dx[:, :, Y:Y+H, X:X+W] += gg.dot(tw).reshape(dx.shape[0], dx.shape[1], H, W) # accumulate gradient of input (current multiply element in chain rule)
+        dw += gg.T.dot(tx).reshape(dw.shape)                                         # gradient with respect to conv kernel
     return dx, dw
 register('conv2d', Conv2D)
 
