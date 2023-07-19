@@ -39,7 +39,7 @@ class Adam(Optimizer):
       v_hat = self.v[i] / (1. - self.b2 ** self.t)
       t.data -=  self.alpha * m_hat / (np.sqrt(v_hat) + self.eps)
 
-class RMSProp(Optimizer):
+class RMSprop(Optimizer):
   """
   This version has epsilon
   https://optimization.cbe.cornell.edu/index.php?title=RMSProp
@@ -50,7 +50,7 @@ class RMSProp(Optimizer):
   which is when we have small enough learning rate, it averages the gradients over successive mini-batches.
   """
   def __init__(self, params, decay=0.9, lr=0.001, eps=1e-6):
-    super(RMSProp, self).__init__(params)
+    super(RMSprop, self).__init__(params)
     self.lr = lr
     self.decay = decay
     self.eps = eps
