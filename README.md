@@ -37,6 +37,7 @@ optim = optim.SGD([model.l1, model.l2], lr=0.001)
 - Input/Grad shape-tracking
 - MNIST example
 - JIT 2D Convolutions
+- Gradient checking
 
 ### Math Operations
 - Scalar-Matrix Multiplication
@@ -47,7 +48,6 @@ optim = optim.SGD([model.l1, model.l2], lr=0.001)
 - 2D Convolution
 
 # TODO:
-- Numerical Gradcheck
 - EfficientNet v2
 <!-- goal is to get effecientnetv2 working -->
 <!-- - Transformers -->
