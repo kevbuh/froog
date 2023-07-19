@@ -24,6 +24,10 @@ class Tensor:
   def __repr__(self):
       return f"Tensor data: {self.data}, gradients: {self.grad}" 
 
+  @property
+  def shape(self):
+    return self.data.shape
+
   def backward(self, allow_fill=True):
     if self._ctx is None:
       return

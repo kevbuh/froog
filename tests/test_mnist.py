@@ -24,14 +24,15 @@ class SimpleMLP:
 
 class SimpleConvNet:
   def __init__(self):
+    conv_size = 7 
     self.channels = 4
-    self.c1 = Tensor(dense_layer(self.channels,1,3,3)) # (num_filters, color_channels, kernel_h, kernel_w)
-    self.l1 = Tensor(dense_layer(26*26*self.channels, 128)) # (28-2)(28-2) since kernel isn't padded
+    self.c1 = Tensor(dense_layer(self.channels,1,conv_size,conv_size)) # (num_filters, color_channels, kernel_h, kernel_w)
+    self.l1 = Tensor(dense_layer((28-conv_size+1)**2*self.channels, 128)) # (28-conv+1)(28-conv+1) since kernel isn't padded
     self.l2 = Tensor(dense_layer(128, 10)) # MNIST output is 10 classes
 
   def forward(self, x):
     x.data = x.data.reshape((-1, 1, 28, 28)) 
-    x = x.conv2d(self.c1).reshape(Tensor(np.array((-1, 26*26*self.channels)))) # pass through conv first
+    x = x.conv2d(self.c1).reshape(Tensor(np.array((x.shape[0], -1)))) # pass through conv first
     x = x.relu()
     return x.dot(self.l1).relu().dot(self.l2).logsoftmax() # then go down to mlp and softmax to get probs
 
