@@ -5,12 +5,6 @@
 from functools import partialmethod
 import numpy as np
 
-# optional jit
-try:
-  from numba import jit
-except ImportError:
-  jit = lambda x: x
-
 # *********** Main Classes ***********
 # ********* Tensor, Function *********
 class Tensor:
@@ -19,7 +13,8 @@ class Tensor:
       print(f"error constructing tensor with {data}")
       assert False
     if data.dtype == np.float64:
-      print(f"sure you want to use float64 with {data}")
+      # print(f"sure you want to use float64 with {data}")
+      pass
     self.data = data
     self.grad = None
 
@@ -98,19 +93,6 @@ def register(name, fxn):
 # *********** Elementary Functions ***********
 # Add, Mul, ReLU, Dot, Sum, Conv2D, Reshape 
 # grad_output is the gradient of the loss with respect to the output of the operation.
-
-class Reshape(Function):
-  @staticmethod
-  def forward(ctx, x, shape):
-    ctx.save_for_backward(x.shape)
-    return x.reshape(shape)
-
-  @staticmethod
-  def backward(ctx, grad_output):
-    in_shape, = ctx.saved_tensors
-    return grad_output.reshape(in_shape), None
-register('reshape', Reshape)
-
 
 class Add(Function):
   @staticmethod # @staticmethod doesn't require an instance of Add to work
@@ -201,8 +183,9 @@ class LogSoftmax(Function):
 register("logsoftmax", LogSoftmax)
 
 class Conv2D(Function): 
-  @jit()
-  def conv2d_inner_forward(input_image, conv_kernel):
+  @staticmethod
+  def forward(ctx, input_image, conv_kernel):
+    ctx.save_for_backward(input_image, conv_kernel)
     """
     https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md
     WARNING: doesn't handle padding or strides yet
@@ -217,16 +200,18 @@ class Conv2D(Function):
     cout, cin, H, W = conv_kernel.shape
     conv_to_return = np.zeros((input_image.shape[0], cout, input_image.shape[2]-(H-1), input_image.shape[3]-(W-1)), dtype=conv_kernel.dtype)
 
-    for kernel_height in range(H):
-      for kernel_width in range(W):
-        conv_slice = conv_kernel[:, :, kernel_height, kernel_width]
-        for non_padded_height in range(conv_to_return.shape[2]):
-          for non_padded_width in range(conv_to_return.shape[3]):
-            conv_to_return[:, :, non_padded_height, non_padded_width] += input_image[:, :, kernel_height+non_padded_height, kernel_width+non_padded_width].dot(conv_slice.T) 
+    tw = conv_kernel.reshape(conv_kernel.shape[0], -1).T  # slice of kernel 
+
+    for Y in range(conv_to_return.shape[2]):              # non_padded_height
+      for X in range(conv_to_return.shape[3]):            # non_padded_width
+        tx = input_image[:, :, Y:Y+H, X:X+W]
+        tx = tx.reshape(input_image.shape[0], -1)
+        conv_to_return[:, :, Y, X] = tx.dot(tw)
     return conv_to_return
 
-  @jit()
-  def conv2d_inner_backward(grad_output, input_image, conv_kernel):
+  @staticmethod
+  def backward(ctx, grad_output):
+    input_image, conv_kernel = ctx.saved_tensors
     dx = np.zeros_like(input_image)
     dw = np.zeros_like(conv_kernel)
 
@@ -242,15 +227,16 @@ class Conv2D(Function):
             dx[:, :, Y+j, X+i] += gg.dot(tw)    # accumulate gradient of input (current multiply element in chain rule)
             dw[:, :, j, i] += gg.T.dot(tx)      # gradient with respect to conv kernel
     return dx, dw
+register('conv2d', Conv2D)
 
+class Reshape(Function):
   @staticmethod
-  def forward(ctx, input_image, conv_kernel):
-    ctx.save_for_backward(input_image, conv_kernel)
-    return Conv2D.conv2d_inner_forward(input_image, conv_kernel)
+  def forward(ctx, x, shape):
+    ctx.save_for_backward(x.shape)
+    return x.reshape(shape)
 
   @staticmethod
   def backward(ctx, grad_output):
-    return Conv2D.conv2d_inner_backward(grad_output, *ctx.saved_tensors)
-
-
-register('conv2d', Conv2D)
+    in_shape, = ctx.saved_tensors
+    return grad_output.reshape(in_shape), None
+register('reshape', Reshape)

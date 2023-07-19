@@ -98,7 +98,5 @@ class TestTensor(unittest.TestCase):
     # test gradcheck
     self.assertFalse(gradcheck(tiny_func, tiny_x, eps = 0.1))
 
-
 if __name__ == '__main__':
   unittest.main()
-

@@ -27,8 +27,8 @@ class Adam(Optimizer):
     self.eps = eps # should be 1e-8?
     self.t = 0
 
-    self.m = [np.zeros_like(t.data) for t in self.params ]
-    self.v = [np.zeros_like(t.data) for t in self.params ]
+    self.m = [np.zeros_like(t.data) for t in self.params]
+    self.v = [np.zeros_like(t.data) for t in self.params]
 
   def step(self):
     self.t += 1

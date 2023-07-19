@@ -38,6 +38,7 @@ optim = optim.SGD([model.l1, model.l2], lr=0.001)
 - MNIST example
 - JIT 2D Convolutions
 - Gradient checking
+- The most common optimizers (SGD, Adam, RMSProp)
 
 ### Math Operations
 - Scalar-Matrix Multiplication

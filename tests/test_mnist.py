@@ -46,7 +46,6 @@ class TestMNIST(unittest.TestCase):
       model = SimpleMLP()
       # optimizer = optim.SGD([model.l1, model.l2], lr=0.001)
       optimizer = optim.RMSProp([model.l1, model.l2], lr=0.001)
-
       steps = 1000
 
     # number of samples processed before the model is updated
