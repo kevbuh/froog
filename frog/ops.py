@@ -96,7 +96,6 @@ register("logsoftmax", LogSoftmax)
 class Conv2D(Function): 
   @staticmethod
   def forward(ctx, input_image, conv_kernel):
-    ctx.save_for_backward(input_image, conv_kernel)
     """
     https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md
     WARNING: doesn't handle padding or strides yet
@@ -108,6 +107,7 @@ class Conv2D(Function):
     Shape: 
       (a, b, c, d)(e, f, g, h)      --> (a, e, c-(g-1), d-(h-1)) 
     """
+    ctx.save_for_backward(input_image, conv_kernel)
     cout, cin, H, W = conv_kernel.shape
     conv_to_return = np.zeros((input_image.shape[0], cout, input_image.shape[2]-(H-1), input_image.shape[3]-(W-1)), dtype=conv_kernel.dtype)
 
@@ -122,20 +122,83 @@ class Conv2D(Function):
 
   @staticmethod
   def backward(ctx, grad_output):
-    input_image, conv_kernel = ctx.saved_tensors
+    x, conv_kernel = ctx.saved_tensors
     cout, cin, H, W = conv_kernel.shape
-    dx, dw = np.zeros_like(input_image), np.zeros_like(conv_kernel)
+    dx, dw = np.zeros_like(x), np.zeros_like(conv_kernel)
 
-    tw = conv_kernel.reshape(conv_kernel.shape[0], -1)  # slice of kernel
+    tw = conv_kernel.reshape(cout, -1) # slice of kernel
 
     for Y in range(grad_output.shape[2]):
       for X in range(grad_output.shape[3]):
         gg = grad_output[:, :, Y, X]                                                 # backprop gradients from previous layer 
-        tx = input_image[:, :, Y:Y+H, X:X+W].reshape(input_image.shape[0], -1)       # slice of tensor at current conv op                                                                                # 
-        dx[:, :, Y:Y+H, X:X+W] += gg.dot(tw).reshape(dx.shape[0], dx.shape[1], H, W) # accumulate gradient of input (current multiply element in chain rule)
+        tx = x[:, :, Y:Y+H, X:X+W].reshape(x.shape[0], -1)                           # slice of tensor at current conv op                                                                                # 
         dw += gg.T.dot(tx).reshape(dw.shape)                                         # gradient with respect to conv kernel
+        dx[:, :, Y:Y+H, X:X+W] += gg.dot(tw).reshape(dx.shape[0], dx.shape[1], H, W) # accumulate gradient of input (current multiply element in chain rule)
     return dx, dw
 register('conv2d', Conv2D)
+
+
+class FastConv2D(Function):
+  """
+  uses im2col
+  https://leonardoaraujosantos.gitbook.io/artificial-inteligence/machine_learning/deep_learning/convolution_layer/making_faster
+  """
+
+  @staticmethod
+  def forward(ctx, x, w):
+    cout, cin, k_h, k_x = w.shape
+    bs, oy, ox = x.shape[0], x.shape[2]-(k_h-1), x.shape[3]-(k_x-1)
+
+    tw = w.reshape(cout, -1).T                              # each filter flattened into a row
+
+    # im2col
+    tx = np.empty((oy, ox, bs, cin*k_x*k_h), dtype=x.dtype) # (cin*k_h*k_w) represents the total number of elements in a single 3D filter
+    # print(f"{tx.shape=}")
+
+    for Y in range(oy):
+      for X in range(ox):
+        # print(f"{tx[Y, X].shape=}")
+        tx[Y, X] = x[:, :, Y:Y+k_h, X:X+k_x].reshape(bs, -1) # performing the img2col operation, turns that block of the image into a column in tx
+    tx = tx.reshape(-1, cin*k_x*k_h)                         # combines all the columns we created in the previous step into a single 2D matrix
+
+    # save the im2col output
+    ctx.save_for_backward(tx, w)
+
+    # now the conv is a GEMM
+    # print(f"{tx.shape=}")
+    # print(f"{tw.shape=}")
+
+    ret = tx.dot(tw).reshape(oy, ox, bs, cout)
+
+    return np.moveaxis(ret, [0,1,2,3], [2,3,0,1])            # reorders the axes (batch size, number of channels, height, width)
+
+  @staticmethod
+  def backward(ctx, grad_output):
+    bs,_,oy,ox = grad_output.shape
+    tx, w = ctx.saved_tensors
+    cout,cin,H,W = w.shape
+
+    tw = w.reshape(cout, -1)
+
+    # order correctly
+    gg = np.moveaxis(grad_output, [0,1,2,3], [2,3,0,1]).reshape(-1, cout)
+
+    # dw is easy
+    dw = gg.T.dot(tx).reshape(w.shape)
+
+    # dx is harder
+    dxi = gg.dot(tw).reshape(oy, ox, bs, cin, H, W)
+
+    # col2im (is there a faster way to do this?)
+    dx = np.zeros((bs, cin, oy+(H-1), ox+(W-1)), dtype=dxi.dtype)
+    for Y in range(oy):
+      for X in range(ox):
+        dx[:, :, Y:Y+H, X:X+W] += dxi[Y, X]
+    return dx, dw
+register('conv2d', FastConv2D)
+  
+# register('fastConv2D', FastConv2D)
+
 
 class Reshape(Function):
   @staticmethod

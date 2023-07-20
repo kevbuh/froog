@@ -28,13 +28,13 @@ class TestTensor(unittest.TestCase):
       torch_x = torch.tensor(x, requires_grad=True)
       torch_W = torch.tensor(W, requires_grad=True)
       torch_func = lambda x: torch.nn.functional.log_softmax(x.matmul(torch_W).relu(), dim=1)
-      torch_out = torch_func(torch_x)
+      # torch_out = torch_func(torch_x)
 
       frog_x = Tensor(x)
       frog_W = Tensor(W)
       frog_func = lambda x: x.dot(frog_W).relu().logsoftmax()
 
-      J = jacobian(tiny_func, tiny_x)
+      J = jacobian(frog_func, frog_x)
       PJ = torch.autograd.functional.jacobian(torch_func, torch_x).squeeze().numpy()
       NJ = numerical_jacobian(frog_func, frog_x)
 

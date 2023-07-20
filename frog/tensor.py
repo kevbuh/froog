@@ -19,6 +19,7 @@ class Tensor:
     self.grad = None
 
     # internal variables used for autograd graph construction
+    # these are where the backward gradient computation are saved
     self._ctx = None
 
   def __repr__(self):

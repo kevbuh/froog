@@ -1,4 +1,3 @@
-import os
 import numpy as np
 from tqdm import trange
 from frog.tensor import Tensor
@@ -24,7 +23,7 @@ class SimpleMLP:
 
 class SimpleConvNet:
   def __init__(self):
-    conv_size = 4 
+    conv_size = 5
     channels = 17
     self.c1 = Tensor(dense_layer(channels,1,conv_size,conv_size))     # (num_filters, color_channels, kernel_h, kernel_w)
     self.l1 = Tensor(dense_layer((28-conv_size+1)**2*channels, 128))  # (28-conv+1)(28-conv+1) since kernel isn't padded
