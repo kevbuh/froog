@@ -28,6 +28,18 @@ class Tensor:
   @property
   def shape(self):
     return self.data.shape
+  
+  @staticmethod
+  def zeros(*shape):
+    return Tensor(np.zeros(shape, dtype=np.float32))
+  
+  @staticmethod
+  def ones(*shape):
+    return Tensor(np.ones(shape, dtype=np.float32))
+  
+  @staticmethod
+  def randn(*shape):
+    return Tensor(np.random.randn(*shape).astype(np.float32))
 
   def backward(self, allow_fill=True):
     if self._ctx is None:

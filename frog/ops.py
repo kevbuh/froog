@@ -1,5 +1,6 @@
 import numpy as np
 from frog.tensor import Function, register
+from frog.utils import im2col, col2im
 
 # *********** Elementary Functions ***********
 # Add, Mul, ReLU, Dot, Sum, Conv2D, Reshape 
@@ -152,14 +153,7 @@ class FastConv2D(Function):
     tw = w.reshape(cout, -1).T                              # each filter flattened into a row
 
     # im2col
-    tx = np.empty((oy, ox, bs, cin*k_x*k_h), dtype=x.dtype) # (cin*k_h*k_w) represents the total number of elements in a single 3D filter
-    # print(f"{tx.shape=}")
-
-    for Y in range(oy):
-      for X in range(ox):
-        # print(f"{tx[Y, X].shape=}")
-        tx[Y, X] = x[:, :, Y:Y+k_h, X:X+k_x].reshape(bs, -1) # performing the img2col operation, turns that block of the image into a column in tx
-    tx = tx.reshape(-1, cin*k_x*k_h)                         # combines all the columns we created in the previous step into a single 2D matrix
+    tx = im2col(x, k_h, k_x)
 
     # save the im2col output
     ctx.save_for_backward(tx, w)
@@ -187,17 +181,13 @@ class FastConv2D(Function):
     dw = gg.T.dot(tx).reshape(w.shape)
 
     # dx is harder
-    dxi = gg.dot(tw).reshape(oy, ox, bs, cin, H, W)
+    dxi = gg.dot(tw)
 
-    # col2im (is there a faster way to do this?)
-    dx = np.zeros((bs, cin, oy+(H-1), ox+(W-1)), dtype=dxi.dtype)
-    for Y in range(oy):
-      for X in range(ox):
-        dx[:, :, Y:Y+H, X:X+W] += dxi[Y, X]
+    # im2col on forward, col2im on backward
+    dx = col2im(dxi, H, W, oy+(H-1), ox+(W-1))
+
     return dx, dw
-register('conv2d', FastConv2D)
-  
-# register('fastConv2D', FastConv2D)
+# register('conv2d', FastConv2D)
 
 
 class Reshape(Function):
