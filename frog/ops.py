@@ -201,3 +201,31 @@ class Reshape(Function):
     in_shape, = ctx.saved_tensors
     return grad_output.reshape(in_shape), None
 register('reshape', Reshape)
+
+class MaxPool2x2(Function):
+  @staticmethod
+  def forward(ctx, x, shape):
+    stack = []
+    for Y in range(2):
+      for X in range(2):
+        stack.append(x[:, :, Y:2, X:2])
+    stack = np.concatenate(stack, axis=0)
+    idx_of_max = np.argmax(stack, axis=0)
+    ctx.save_for_backward(idx_of_max)
+    return np.max(stack, axis=0)
+
+  @staticmethod
+  def backward(ctx, grad_output):
+    """
+    distribute the gradient from the output of the max pooling layer to its inputs.
+    """
+    idxs, = ctx.saved_tensors # TODO: why have comma ?
+    s = grad_output.shape
+    ret = np.zeros((s[0], s[1], s[2]*2, s[3]*2), dtype=grad_output.dtype) # multiplied by 2 in the last two dimensions because max pooling has reduced the size of these dimensions by half
+    for Y in range(2):
+      for X in range(2):
+        # The purpose of (idxs == (Y*2+X)) is to generate a boolean mask indicating the locations of the maximum values in each 2x2 block of the original input
+         # The expression (Y*2+X) is a way to iterate through the four possible positions within the 2x2 block: (0,0), (0,1), (1,0), and (1,1), which get mapped to the indices 0, 1, 2, and 3 
+        ret[:, :, Y::2, X::2] = grad_output * (idxs == (Y*2+X))
+    return ret
+register('maxpool2x2', MaxPool2x2)
