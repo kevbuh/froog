@@ -5,12 +5,14 @@
   <br/>
   frog: fast real-time optimization of gradients 
   <br/>
-  An autograd & tensor machine learning library
+  A readable autograd & tensor machine learning library
   <br/>
   <br/>
 </div>
 
-No extra clutter. It just works.
+No extra clutter.
+Super simple.
+It just works.
 
 ### Creating an MNIST classifier
 
