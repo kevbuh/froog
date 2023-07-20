@@ -105,7 +105,7 @@ class TestMNIST(unittest.TestCase):
     np.random.seed(1337)
     model = SimpleMLP()
     np.random.seed(1337)
-    optimizer = optim.RMSprop([model.l1, model.l2], lr=0.001)
+    optimizer = optim.RMSprop([model.l1, model.l2], lr=0.0002)
     train(model, optimizer, steps=1000)
     evaluate(model)
 
