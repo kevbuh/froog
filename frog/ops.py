@@ -221,11 +221,11 @@ class MaxPool2x2(Function):
     The purpose of (idxs == (Y*2+X)) is to generate a boolean mask indicating the locations of the maximum values in each 2x2 block of the original input
     The expression (Y*2+X) is a way to iterate through the four possible positions within the 2x2 block: (0,0), (0,1), (1,0), and (1,1), which get mapped to the indices 0, 1, 2, and 3 
     """
-    idxs, = ctx.saved_tensors                                             # TODO: why have tuple comma ?
+    idxs, = ctx.saved_tensors                                             # TODO: why needs tuple comma ?
     s = grad_output.shape
     ret = np.zeros((s[0], s[1], s[2]*2, s[3]*2), dtype=grad_output.dtype) # multiplied by 2 in the last two dimensions because max pooling has reduced the size of these dimensions by half
     for Y in range(2):
       for X in range(2):
-        ret[:, :, Y::2, X::2] = grad_output * (idxs == (Y*2+X))           # only selects the max
+        ret[:, :, Y::2, X::2] = grad_output * (idxs == (Y*2+X))           # selects the max and does the backward op
     return ret
 register('maxpool2x2', MaxPool2x2)
