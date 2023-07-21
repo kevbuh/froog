@@ -136,7 +136,7 @@ class Conv2D(Function):
         dw += gg.T.dot(tx).reshape(dw.shape)                                         # gradient with respect to conv kernel
         dx[:, :, Y:Y+H, X:X+W] += gg.dot(tw).reshape(dx.shape[0], dx.shape[1], H, W) # accumulate gradient of input (current multiply element in chain rule)
     return dx, dw
-register('conv2d', Conv2D)
+# register('conv2d', Conv2D)
 
 
 class FastConv2D(Function):
@@ -162,9 +162,9 @@ class FastConv2D(Function):
     # print(f"{tx.shape=}")
     # print(f"{tw.shape=}")
 
-    ret = tx.dot(tw).reshape(oy, ox, bs, cout)
+    ret = tx.dot(tw).reshape(bs, oy, ox, cout)
 
-    return np.moveaxis(ret, [0,1,2,3], [2,3,0,1])            # reorders the axes (batch size, number of channels, height, width)
+    return np.moveaxis(ret, [0,1,2,3], [0,2,3,1])            # reorders the axes (batch size, number of channels, height, width)
 
   @staticmethod
   def backward(ctx, grad_output):
@@ -175,7 +175,7 @@ class FastConv2D(Function):
     tw = w.reshape(cout, -1)
 
     # order correctly
-    gg = np.moveaxis(grad_output, [0,1,2,3], [2,3,0,1]).reshape(-1, cout)
+    gg = np.moveaxis(grad_output, [0,1,2,3], [0,2,3,1]).reshape(-1, cout)
 
     # dw is easy
     dw = gg.T.dot(tx).reshape(w.shape)
@@ -187,7 +187,7 @@ class FastConv2D(Function):
     dx = col2im(dxi, H, W, oy+(H-1), ox+(W-1))
 
     return dx, dw
-# register('conv2d', FastConv2D)
+register('conv2d', FastConv2D)
 
 
 class Reshape(Function):
