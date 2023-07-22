@@ -22,6 +22,10 @@ def profile_conv(bs, chans, conv, num_times=100):
 
 class TestConvSpeed(unittest.TestCase):
   def test_3x3_conv(self):
+    # warmup
+    profile_conv(128, 16, 3, cnt=1)
+
+    
     # multiplying by 1e9 converts seconds to nanoseconds
     # 1e-6 refers to a microsecond (μs)
     pr = cProfile.Profile(timer=lambda: int(time.time()*1e9), timeunit=1e-6) 

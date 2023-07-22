@@ -34,6 +34,18 @@ def get_im2col_index(oy, ox, cin, H, W):
   idx = idx_channel * OY * OX + idx_y * OX + idx_x
   return idx
 
+# ????
+@lru_cache
+def rearrange_col2im_index(oy, ox, cin, H, W):
+  idx = get_im2col_index(oy, ox, cin, H, W)
+  r_idx = np.zeros((np.max(idx)+1, H*W), dtype=idx.dtype)-1
+  for i,x in enumerate(idx):
+    for j in range(H*W):
+      if r_idx[x,j] == -1:
+        r_idx[x,j] = i
+        break
+  return r_idx
+
 # matlab uses these to speed up convs
 def im2col(x, H, W):
   bs, cin, oy, ox = x.shape[0], x.shape[1], x.shape[2]-(H-1), x.shape[3]-(W-1)
@@ -49,12 +61,16 @@ def col2im(tx, H, W, OY, OX):
   oy, ox = OY-(H-1), OX-(W-1)
   bs = tx.shape[0] // (oy * ox)
   channels_in = tx.shape[1] // (H * W)
-  tx = tx.reshape(bs, oy, ox, channels_in, H, W)
 
-  x = np.zeros((bs, channels_in, OY, OX), dtype=tx.dtype)
-  for Y in range(oy):
-    for X in range(ox):
-      x[:, :, Y:Y+H, X:X+W] += tx[:, Y, X]
+  ridx = rearrange_col2im_index(oy, ox, channels_in, H, W)
+  # -1 has to be 0s
+  x = np.pad(tx.reshape(bs, -1), ((0,0),(0,1)))[:, ridx].sum(axis=2)
+  # tx = tx.reshape(bs, oy, ox, channels_in, H, W)
+
+  # x = np.zeros((bs, channels_in, OY, OX), dtype=tx.dtype)
+  # for Y in range(oy):
+  #   for X in range(ox):
+  #     x[:, :, Y:Y+H, X:X+W] += tx[:, Y, X]
   return x.reshape(bs, channels_in, OY, OX)
 
 
