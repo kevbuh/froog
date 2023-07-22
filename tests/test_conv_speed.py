@@ -3,6 +3,7 @@ import cProfile
 import unittest
 from frog.tensor import Tensor
 import pstats
+import numpy as np
 
 def profile_conv(bs, chans, conv, num_times=100):
   img = Tensor.zeros(bs, 1, 28, 28)
@@ -18,29 +19,53 @@ def profile_conv(bs, chans, conv, num_times=100):
     forward_pass_time += (conv1_end-conv1_start)
     backward_pass_time += (gradient_calc_end-conv1_end)
   return forward_pass_time/num_times, backward_pass_time/num_times
-    
+
+
+def start_profile():
+  import time
+  # multiplying by 1e9 converts seconds to nanoseconds
+  # 1e-6 refers to a microsecond (μs)
+  pr = cProfile.Profile(timer=lambda: int(time.time()*1e9), timeunit=1e-6)
+  pr.enable()
+  return pr
+
+def stop_profile(pr, sort='cumtime'):
+  pr.disable()
+  ps = pstats.Stats(pr)
+  ps.strip_dirs()
+  ps.sort_stats(sort)
+  ps.print_stats(0.3)
+
 
 class TestConvSpeed(unittest.TestCase):
   def test_3x3_conv(self):
     # warmup
     profile_conv(128, 16, 3, num_times=1)
-
-
-    # multiplying by 1e9 converts seconds to nanoseconds
-    # 1e-6 refers to a microsecond (μs)
-    pr = cProfile.Profile(timer=lambda: int(time.time()*1e9), timeunit=1e-6) 
-
-    pr.enable()
+    pr = start_profile()
     fwd_pass_avg, backward_pass_avg = profile_conv(128, 16, 3)
-    pr.disable()
-
-    ps = pstats.Stats(pr)
-    ps.strip_dirs()
-    ps.sort_stats('cumtime')
-    ps.print_stats(0.3)
-
+    stop_profile(pr)
     print(f"avg forward pass :  {float(fwd_pass_avg*1000):.2f} ms")
     print(f"avg backward pass: {float(backward_pass_avg*1000):.2f} ms")
+    
+  def test_mnist(self):
+      # https://keras.io/examples/vision/mnist_convnet/
+      conv = 3
+      inter_chan, out_chan = 32, 64
+      c1 = Tensor.randn(inter_chan,1,conv,conv)
+      c2 = Tensor.randn(out_chan,inter_chan,conv,conv)
+      l1 = Tensor.randn(out_chan*5*5, 10)
+
+      for i in range(6):
+        x = Tensor.randn(128, 1, 28, 28)
+        x = x.conv2d(c1).relu().maxpool2x2()
+        x = x.conv2d(c2).relu().maxpool2x2()
+        x = x.reshape(Tensor(np.array((x.shape[0], -1))))
+        out = x.dot(l1).logsoftmax()
+        out.mean().backward()
+        if i == 0:
+          pr = start_profile()
+
+      stop_profile(pr, sort='time')
 
 if __name__ == '__main__':
   unittest.main()

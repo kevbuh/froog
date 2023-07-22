@@ -49,7 +49,9 @@ def im2col(x, H, W):
   # tx = x[:, idx_channel, idx_y, idx_x]
   idx = get_im2col_index(oy, ox, cin, H, W)
   tx = x.reshape(bs, -1)[:, idx]
-
+  
+  # all the time is spent here
+  tx = tx.ravel()
   return tx.reshape(-1, cin*W*H)
 
 def col2im(tx, H, W, OY, OX):
@@ -67,10 +69,6 @@ def col2im(tx, H, W, OY, OX):
   #   for X in range(ox):
   #     x[:, :, Y:Y+H, X:X+W] += tx[:, Y, X]
   return x.reshape(bs, channels_in, OY, OX)
-
-
-
-
 
 def fetch_mnist():
   def fetch(url):
