@@ -15,21 +15,15 @@ def mask_like(like, mask_inx, mask_value=1.0):
 def get_im2col_index(oy, ox, cin, H, W):
   idx_channel = np.tile(np.arange(cin).repeat(H*W), oy*ox)
   # print(f"{idx_channel=}")
-  # print(f"{idx_channel.shape=}")
 
   idx_y = np.tile(np.arange(H).repeat(W), oy*ox*cin) + np.arange(oy).repeat(ox*cin*H*W)
-  # print(f"{idx_y=}")
-  # print(f"{idx_y.shape=}")
-
   idx_x = np.tile(np.arange(W), oy*ox*cin*H) + np.tile(np.arange(ox), oy).repeat(cin*H*W)
-  # print(f"{idx_x=}")
-  # print(f"{idx_x.shape=}")
 
   OY, OX = oy+(H-1), ox+(W-1)
   idx = idx_channel * OY * OX + idx_y * OX + idx_x
   return idx
 
-# ????
+# TODO: whats this doing? 
 @lru_cache
 def rearrange_col2im_index(oy, ox, cin, H, W):
   idx = get_im2col_index(oy, ox, cin, H, W)
@@ -44,14 +38,11 @@ def rearrange_col2im_index(oy, ox, cin, H, W):
 # matlab uses these to speed up convs
 def im2col(x, H, W):
   bs, cin, oy, ox = x.shape[0], x.shape[1], x.shape[2]-(H-1), x.shape[3]-(W-1)
-
-  # idx_channel, idx_y, idx_x = get_im2col_index(oy, ox, cin, H, W)
-  # tx = x[:, idx_channel, idx_y, idx_x]
   idx = get_im2col_index(oy, ox, cin, H, W)
   tx = x.reshape(bs, -1)[:, idx]
-  
+
   # all the time is spent here
-  tx = tx.ravel()
+  tx = tx.ravel() # TODO: whats the purpose of ravel ???
   return tx.reshape(-1, cin*W*H)
 
 def col2im(tx, H, W, OY, OX):
@@ -62,12 +53,6 @@ def col2im(tx, H, W, OY, OX):
   ridx = rearrange_col2im_index(oy, ox, channels_in, H, W)
   # -1 has to be 0s
   x = np.pad(tx.reshape(bs, -1), ((0,0),(0,1)))[:, ridx].sum(axis=2)
-  # tx = tx.reshape(bs, oy, ox, channels_in, H, W)
-
-  # x = np.zeros((bs, channels_in, OY, OX), dtype=tx.dtype)
-  # for Y in range(oy):
-  #   for X in range(ox):
-  #     x[:, :, Y:Y+H, X:X+W] += tx[:, Y, X]
   return x.reshape(bs, channels_in, OY, OX)
 
 def fetch_mnist():

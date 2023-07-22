@@ -38,8 +38,7 @@ class ReLU(Function): # max(0,x)
   @staticmethod
   def backward(ctx, grad_output):
     (input,) = ctx.saved_tensors
-    grad_input = grad_output.copy() # numpy only creates reference if you don't .copy()
-    grad_input[input < 0] = 0
+    grad_input = grad_output * (input >= 0)
     return grad_input
 register("relu", ReLU)
 
