@@ -5,19 +5,23 @@
   <br/>
   frog: fast real-time optimization of gradients 
   <br/>
-  <a href="https://github.com/kevbuh/frog/tree/main/docs">documentation</a>
+  <a href="https://github.com/kevbuh/frog/tree/main/docs">documentation</a> | <a href="https://github.com/kevbuh/frog/tree/main/examples">examples</a> 
+  <br/>
   <br/>
 </div>
 
-why does modern ml development have to be so hard? a beautifully compact machine-learning library
+a beautifully compact machine-learning library
+
+modern ml development is unintuitive, time consuming, and unaccessible. why not make it possible for anyone to build?
+
 
 ### Overview of Features
 - Tensors
 - Automatic Differentiation
-    - Forward and Backward passes
-- Input/Grad shape-tracking
+    - Forward and backward passes
+- Input/gradient shape-tracking
 - MNIST example
-- JIT 2D Convolutions
+- 2D Convolutions (im2col)
 - Gradient checking
 - The most common optimizers (SGD, Adam, RMSProp)
 
@@ -29,23 +33,11 @@ why does modern ml development have to be so hard? a beautifully compact machine
 - Log Softmax
 - 2D Convolution
 
-# Contributing
-
-Pull requests are always welcome.
-
-Here are some basic guidelines for contributing:
-
-Bug fixes are the best and always welcome!
-Conceptual cleanups are great.
-Features are welcome. Though if you are adding a feature, you need to include tests.
-
 # Bounties
 
-We really want to get a useful model working right out of the box! Our top bounty is to get EfficientNet v2 model working inside of the examples folder.
+We really want to get a useful model working right out of the box! Our top bounty is to get EfficientNet v2 model working inside of the <a href="https://github.com/kevbuh/frog/tree/main/examples">examples</a>  folder.
 
-- EfficientNet v2 **top priority**
-
-### Other bounties
+- EfficientNet v2 (**top priority**)
 
 #### Easy
 - built in MLP model
@@ -60,3 +52,11 @@ We really want to get a useful model working right out of the box! Our top bount
 - Winograd Convs
 - MPS support
 - CUDA support
+
+# Contributing
+
+Here are some basic guidelines for contributing:
+
+Bug fixes are the best and always welcome.
+Conceptual cleanups are great!
+All features must include <a href="https://github.com/kevbuh/frog/tree/main/tests">tests</a>.
