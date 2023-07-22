@@ -5,32 +5,11 @@
   <br/>
   frog: fast real-time optimization of gradients 
   <br/>
-  A readable autograd & tensor machine learning library
-  <br/>
+  <a href="https://github.com/kevbuh/frog/tree/main/docs">documentation</a>
   <br/>
 </div>
 
-No extra clutter.
-Super simple.
-It just works.
-
-### Creating an MNIST classifier
-
-```python
-from frog.tensor import Tensor
-import frog.optim as optim
-
-class mnistMLP:
-  def __init__(self):
-    self.l1 = Tensor(layer_init(784, 128))
-    self.l2 = Tensor(layer_init(128, 10))
-
-  def forward(self, x):
-    return x.dot(self.l1).relu().dot(self.l2).logsoftmax()
-
-model = mnistMLP()
-optim = optim.SGD([model.l1, model.l2], lr=0.001)
-```
+why does modern ml development have to be so hard? a beautifully compact machine-learning library
 
 ### Overview of Features
 - Tensors
@@ -50,11 +29,34 @@ optim = optim.SGD([model.l1, model.l2], lr=0.001)
 - Log Softmax
 - 2D Convolution
 
-# TODO:
-- EfficientNet v2
-<!-- goal is to get effecientnetv2 working -->
-<!-- - Transformers -->
-<!-- - Stable Diffusion -->
-<!-- - Simplify & Refactor -->
-<!-- - Winograd Conv -->
-<!-- - yeha  -->
+# Contributing
+
+Pull requests are always welcome.
+
+Here are some basic guidelines for contributing:
+
+Bug fixes are the best and always welcome!
+Conceptual cleanups are great.
+Features are welcome. Though if you are adding a feature, you need to include tests.
+
+# Bounties
+
+We really want to get a useful model working right out of the box! Our top bounty is to get EfficientNet v2 model working inside of the examples folder.
+
+- EfficientNet v2 **top priority**
+
+### Other bounties
+
+#### Easy
+- built in MLP model
+- binary cross entropy
+
+#### Medium
+- Simplify how context and gradients are handled
+
+#### Hard
+- Transformers
+- Stable Diffusion
+- Winograd Convs
+- MPS support
+- CUDA support
