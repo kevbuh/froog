@@ -4,13 +4,13 @@ Tensors are the fundamental datatype in frog, and one of the two main classes.
 
 ```def __init__(self, data)```:
 
-it takes in one param, which is the data. Since frog has a numpy backend, the input data into tensors has to be a numpy array.
+Tensor takes in one param, which is the data. Since frog has a numpy backend, the input data into tensors has to be a numpy array.
 
-it also has a ```self.data``` state that it holds. this contains the data inside of the tensor.
+Tensor has a ```self.data``` state that it holds. this contains the data inside of the tensor.
 
-in addition, it has ```self.grad```. this is to hold what the gradients of the tensor is. 
+In addition, it has ```self.grad```. this is to hold what the gradients of the tensor is. 
 
-lastly, it has ```self._ctx```. theser are the internal vairables used for autograd graph construction. put more simply, this is where the backward gradient computations are saved. 
+Lastly, it has ```self._ctx```. theser are the internal vairables used for autograd graph construction. put more simply, this is where the backward gradient computations are saved. 
 
 ### Properties
 
@@ -18,14 +18,14 @@ lastly, it has ```self._ctx```. theser are the internal vairables used for autog
 
 
 ### methods
-```def zeros(*shape)```: this returns a tensor full of zeros with any shape that you pass in. defaults to np.float32
+```def zeros(*shape)```: this returns a tensor full of zeros with any shape that you pass in. Defaults to np.float32
 
-```def ones(*shape)```: this returns a tensor full of ones with any shape that you pass in. defaults to np.float32
+```def ones(*shape)```: this returns a tensor full of ones with any shape that you pass in. Defaults to np.float32
 
 ```def randn(*shape):```: this returns a randomly initialized Tensor of *shape
 
 ### Backward pass
-backpropogation is the way in which neural networks learn. By using the chain rule from calculus, you can go backwards per operation and compute how much that weight affected the models output.
+Backpropogation is the way in which neural networks learn. By using the chain rule from calculus, you can go backwards per operation and compute how much that weight affected the models output.
 
 frog computes gradients automatically through a process called automatic differentiation. it has a variable ```_ctx```, which stores the chain of operations. it will take the current operation, lets say a dot product, and go to the dot product definition in ```frog/ops.py```, which contains a backward pass specfically for dot products. all methods, from add to 2x2 maxpools, have this backward pass implemented.
 

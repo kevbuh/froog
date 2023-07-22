@@ -6,8 +6,8 @@ from frog.utils import im2col, col2im
 # Add, Mul, ReLU, Dot, Sum, Conv2D, Reshape 
 # grad_output is the gradient of the loss with respect to the output of the operation.
 
-class Add(Function):
-  @staticmethod # @staticmethod doesn't require an instance of Add to work
+class Add(Function):# x.add(y)
+  @staticmethod     # @staticmethod doesn't require an instance of Add to work, so you can do x.add(y)
   def forward(ctx, x, y):
     return x + y
   
@@ -16,7 +16,7 @@ class Add(Function):
     return grad_output, grad_output 
 register("add", Add)
 
-class Mul(Function):
+class Mul(Function): # x.mul(y)
   @staticmethod
   def forward(ctx, x, y):
     ctx.save_for_backward(x, y)
@@ -29,7 +29,7 @@ class Mul(Function):
 register("mul", Mul)
 
 
-class ReLU(Function):
+class ReLU(Function): # max(0,x)
   @staticmethod
   def forward(ctx, input):
     ctx.save_for_backward(input)
@@ -44,7 +44,7 @@ class ReLU(Function):
 register("relu", ReLU)
 
 
-class Dot(Function):
+class Dot(Function):  # x.dot(y)
   @staticmethod
   def forward(ctx, input, weight):
     ctx.save_for_backward(input, weight)
@@ -60,6 +60,7 @@ register('dot', Dot)
 
 class Sum(Function):
   """
+  reduce op
   reduces its input tensor to a single value by summing all the elements
   """
   @staticmethod
@@ -112,10 +113,10 @@ class Conv2D(Function):
     cout, cin, H, W = conv_kernel.shape
     conv_to_return = np.zeros((input_image.shape[0], cout, input_image.shape[2]-(H-1), input_image.shape[3]-(W-1)), dtype=conv_kernel.dtype)
 
-    tw = conv_kernel.reshape(conv_kernel.shape[0], -1).T  # slice of kernel 
+    tw = conv_kernel.reshape(conv_kernel.shape[0], -1).T                            # slice of kernel 
 
-    for Y in range(conv_to_return.shape[2]):              # non_padded_height
-      for X in range(conv_to_return.shape[3]):            # non_padded_width
+    for Y in range(conv_to_return.shape[2]):                                        # non_padded_height
+      for X in range(conv_to_return.shape[3]):                                      # non_padded_width
         tx = input_image[:, :, Y:Y+H, X:X+W]
         tx = tx.reshape(input_image.shape[0], -1)
         conv_to_return[:, :, Y, X] = tx.dot(tw)
@@ -127,7 +128,7 @@ class Conv2D(Function):
     cout, cin, H, W = conv_kernel.shape
     dx, dw = np.zeros_like(x), np.zeros_like(conv_kernel)
 
-    tw = conv_kernel.reshape(cout, -1) # slice of kernel
+    tw = conv_kernel.reshape(cout, -1)                                               # transformed kernel weights
 
     for Y in range(grad_output.shape[2]):
       for X in range(grad_output.shape[3]):
@@ -149,43 +150,22 @@ class FastConv2D(Function):
   def forward(ctx, x, w):
     cout, cin, k_h, k_x = w.shape
     bs, oy, ox = x.shape[0], x.shape[2]-(k_h-1), x.shape[3]-(k_x-1)
-
-    tw = w.reshape(cout, -1).T                              # each filter flattened into a row
-
-    # im2col
-    tx = im2col(x, k_h, k_x)
-
-    # save the im2col output
-    ctx.save_for_backward(tx, w)
-
-    # now the conv is a GEMM
-    # print(f"{tx.shape=}")
-    # print(f"{tw.shape=}")
-
-    ret = tx.dot(tw).reshape(bs, oy, ox, cout)
-
-    return np.moveaxis(ret, [0,1,2,3], [0,2,3,1])            # reorders the axes (batch size, number of channels, height, width)
+    tw = w.reshape(cout, -1).T                                             # each filter flattened into a row
+    tx = im2col(x, k_h, k_x)                                               # im2col, turn input into column
+    ctx.save_for_backward(tx, w)                                           # save the im2col output
+    ret = tx.dot(tw).reshape(bs, oy, ox, cout)                             # now the conv has been transoforned into a GEMM
+    return np.moveaxis(ret, [0,1,2,3], [0,2,3,1])                          # reorders the axes (batch size, number of channels, height, width)
 
   @staticmethod
   def backward(ctx, grad_output):
     bs,_,oy,ox = grad_output.shape
-    tx, w = ctx.saved_tensors
+    tx, w = ctx.saved_tensors                                              # transformed input, filter weights 
     cout,cin,H,W = w.shape
-
-    tw = w.reshape(cout, -1)
-
-    # order correctly
-    gg = np.moveaxis(grad_output, [0,1,2,3], [0,2,3,1]).reshape(-1, cout)
-
-    # dw is easy
-    dw = gg.T.dot(tx).reshape(w.shape)
-
-    # dx is harder
-    dxi = gg.dot(tw)
-
-    # im2col on forward, col2im on backward
-    dx = col2im(dxi, H, W, oy+(H-1), ox+(W-1))
-
+    tw = w.reshape(cout, -1)                                               # flatten filter and stack onto other channel filters
+    gg = np.moveaxis(grad_output, [0,1,2,3], [1,0,2,3]).reshape(cout, -1)  # order correctly
+    dw = gg.dot(tx).reshape(w.shape)                                       # compute gradient of weight
+    dxi = gg.T.dot(tw)                                                     # compute gradient of input
+    dx = col2im(dxi, H, W, oy+(H-1), ox+(W-1))                             # turn columns back into image shape
     return dx, dw
 register('conv2d', FastConv2D)
 

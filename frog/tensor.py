@@ -41,7 +41,7 @@ class Tensor:
   def randn(*shape):
     return Tensor(np.random.randn(*shape).astype(np.float32))
 
-  def backward(self, allow_fill=True):
+  def backward(self, allow_fill=True): # TODO: allow fill does what?
     if self._ctx is None:
       return
 
@@ -63,7 +63,7 @@ class Tensor:
         print(f"grad shape must match tensor shape in {self._ctx}, {g.shape} != {t.data.shape}")
         assert False
       t.grad = g
-      t.backward(False)
+      t.backward(False) # what does inputting False do???
 
   def mean(self):
     div = Tensor(np.array([1 / self.data.size], dtype=self.data.dtype))
@@ -86,7 +86,6 @@ class Function:
     arg   : is the method  (.dot, .relu) 
     *x    : the input to the method  
     """
-    print(f"{self=},{arg=},", *x)
     if type(arg) == Tensor:
       op = self
       x = [arg]+list(x)
@@ -109,5 +108,4 @@ def register(name, fxn):
   """
   setattr(Tensor, name, partialmethod(fxn.apply, fxn))
 
-# this registers all the operations
-import frog.ops
+import frog.ops # this registers all the operations

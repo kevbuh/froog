@@ -57,7 +57,6 @@ def train(model, optimizer, steps, BS=128):
 
     # selects the element of y that corresponds 
     # to the true class for each example
-    # NLL loss
     y[range(y.shape[0]),Y] = -10.0
     y = Tensor(y)
 
@@ -65,6 +64,7 @@ def train(model, optimizer, steps, BS=128):
     model_outputs = model.forward(x)
 
     # ********* backward pass *********
+    # NLL loss
     loss = model_outputs.mul(y).mean() # TODO: what is NLL loss function?
     loss.backward()
     optimizer.step()

@@ -8,9 +8,9 @@ Instead, frog is meant for those who are looking to get into machine learning, a
 
 First, download frog using the <a href="https://github.com/kevbuh/frog/blob/main/docs/install.md">installation</a> docs. 
 
-# Lets start building!
+# How to build
 
-the most fundamental item in all of frog and machine learning is the Tensor. a tensor is simply a matrix of matrices (more accurately a multi-dimensional array). 
+The most fundamental item in all of frog and machine learning is the Tensor. A tensor is simply a matrix of matrices (more accurately a multi-dimensional array). 
 
 You can create a Tensor in frog by
 ```python
@@ -20,7 +20,7 @@ from frog.tensor import Tensor
 my_tensor = Tensor(np.array([1,2,3]))
 ```
 
-notice how we had to import numpy. if you want to create a Tensor manually make sure that it is a Numpy array!
+Notice how we had to import numpy. If you want to create a Tensor manually make sure that it is a Numpy array!
 
 learn more about Tensors <a href="https://github.com/kevbuh/frog/blob/main/docs/tensors.md">here</a> 
 

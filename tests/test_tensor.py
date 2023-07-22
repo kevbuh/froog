@@ -95,8 +95,8 @@ class TestOps(unittest.TestCase):
           ret = Tensor.conv2d(xt, wt)
           np.testing.assert_allclose(ret.data, out.detach().numpy(), atol=1e-5)
 
-          out.mean().backward()
-          ret.mean().backward()
+          out.relu().mean().backward()
+          ret.relu().mean().backward()
 
           np.testing.assert_allclose(w.grad, wt.grad, atol=1e-7)
           np.testing.assert_allclose(x.grad, xt.grad, atol=1e-7)
