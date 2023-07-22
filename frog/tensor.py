@@ -66,7 +66,6 @@ class Tensor:
       t.backward(False)
 
   def mean(self):
-    # TODO: why taking mean? 
     div = Tensor(np.array([1 / self.data.size], dtype=self.data.dtype))
     return self.sum().mul(div)
 
@@ -83,12 +82,11 @@ class Function:
 
   def apply(self, arg, *x):
     """
-    note that due to how partialmethod works, self and arg are switched
-    self is the tensor                   (a)
-    arg is the method                    (.dot, .relu) 
-    *x is b --> the input to the method  (a.dot(b), a.add(b))
-    support the args in both orders
+    self  : is the tensor with data
+    arg   : is the method  (.dot, .relu) 
+    *x    : the input to the method  
     """
+    print(f"{self=},{arg=},", *x)
     if type(arg) == Tensor:
       op = self
       x = [arg]+list(x)
@@ -96,7 +94,8 @@ class Function:
       op = arg
       x = [self]+list(x)
     ctx = op(*x)
-    ret = Tensor(op.forward(ctx, *[t.data for t in x]))
+    # this performs the actual operation (e.g., addition, multiplication, etc.) on the tensor data
+    ret = Tensor(op.forward(ctx, *[t.data for t in x])) 
     ret._ctx = ctx
     return ret
 
@@ -104,6 +103,9 @@ def register(name, fxn):
   """
   mechanism that allows you to chain methods in an intuitive and Pythonic way
   e.g. x.dot(w).relu(), where w is a tensor.
+
+  partialmethod is used to create a new method that has some of the arguments to another method already filled in
+  the apply method of that instance is added
   """
   setattr(Tensor, name, partialmethod(fxn.apply, fxn))
 

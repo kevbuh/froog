@@ -22,4 +22,23 @@ lastly, it has ```self._ctx ```. theser are the internal vairables used for auto
 
 ```def ones(*shape)```: this returns a tensor full of ones with any shape that you pass in. defaults to np.float32
 
-```def randn(*shape):```: this returns a randomly 
+```def randn(*shape):```: this returns a randomly initialized Tensor of *shape
+
+### Backward pass
+backpropogation is the way in which neural networks learn. By using the chain rule from calculus, you can go backwards per operation and compute how much that weight affected the models output.
+
+frog computes gradients automatically through a process called automatic differentiation. it has a variable ```_ctx```, which stores the chain of operations. it will take the current operation, lets say a dot product, and go to the dot product definition in ```frog/ops.py```, which contains a backward pass specfically for dot products. all methods, from add to 2x2 maxpools, have this backward pass implemented.
+
+# Functions
+
+The other base class in frog is the class Function. It keeps track of input tensors and tensors that need to be saved for backward passes
+
+```def __init__(self, *tensors)```: takes in an argument of tensors, which are then saved. 
+
+```def save_for_backward(self, *x)```: saves Tensors that are necessary to compute for the computation of gradients in the backward pass. 
+
+```def apply(self, arg, *x)```: This is what makes everything work. The apply() method takes care of the forward pass, applying the operation to the inputs.
+
+# Register
+
+```def register(name, fxn)```: this function allows you to add a method to a Tensor. This allows you to chain any operations, e.g. x.dot(w).relu(), where w is a tensor
