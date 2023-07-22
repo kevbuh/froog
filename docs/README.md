@@ -22,6 +22,8 @@ my_tensor = Tensor(np.array([1,2,3]))
 
 notice how we had to import numpy. if you want to create a Tensor manually make sure that it is a Numpy array!
 
+learn more about Tensors <a href="https://github.com/kevbuh/frog/blob/main/docs/tensors.md">here</a> 
+
 
 ### Actually creating something
 
@@ -47,6 +49,24 @@ model = mnistMLP()
 optim = optim.SGD([model.l1, model.l2], lr=0.001)
 ```
 
+You can also create a convolutional neural net by
+
+```python
+class SimpleConvNet:
+  def __init__(self):
+    conv_size = 5
+    channels = 17
+    self.c1 = Tensor(dense_layer(channels,1,conv_size,conv_size))     # (num_filters, color_channels, kernel_h, kernel_w)
+    self.l1 = Tensor(dense_layer((28-conv_size+1)**2*channels, 128))  # (28-conv+1)(28-conv+1) since kernel isn't padded
+    self.l2 = Tensor(dense_layer(128, 10))                            # MNIST output is 10 classes
+
+  def forward(self, x):
+    x.data = x.data.reshape((-1, 1, 28, 28))                          # get however many number of imgs in batch
+    x = x.conv2d(self.c1).relu()                                      # pass through conv first
+    x = x.reshape(Tensor(np.array((x.shape[0], -1))))
+    return x.dot(self.l1).relu().dot(self.l2).logsoftmax()
+```
+
 ### Tests
 
 The tests are located <a href="https://github.com/kevbuh/frog/tree/main/tests">here</a>.
@@ -56,3 +76,4 @@ You can run them in your terminal by going into the root folder and entering
 ```
 python tests/test_tensor.py
 ```
+
