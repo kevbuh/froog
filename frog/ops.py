@@ -185,13 +185,15 @@ register('reshape', Reshape)
 class MaxPool2x2(Function):
   @staticmethod
   def forward(ctx, x):
+    my, mx = (x.shape[2]//2)*2, (x.shape[3]//2)*2         # ensures input tensor can be evenly divided into 2x2 blocks for max pooling
     stack = []
+    cropped_x = x[:, :, :my, :mx]                         # crop input so 2x2 max pool can be taken
     for Y in range(2):
       for X in range(2):
-        stack.append(x[:, :, Y::2, X::2][None])  # [None] is a numpy way to add an extra dimension so we can concatenate
-    stack = np.concatenate(stack, axis=0)
+        stack.append(cropped_x[:, :, Y::2, X::2][None])   # ::2 so 2x2 goes to next pool, [None] is numpy way to add an extra dimension so we can concatenate
+    stack = np.concatenate(stack, axis=0)                 # put all into one row
     idx_of_max = np.argmax(stack, axis=0)
-    ctx.save_for_backward(idx_of_max)
+    ctx.save_for_backward(idx_of_max, x.shape)
     return np.max(stack, axis=0)
 
   @staticmethod
@@ -201,11 +203,11 @@ class MaxPool2x2(Function):
     The purpose of (idxs == (Y*2+X)) is to generate a boolean mask indicating the locations of the maximum values in each 2x2 block of the original input
     The expression (Y*2+X) is a way to iterate through the four possible positions within the 2x2 block: (0,0), (0,1), (1,0), and (1,1), which get mapped to the indices 0, 1, 2, and 3 
     """
-    idxs, = ctx.saved_tensors                                             # TODO: why needs tuple comma ?
-    s = grad_output.shape
-    ret = np.zeros((s[0], s[1], s[2]*2, s[3]*2), dtype=grad_output.dtype) # multiplied by 2 in the last two dimensions because max pooling has reduced the size of these dimensions by half
+    idxs, s = ctx.saved_tensors                                     
+    my, mx = (s[2]//2)*2, (s[3]//2)*2                               # get shape that allows 2x2 max pool
+    ret = np.zeros(s, dtype=grad_output.dtype)                      
     for Y in range(2):
       for X in range(2):
-        ret[:, :, Y::2, X::2] = grad_output * (idxs == (Y*2+X))           # selects the max and does the backward op
+        ret[:, :, Y:my:2, X:mx:2] = grad_output * (idxs == (Y*2+X)) # selects the max and does the backward op
     return ret
 register('maxpool2x2', MaxPool2x2)

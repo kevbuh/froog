@@ -42,7 +42,8 @@ We really want to get a useful model working right out of the box! Our top bount
 #### Easy
 - built in MLP model
 - binary cross entropy
-
+- dropout layer
+- flatten
 #### Medium
 - Simplify how context and gradients are handled
 
