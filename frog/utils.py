@@ -11,11 +11,6 @@ def mask_like(like, mask_inx, mask_value=1.0):
   mask[mask_inx] = mask_value            # fill 
   return mask.reshape(like.shape)
 
-
-
-
-
-
 @lru_cache
 def get_im2col_index(oy, ox, cin, H, W):
   idx_channel = np.tile(np.arange(cin).repeat(H*W), oy*ox)
