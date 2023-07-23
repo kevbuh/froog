@@ -27,12 +27,12 @@ class TestOps(unittest.TestCase):
     x = torch.randn((5,2,10,8), requires_grad=True)
     x_frog = Tensor(x.detach().numpy())
 
-    # in frog 
+    # frog 
     ret = x_frog.max_pool2d()
     assert ret.shape == (5,2,10//2,8//2) # TODO: why this shape???
     ret.mean().backward()
 
-    # in torch
+    # torch
     out = torch.nn.MaxPool2d((2,2))(x)
     out.mean().backward()
 

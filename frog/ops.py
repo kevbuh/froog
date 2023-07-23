@@ -169,28 +169,20 @@ class im2ColConv(Function):
 register('im2col2dconv', im2ColConv)
 
 
-class Reshape(Function):
-  @staticmethod
-  def forward(ctx, x, shape):
-    ctx.save_for_backward(x.shape)
-    return x.reshape(shape)
+def stack_for_pool(x, pool_y, pool_x):
+  my, mx = (x.shape[2]//pool_y)*pool_y, (x.shape[3]//pool_x)*pool_x # ensures input tensor can be evenly divided into 2x2 blocks for max pooling
+  stack = []
+  cropped_x = x[:, :, :my, :mx]                                     # crop input so 2x2 max pool can be taken
+  for Y in range(pool_y):
+      for X in range(pool_x):
+        stack.append(cropped_x[:, :, Y::pool_y, X::pool_x][None])             # ::2 so 2x2 goes to next pool, [None] is numpy way to add an extra dimension so we can concatenate
+  return np.concatenate(stack, axis=0)                              # put all into one row
 
-  @staticmethod
-  def backward(ctx, grad_output):
-    in_shape, = ctx.saved_tensors
-    return grad_output.reshape(in_shape), None
-register('reshape', Reshape)
 
 class MaxPool2D(Function):
   @staticmethod
   def forward(ctx, x):
-    my, mx = (x.shape[2]//2)*2, (x.shape[3]//2)*2         # ensures input tensor can be evenly divided into 2x2 blocks for max pooling
-    stack = []
-    cropped_x = x[:, :, :my, :mx]                         # crop input so 2x2 max pool can be taken
-    for Y in range(2):
-      for X in range(2):
-        stack.append(cropped_x[:, :, Y::2, X::2][None])   # ::2 so 2x2 goes to next pool, [None] is numpy way to add an extra dimension so we can concatenate
-    stack = np.concatenate(stack, axis=0)                 # put all into one row
+    stack = stack_for_pool(x, 2, 2)
     idx_of_max = np.argmax(stack, axis=0)
     ctx.save_for_backward(idx_of_max, x.shape)
     return np.max(stack, axis=0)
@@ -210,3 +202,15 @@ class MaxPool2D(Function):
         ret[:, :, Y:my:2, X:mx:2] = grad_output * (idxs == (Y*2+X)) # selects the max and does the backward op
     return ret
 register('max_pool2d', MaxPool2D)
+
+class Reshape(Function):
+  @staticmethod
+  def forward(ctx, x, shape):
+    ctx.save_for_backward(x.shape)
+    return x.reshape(shape)
+
+  @staticmethod
+  def backward(ctx, grad_output):
+    in_shape, = ctx.saved_tensors
+    return grad_output.reshape(in_shape), None
+register('reshape', Reshape)
