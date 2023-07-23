@@ -216,8 +216,8 @@ class AvgPool2D(Function):
     s, = ctx.saved_tensors
     my, mx = (s[2]//2)*2, (s[3]//2)*2
     ret = np.zeros(s, dtype=grad_output.dtype)
-    for Y in (my):
-      for X in (mx):
+    for Y in range(2):
+      for X in range(2):
         ret[:, :, Y:my:2, X:mx:2] = grad_output / 4 # avg of 2x2, 4 weights
     return ret
 register('avg_pool2d', AvgPool2D)
