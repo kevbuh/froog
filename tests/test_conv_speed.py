@@ -4,6 +4,7 @@ import unittest
 from frog.tensor import Tensor
 import pstats
 import numpy as np
+import torch
 
 def profile_conv(bs, chans, conv, num_times=100):
   img = Tensor.zeros(bs, 1, 28, 28)
@@ -49,37 +50,74 @@ class TestConvSpeed(unittest.TestCase):
     print(f"avg backward pass: {float(backward_pass_avg*1000):.2f} ms")
 
   def test_mnist(self):
-      # https://keras.io/examples/vision/mnist_convnet/
-      conv = 3
-      inter_chan, out_chan = 32, 64
-      c1 = Tensor.randn(inter_chan,1,conv,conv)
-      c2 = Tensor.randn(out_chan,inter_chan,conv,conv)
-      l1 = Tensor.randn(out_chan*5*5, 10)
+    # https://keras.io/examples/vision/mnist_convnet/
+    conv = 3
+    inter_chan, out_chan = 32, 64
+    c1 = Tensor.randn(inter_chan,1,conv,conv)
+    c2 = Tensor.randn(out_chan,inter_chan,conv,conv)
+    l1 = Tensor.randn(out_chan*5*5, 10)
 
-      cnt = 5
-      fpt, bpt = 0.0, 0.0
-      for i in range(1+cnt):
-        et0 = time.time()
-        x = Tensor.randn(128, 1, 28, 28)
-        x = x.conv2d(c1).relu().maxpool2x2()
-        x = x.conv2d(c2).relu().maxpool2x2()
-        x = x.reshape(Tensor(np.array((x.shape[0], -1))))
-        out = x.dot(l1).logsoftmax().mean()
-        et1 = time.time()
-        out.backward()
-        et2 = time.time()
-        if i == 0:
-          pr = start_profile()
-        else:
-          fpt += (et1-et0)
-          bpt += (et2-et1)
+    cnt = 5
+    fpt, bpt = 0.0, 0.0
+    for i in range(1+cnt):
+      et0 = time.time()
+      x = Tensor.randn(128, 1, 28, 28)
+      x = x.conv2d(c1).relu().maxpool2x2()
+      x = x.conv2d(c2).relu().maxpool2x2()
+      x = x.reshape(Tensor(np.array((x.shape[0], -1))))
+      out = x.dot(l1).logsoftmax()
+      out = out.mean()
+      et1 = time.time()
+      out.backward()
+      et2 = time.time()
+      if i == 0:
+        pr = start_profile()
+      else:
+        fpt += (et1-et0)
+        bpt += (et2-et1)
 
-      stop_profile(pr, sort='time')
+    stop_profile(pr, sort='time')
+    fpt = fpt*1000/cnt
+    bpt = bpt*1000/cnt
+    print(f"avg frog forward pass:  {float(fpt):.3f} ms, {float(fpt/self.fpt_baseline):.2f}x off baseline of {self.fpt_baseline:.3f} ms")
+    print(f"avg frog backward pass: {float(bpt):.3f} ms, {float(fpt/self.bpt_baseline):.2f}x off baseline of {self.bpt_baseline:.3f} ms")
+  
+  @classmethod
+  def setUpClass(self): # pytorch baseline (needs to be named setUpClass)
+    conv = 3
+    intern_chan, out_chan = 32, 64
+    c1 = torch.rand(intern_chan,1,conv,conv, requires_grad=True)
+    c2 = torch.randn(out_chan, intern_chan, conv, conv, requires_grad=True)
+    l1 = torch.randn(out_chan*5*5,10, requires_grad=True)
 
-      print(f"avg forward pass: {float(fpt*1000/cnt):.3f} ms", float(fpt*1000/cnt))
-      print(f"avg backward pass: {float(bpt*1000/cnt):.3f} ms", float(bpt*1000/cnt))
+    c2d = torch.nn.functional.conv2d
+    mp = torch.nn.MaxPool2d((2,2))
+    lsm = torch.nn.LogSoftmax(dim=1)
 
-      stop_profile(pr, sort='time')
+    cnt = 5
+    fpt, bpt = 0.0, 0.0
+    for i in range(1+cnt):
+      et0 = time.time()
+      x = torch.randn(128,1,28,28, requires_grad=True)
+      x = mp(c2d(x,c1).relu())
+      x = mp(c2d(x,c2).relu())
+      x = x.reshape(x.shape[0], -1)
+      out = lsm(x.matmul(l1))
+      out = out.mean()
+      et1 = time.time()
+      out.backward() 
+      et2=time.time()
+      if i ==0:
+        pr = start_profile()
+      else:
+        fpt += (et1-et0)
+        bpt += (et2-et1)
 
+    stop_profile(pr, sort='time')
+    self.fpt_baseline = (fpt*1000)/cnt
+    self.bpt_baseline = (bpt*1000)/cnt
+    print(f"avg torch forward pass : {self.fpt_baseline:.3f} ms")
+    print(f"avg torch backward pass: {self.bpt_baseline:.3f} ms")
+    
 if __name__ == '__main__':
   unittest.main()
