@@ -6,6 +6,8 @@ from frog.utils import im2col, col2im
 # Add, Mul, ReLU, Dot, Sum, Conv2D, Reshape 
 # grad_output is the gradient of the loss with respect to the output of the operation.
 
+# ******* core ops *******
+
 class Add(Function):# x.add(y)
   @staticmethod     # @staticmethod doesn't require an instance of Add to work, so you can do x.add(y)
   def forward(ctx, x, y):
@@ -27,20 +29,6 @@ class Mul(Function): # x.mul(y)
     x, y = ctx.saved_tensors
     return y * grad_output, x * grad_output
 register("mul", Mul)
-
-
-class ReLU(Function): # max(0,x)
-  @staticmethod
-  def forward(ctx, input):
-    ctx.save_for_backward(input)
-    return np.maximum(input, 0)
-
-  @staticmethod
-  def backward(ctx, grad_output):
-    (input,) = ctx.saved_tensors
-    grad_input = grad_output * (input >= 0)
-    return grad_input
-register("relu", ReLU)
 
 
 class Dot(Function):  # x.dot(y)
@@ -73,6 +61,33 @@ class Sum(Function):
     return grad_output * np.ones_like(input)
 register("sum", Sum)
 
+# ******* nn ops *******
+
+class ReLU(Function): # max(0,x)
+  @staticmethod
+  def forward(ctx, input):
+    ctx.save_for_backward(input)
+    return np.maximum(input, 0)
+
+  @staticmethod
+  def backward(ctx, grad_output):
+    (input,) = ctx.saved_tensors
+    grad_input = grad_output * (input >= 0)
+    return grad_input
+register("relu", ReLU)
+
+class Reshape(Function):
+  @staticmethod
+  def forward(ctx, x, shape):
+    ctx.save_for_backward(x.shape)
+    return x.reshape(shape)
+
+  @staticmethod
+  def backward(ctx, grad_output):
+    in_shape, = ctx.saved_tensors
+    return grad_output.reshape(in_shape), None
+register('reshape', Reshape)
+
 class LogSoftmax(Function):
   """
   converts a vector of numbers into a vector of probabilities
@@ -93,6 +108,8 @@ class LogSoftmax(Function):
     (output,) = ctx.saved_tensors
     return grad_output - np.exp(output) * grad_output.sum(axis=1).reshape((-1, 1))
 register("logsoftmax", LogSoftmax)
+
+# ************* conv ops *************
 
 class Conv2D(Function): 
   @staticmethod
@@ -168,6 +185,7 @@ class im2ColConv(Function):
     return dx, dw
 register('im2col2dconv', im2ColConv)
 
+# ************* pooling ops *************
 
 def stack_for_pool(x, pool_y, pool_x):
   my, mx = (x.shape[2]//pool_y)*pool_y, (x.shape[3]//pool_x)*pool_x        # ensures input tensor can be evenly divided into 2x2 blocks for max pooling
@@ -177,6 +195,17 @@ def stack_for_pool(x, pool_y, pool_x):
       for X in range(pool_x):
         stack.append(cropped_x[:, :, Y::pool_y, X::pool_x][None])          # ::2 so 2x2 goes to next pool, [None] is numpy way to add an extra dimension so we can concatenate
   return np.concatenate(stack, axis=0)                                     # put all into one row
+
+
+def unstack_for_pool(fxn, s, py, px):
+  max_y, max_x = (s[2]//py)*py, (s[3]//px)*px                               # get shape that allows (pool_size_y,pool_size_x) max pool
+  for Y in range(py):
+    for X in range(px):
+      level_w_new_grad = fxn(Y*px+X)
+      if X == 0 and Y == 0:                                                 # pool of zero size
+        ret = np.zeros(s, dtype=level_w_new_grad.dtype)
+      ret[:, :, Y:max_y:py, X:max_x:px] = level_w_new_grad
+  return ret
 
 
 class MaxPool2D(Function):
@@ -191,17 +220,13 @@ class MaxPool2D(Function):
   def backward(ctx, grad_output):
     """
     Distributes the gradient from the output of the max pooling layer to its inputs
-    The purpose of (idxs == (Y*2+X)) is to generate a boolean mask indicating the locations of the maximum values in each 2x2 block of the original input
-    The expression (Y*2+X) is a way to iterate through the four possible positions within the 2x2 block: (0,0), (0,1), (1,0), and (1,1), which get mapped to the indices 0, 1, 2, and 3 
+    The purpose of (idxs == idx) is to generate a boolean mask indicating the locations of the maximum values in each 2x2 block of the original input
+    The expression (Y*2+X) is a way to iterate through the four possible positions within the kernel block: e.g. (0,0), (0,1), (1,0), and (1,1), which get mapped to the indices 0, 1, 2, and 3 
     """
     idxs, s = ctx.saved_tensors                                     
-    py, px = ctx.kernel_size
-    my, mx = (s[2]//py)*py, (s[3]//px)*px                                  # get shape that allows 2x2 max pool
-    ret = np.zeros(s, dtype=grad_output.dtype)                      
-    for Y in range(py):
-      for X in range(px):
-        ret[:, :, Y:my:py, X:mx:px] = grad_output * (idxs == (Y*px+X))     # selects the max and does the backward op
-    return ret
+    return unstack_for_pool(lambda idx: grad_output * (idxs == idx), 
+                            s,
+                            *ctx.kernel_size)
 register('max_pool2d', MaxPool2D)
 
 
@@ -223,16 +248,3 @@ class AvgPool2D(Function):
         ret[:, :, Y:my:py, X:mx:px] = grad_output / py / px # divide by avg of pool, e.g. for 2x2 pool /= 4
     return ret
 register('avg_pool2d', AvgPool2D)
-
-
-class Reshape(Function):
-  @staticmethod
-  def forward(ctx, x, shape):
-    ctx.save_for_backward(x.shape)
-    return x.reshape(shape)
-
-  @staticmethod
-  def backward(ctx, grad_output):
-    in_shape, = ctx.saved_tensors
-    return grad_output.reshape(in_shape), None
-register('reshape', Reshape)
