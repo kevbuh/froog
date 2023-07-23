@@ -4,6 +4,7 @@ from frog.tensor import Tensor
 from frog.utils import fetch_mnist, dense_layer
 import frog.optim as optim
 import unittest
+import os
 
 np.random.seed(369)
 
@@ -47,7 +48,7 @@ def train(model, optimizer, steps, BS=128):
   # ********* training the model *********
   losses, accuracies = [], []
 
-  for i in (t := trange(steps)):
+  for i in (t := trange(steps, disable=os.getenv('GITHUB_ACTIONS') is not None)):
     # X_train.shape[0] == 60,000 --> number of images in MNIST
     # this is choosing a random training image
     samp = np.random.randint(0, X_train.shape[0], size=(BS))

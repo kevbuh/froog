@@ -97,7 +97,7 @@ class TestConvSpeed(unittest.TestCase):
     print(f"avg torch forward pass : {self.fpt_baseline:.3f} ms")
     print(f"avg torch backward pass: {self.bpt_baseline:.3f} ms")
 
-    print(tprof.key_averages().table(sort_by="cpu_time", row_limit=20))
+    print(tprof.key_averages().table(sort_by="self_cpu_time_total", row_limit=20))
 
     # ****** frog results ******
 
