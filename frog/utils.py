@@ -14,11 +14,8 @@ def mask_like(like, mask_inx, mask_value=1.0):
 @lru_cache
 def get_im2col_index(oy, ox, cin, H, W):
   idx_channel = np.tile(np.arange(cin).repeat(H*W), oy*ox)
-  # print(f"{idx_channel=}")
-
   idx_y = np.tile(np.arange(H).repeat(W), oy*ox*cin) + np.arange(oy).repeat(ox*cin*H*W)
   idx_x = np.tile(np.arange(W), oy*ox*cin*H) + np.tile(np.arange(ox), oy).repeat(cin*H*W)
-
   OY, OX = oy+(H-1), ox+(W-1)
   idx = idx_channel * OY * OX + idx_y * OX + idx_x
   return idx

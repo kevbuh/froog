@@ -6,22 +6,6 @@ import pstats
 import numpy as np
 import torch
 
-# def profile_conv(bs, chans, conv, num_times=100):
-#   img = Tensor.zeros(bs, 1, 28, 28)
-#   conv = Tensor.randn(chans, 1, conv, conv)
-#   forward_pass_time, backward_pass_time = 0.0, 0.0
-#   for _ in range(num_times):
-#     conv1_start = time.time()
-#     out = img.conv2d(conv)
-#     conv1_end = time.time()
-#     g = out.mean().backward() # use mean to calculate gradients
-#     gradient_calc_end = time.time()
-
-#     forward_pass_time += (conv1_end-conv1_start)
-#     backward_pass_time += (gradient_calc_end-conv1_end)
-#   return forward_pass_time/num_times, backward_pass_time/num_times
-
-
 def start_profile():
   import time
   # multiplying by 1e9 converts seconds to nanoseconds
@@ -40,17 +24,13 @@ def stop_profile(pr, sort='cumtime'):
 
 
 class TestConvSpeed(unittest.TestCase):
-
   def test_mnist(self):
     # https://keras.io/examples/vision/mnist_convnet/
     conv = 3
     inter_chan, out_chan = 32, 64
-    # c1 = Tensor.randn(inter_chan,1,conv,conv)
-    # c2 = Tensor.randn(out_chan,inter_chan,conv,conv)
-    # l1 = Tensor.randn(out_chan*5*5, 10)
 
     # ****** torch baseline ******
-
+    
     torch.backends.mkldnn.enabled = False                             # disables the use of MKL-DNN 
     conv = 3
     intern_chan, out_chan = 32, 64
@@ -80,12 +60,10 @@ class TestConvSpeed(unittest.TestCase):
         fpt += (et1-et0)
         bpt += (et2-et1)
 
-    # stop_profile(pr, sort='time')
     self.fpt_baseline = (fpt*1000)/cnt
     self.bpt_baseline = (bpt*1000)/cnt
     print(f"avg torch forward pass : {self.fpt_baseline:.3f} ms")
     print(f"avg torch backward pass: {self.bpt_baseline:.3f} ms")
-
     print(tprof.key_averages().table(sort_by="self_cpu_time_total", row_limit=20))
 
     # ****** frog results ******
@@ -99,7 +77,7 @@ class TestConvSpeed(unittest.TestCase):
     for i in range(1+cnt):
       et0 = time.time()
       x = Tensor.randn(128, 1, 28, 28)
-      x = x.conv2d(c1).relu().max_pool2d()
+      x = x.conv2d(c1).relu().avg_pool2d()
       x = x.conv2d(c2).relu().max_pool2d()
       x = x.reshape(Tensor(np.array((x.shape[0], -1))))
       out = x.dot(l1).logsoftmax()
