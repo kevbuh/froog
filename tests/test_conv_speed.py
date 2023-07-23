@@ -36,7 +36,7 @@ def stop_profile(pr, sort='cumtime'):
   ps = pstats.Stats(pr)
   ps.strip_dirs()
   ps.sort_stats(sort)
-  ps.print_stats(0.3)
+  ps.print_stats(0.2) # print only top 20% of time consuming fn calls
 
 
 class TestConvSpeed(unittest.TestCase):
@@ -46,47 +46,23 @@ class TestConvSpeed(unittest.TestCase):
     pr = start_profile()
     fwd_pass_avg, backward_pass_avg = profile_conv(128, 16, 3)
     stop_profile(pr)
-    print(f"avg forward pass :  {float(fwd_pass_avg*1000):.2f} ms")
+    print(f"avg forward pass : {float(fwd_pass_avg*1000):.2f}      ms")
     print(f"avg backward pass: {float(backward_pass_avg*1000):.2f} ms")
 
   def test_mnist(self):
     # https://keras.io/examples/vision/mnist_convnet/
     conv = 3
     inter_chan, out_chan = 32, 64
-    c1 = Tensor.randn(inter_chan,1,conv,conv)
-    c2 = Tensor.randn(out_chan,inter_chan,conv,conv)
-    l1 = Tensor.randn(out_chan*5*5, 10)
+    # c1 = Tensor.randn(inter_chan,1,conv,conv)
+    # c2 = Tensor.randn(out_chan,inter_chan,conv,conv)
+    # l1 = Tensor.randn(out_chan*5*5, 10)
 
-    cnt = 5
-    fpt, bpt = 0.0, 0.0
-    for i in range(1+cnt):
-      et0 = time.time()
-      x = Tensor.randn(128, 1, 28, 28)
-      x = x.conv2d(c1).relu().maxpool2x2()
-      x = x.conv2d(c2).relu().maxpool2x2()
-      x = x.reshape(Tensor(np.array((x.shape[0], -1))))
-      out = x.dot(l1).logsoftmax()
-      out = out.mean()
-      et1 = time.time()
-      out.backward()
-      et2 = time.time()
-      if i == 0:
-        pr = start_profile()
-      else:
-        fpt += (et1-et0)
-        bpt += (et2-et1)
+    # ****** torch baseline ******
 
-    stop_profile(pr, sort='time')
-    fpt = fpt*1000/cnt
-    bpt = bpt*1000/cnt
-    print(f"avg frog forward pass:  {float(fpt):.3f} ms, {float(fpt/self.fpt_baseline):.2f}x off baseline of {self.fpt_baseline:.3f} ms")
-    print(f"avg frog backward pass: {float(bpt):.3f} ms, {float(fpt/self.bpt_baseline):.2f}x off baseline of {self.bpt_baseline:.3f} ms")
-  
-  @classmethod
-  def setUpClass(self):                                               # pytorch baseline (needs to be named setUpClass)
     torch.backends.mkldnn.enabled = False                             # disables the use of MKL-DNN 
     conv = 3
     intern_chan, out_chan = 32, 64
+    num_time = 5
     c1 = torch.rand(intern_chan,1,conv,conv, requires_grad=True)
     c2 = torch.randn(out_chan, intern_chan, conv, conv, requires_grad=True)
     l1 = torch.randn(out_chan*5*5,10, requires_grad=True)
@@ -96,7 +72,7 @@ class TestConvSpeed(unittest.TestCase):
     lsm = torch.nn.LogSoftmax(dim=1)
 
     with torch.autograd.profiler.profile(record_shapes=True) as tprof: # enables the collection of CPU and CUDA
-      cnt = 5
+      cnt = num_time
       fpt, bpt = 0.0, 0.0
       for i in range(1+cnt):
         et0 = time.time()
@@ -122,6 +98,38 @@ class TestConvSpeed(unittest.TestCase):
     print(f"avg torch backward pass: {self.bpt_baseline:.3f} ms")
 
     print(tprof.key_averages().table(sort_by="cpu_time", row_limit=20))
+
+    # ****** frog results ******
+
+    c1 = Tensor(c1.detach().numpy()) # detach from torch, turn into numpy array
+    c2 = Tensor(c2.detach().numpy())
+    l1 = Tensor(l1.detach().numpy())
+
+    cnt = num_time
+    fpt, bpt = 0.0, 0.0
+    for i in range(1+cnt):
+      et0 = time.time()
+      x = Tensor.randn(128, 1, 28, 28)
+      x = x.conv2d(c1).relu().maxpool2x2()
+      x = x.conv2d(c2).relu().maxpool2x2()
+      x = x.reshape(Tensor(np.array((x.shape[0], -1))))
+      out = x.dot(l1).logsoftmax()
+      out = out.mean()
+      et1 = time.time()
+      out.backward()
+      et2 = time.time()
+      if i == 0:
+        pr = start_profile()
+      else:
+        fpt += (et1-et0)
+        bpt += (et2-et1)
+
+    stop_profile(pr, sort='time')
+    fpt = fpt*1000/cnt
+    bpt = bpt*1000/cnt
+    print(f"avg frog forward pass:  {float(fpt):.3f} ms, {float(fpt/self.fpt_baseline):.2f}x off baseline of {self.fpt_baseline:.3f} ms")
+    print(f"avg frog backward pass: {float(bpt):.3f} ms, {float(fpt/self.bpt_baseline):.2f}x off baseline of {self.bpt_baseline:.3f} ms")
+  
     
 if __name__ == '__main__':
   unittest.main()
