@@ -101,14 +101,13 @@ class TestOps(unittest.TestCase):
           np.testing.assert_allclose(w.grad, wt.grad, atol=1e-7)
           np.testing.assert_allclose(x.grad, xt.grad, atol=1e-7)
 
-  def test_maxpool2x2(self):
+  def test_max_pool2d(self):
     x = torch.randn((5,2,10,8), requires_grad=True)
     x_frog = Tensor(x.detach().numpy())
 
     # in frog 
-    ret = x_frog.maxpool2x2()
+    ret = x_frog.max_pool2d()
     assert ret.shape == (5,2,10//2,8//2)
-    
     ret.mean().backward()
 
     # in torch

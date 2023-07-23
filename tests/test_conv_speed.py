@@ -6,20 +6,20 @@ import pstats
 import numpy as np
 import torch
 
-def profile_conv(bs, chans, conv, num_times=100):
-  img = Tensor.zeros(bs, 1, 28, 28)
-  conv = Tensor.randn(chans, 1, conv, conv)
-  forward_pass_time, backward_pass_time = 0.0, 0.0
-  for _ in range(num_times):
-    conv1_start = time.time()
-    out = img.conv2d(conv)
-    conv1_end = time.time()
-    g = out.mean().backward() # use mean to calculate gradients
-    gradient_calc_end = time.time()
+# def profile_conv(bs, chans, conv, num_times=100):
+#   img = Tensor.zeros(bs, 1, 28, 28)
+#   conv = Tensor.randn(chans, 1, conv, conv)
+#   forward_pass_time, backward_pass_time = 0.0, 0.0
+#   for _ in range(num_times):
+#     conv1_start = time.time()
+#     out = img.conv2d(conv)
+#     conv1_end = time.time()
+#     g = out.mean().backward() # use mean to calculate gradients
+#     gradient_calc_end = time.time()
 
-    forward_pass_time += (conv1_end-conv1_start)
-    backward_pass_time += (gradient_calc_end-conv1_end)
-  return forward_pass_time/num_times, backward_pass_time/num_times
+#     forward_pass_time += (conv1_end-conv1_start)
+#     backward_pass_time += (gradient_calc_end-conv1_end)
+#   return forward_pass_time/num_times, backward_pass_time/num_times
 
 
 def start_profile():
@@ -40,14 +40,6 @@ def stop_profile(pr, sort='cumtime'):
 
 
 class TestConvSpeed(unittest.TestCase):
-  def test_3x3_conv(self):
-    # warmup
-    profile_conv(128, 16, 3, num_times=1)
-    pr = start_profile()
-    fwd_pass_avg, backward_pass_avg = profile_conv(128, 16, 3)
-    stop_profile(pr)
-    print(f"avg forward pass : {float(fwd_pass_avg*1000):.2f}      ms")
-    print(f"avg backward pass: {float(backward_pass_avg*1000):.2f} ms")
 
   def test_mnist(self):
     # https://keras.io/examples/vision/mnist_convnet/
@@ -63,8 +55,8 @@ class TestConvSpeed(unittest.TestCase):
     conv = 3
     intern_chan, out_chan = 32, 64
     num_time = 5
-    c1 = torch.rand(intern_chan,1,conv,conv, requires_grad=True)
-    c2 = torch.randn(out_chan, intern_chan, conv, conv, requires_grad=True)
+    c1 = torch.rand(inter_chan,1,conv,conv, requires_grad=True)
+    c2 = torch.randn(out_chan, inter_chan, conv, conv, requires_grad=True)
     l1 = torch.randn(out_chan*5*5,10, requires_grad=True)
 
     c2d = torch.nn.functional.conv2d
@@ -74,7 +66,7 @@ class TestConvSpeed(unittest.TestCase):
     with torch.autograd.profiler.profile(record_shapes=True) as tprof: # enables the collection of CPU and CUDA
       cnt = num_time
       fpt, bpt = 0.0, 0.0
-      for i in range(1+cnt):
+      for i in range(cnt):
         et0 = time.time()
         x = torch.randn(128,1,28,28, requires_grad=True)
         x = mp(c2d(x,c1).relu())
@@ -85,13 +77,10 @@ class TestConvSpeed(unittest.TestCase):
         et1 = time.time()
         out.backward() 
         et2=time.time()
-        if i ==0:
-          pr = start_profile()
-        else:
-          fpt += (et1-et0)
-          bpt += (et2-et1)
+        fpt += (et1-et0)
+        bpt += (et2-et1)
 
-    stop_profile(pr, sort='time')
+    # stop_profile(pr, sort='time')
     self.fpt_baseline = (fpt*1000)/cnt
     self.bpt_baseline = (bpt*1000)/cnt
     print(f"avg torch forward pass : {self.fpt_baseline:.3f} ms")
@@ -110,8 +99,8 @@ class TestConvSpeed(unittest.TestCase):
     for i in range(1+cnt):
       et0 = time.time()
       x = Tensor.randn(128, 1, 28, 28)
-      x = x.conv2d(c1).relu().maxpool2x2()
-      x = x.conv2d(c2).relu().maxpool2x2()
+      x = x.conv2d(c1).relu().max_pool2d()
+      x = x.conv2d(c2).relu().max_pool2d()
       x = x.reshape(Tensor(np.array((x.shape[0], -1))))
       out = x.dot(l1).logsoftmax()
       out = out.mean()

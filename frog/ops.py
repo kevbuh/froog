@@ -136,10 +136,10 @@ class Conv2D(Function):
         dw += gg.T.dot(tx).reshape(dw.shape)                                         # gradient with respect to conv kernel
         dx[:, :, Y:Y+H, X:X+W] += gg.dot(tw).reshape(dx.shape[0], dx.shape[1], H, W) # accumulate gradient of input (current multiply element in chain rule)
     return dx, dw
-# register('conv2d', Conv2D)
+register('conv2d', Conv2D)
 
 
-class FastConv2D(Function):
+class im2ColConv(Function):
   """
   uses im2col
   https://leonardoaraujosantos.gitbook.io/artificial-inteligence/machine_learning/deep_learning/convolution_layer/making_faster
@@ -166,7 +166,7 @@ class FastConv2D(Function):
     dxi = gg.T.dot(tw)                                                     # compute gradient of input
     dx = col2im(dxi, H, W, oy+(H-1), ox+(W-1))                             # turn columns back into image shape
     return dx, dw
-register('conv2d', FastConv2D)
+register('im2col2dconv', im2ColConv)
 
 
 class Reshape(Function):
@@ -181,7 +181,7 @@ class Reshape(Function):
     return grad_output.reshape(in_shape), None
 register('reshape', Reshape)
 
-class MaxPool2x2(Function):
+class MaxPool2D(Function):
   @staticmethod
   def forward(ctx, x):
     my, mx = (x.shape[2]//2)*2, (x.shape[3]//2)*2         # ensures input tensor can be evenly divided into 2x2 blocks for max pooling
@@ -209,4 +209,4 @@ class MaxPool2x2(Function):
       for X in range(2):
         ret[:, :, Y:my:2, X:mx:2] = grad_output * (idxs == (Y*2+X)) # selects the max and does the backward op
     return ret
-register('maxpool2x2', MaxPool2x2)
+register('max_pool2d', MaxPool2D)

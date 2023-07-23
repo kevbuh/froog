@@ -36,8 +36,8 @@ class SimpleConvNet:
 
   def forward(self, x):
     x.data = x.data.reshape((-1, 1, 28, 28))                          # get however many number of imgs in batch
-    x = x.conv2d(self.c1).relu().maxpool2x2()
-    x = x.conv2d(self.c2).relu().maxpool2x2()
+    x = x.conv2d(self.c1).relu().max_pool2d()
+    x = x.conv2d(self.c2).relu().max_pool2d()
     x = x.reshape(Tensor(np.array((x.shape[0], -1))))
     return x.dot(self.l1).logsoftmax()
     # x = x.conv2d(self.c1).relu()                                      # pass through conv first
@@ -48,7 +48,7 @@ def train(model, optimizer, steps, BS=128):
   # ********* training the model *********
   losses, accuracies = [], []
 
-  for i in (t := trange(steps, disable=os.getenv('GITHUB_ACTIONS') is not None)):
+  for i in (t := trange(steps, disable=os.getenv('CI') is not None)):
     # X_train.shape[0] == 60,000 --> number of images in MNIST
     # this is choosing a random training image
     samp = np.random.randint(0, X_train.shape[0], size=(BS))
