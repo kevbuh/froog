@@ -203,6 +203,26 @@ class MaxPool2D(Function):
     return ret
 register('max_pool2d', MaxPool2D)
 
+
+class AvgPool2D(Function):
+  @staticmethod
+  def forward(ctx, x):
+    stack = stack_for_pool(x, 2, 2)
+    ctx.save_for_backward(x.shape)
+    return np.mean(stack, axis=0)
+
+  @staticmethod
+  def backward(ctx, grad_output):
+    s, = ctx.saved_tensors
+    my, mx = (s[2]//2)*2, (s[3]//2)*2
+    ret = np.zeros(s, dtype=grad_output.dtype)
+    for Y in (my):
+      for X in (mx):
+        ret[:, :, Y:my:2, X:mx:2] = grad_output / 4 # avg of 2x2, 4 weights
+    return ret
+register('avg_pool2d', AvgPool2D)
+
+
 class Reshape(Function):
   @staticmethod
   def forward(ctx, x, shape):
