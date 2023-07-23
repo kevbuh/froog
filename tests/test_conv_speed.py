@@ -83,7 +83,8 @@ class TestConvSpeed(unittest.TestCase):
     print(f"avg frog backward pass: {float(bpt):.3f} ms, {float(fpt/self.bpt_baseline):.2f}x off baseline of {self.bpt_baseline:.3f} ms")
   
   @classmethod
-  def setUpClass(self): # pytorch baseline (needs to be named setUpClass)
+  def setUpClass(self):                                               # pytorch baseline (needs to be named setUpClass)
+    torch.backends.mkldnn.enabled = False                             # disables the use of MKL-DNN 
     conv = 3
     intern_chan, out_chan = 32, 64
     c1 = torch.rand(intern_chan,1,conv,conv, requires_grad=True)
@@ -94,30 +95,33 @@ class TestConvSpeed(unittest.TestCase):
     mp = torch.nn.MaxPool2d((2,2))
     lsm = torch.nn.LogSoftmax(dim=1)
 
-    cnt = 5
-    fpt, bpt = 0.0, 0.0
-    for i in range(1+cnt):
-      et0 = time.time()
-      x = torch.randn(128,1,28,28, requires_grad=True)
-      x = mp(c2d(x,c1).relu())
-      x = mp(c2d(x,c2).relu())
-      x = x.reshape(x.shape[0], -1)
-      out = lsm(x.matmul(l1))
-      out = out.mean()
-      et1 = time.time()
-      out.backward() 
-      et2=time.time()
-      if i ==0:
-        pr = start_profile()
-      else:
-        fpt += (et1-et0)
-        bpt += (et2-et1)
+    with torch.autograd.profiler.profile(record_shapes=True) as tprof: # enables the collection of CPU and CUDA
+      cnt = 5
+      fpt, bpt = 0.0, 0.0
+      for i in range(1+cnt):
+        et0 = time.time()
+        x = torch.randn(128,1,28,28, requires_grad=True)
+        x = mp(c2d(x,c1).relu())
+        x = mp(c2d(x,c2).relu())
+        x = x.reshape(x.shape[0], -1)
+        out = lsm(x.matmul(l1))
+        out = out.mean()
+        et1 = time.time()
+        out.backward() 
+        et2=time.time()
+        if i ==0:
+          pr = start_profile()
+        else:
+          fpt += (et1-et0)
+          bpt += (et2-et1)
 
     stop_profile(pr, sort='time')
     self.fpt_baseline = (fpt*1000)/cnt
     self.bpt_baseline = (bpt*1000)/cnt
     print(f"avg torch forward pass : {self.fpt_baseline:.3f} ms")
     print(f"avg torch backward pass: {self.bpt_baseline:.3f} ms")
+
+    print(tprof.key_averages().table(sort_by="cpu_time", row_limit=20))
     
 if __name__ == '__main__':
   unittest.main()
