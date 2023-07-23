@@ -6,7 +6,7 @@ import frog.optim as optim
 import unittest
 import os
 
-np.random.seed(369)
+np.random.seed(42)
 
 # ********* load the mnist dataset *********
 X_train, Y_train, X_test, Y_test = fetch_mnist()
@@ -35,14 +35,14 @@ class SimpleConvNet:
     # self.l2 = Tensor(dense_layer(128, 10))                            # MNIST output is 10 classes
 
   def forward(self, x):
-    x.data = x.data.reshape((-1, 1, 28, 28))                          # get however many number of imgs in batch
+    x.data = x.data.reshape((-1, 1, 28, 28))                            # get however many number of imgs in batch
     x = x.conv2d(self.c1).relu().max_pool2d()
     x = x.conv2d(self.c2).relu().max_pool2d()
     x = x.reshape(Tensor(np.array((x.shape[0], -1))))
     return x.dot(self.l1).logsoftmax()
     # x = x.conv2d(self.c1).relu()                                      # pass through conv first
     # x = x.reshape(Tensor(np.array((x.shape[0], -1))))
-    # return x.dot(self.l1).relu().dot(self.l2).logsoftmax()             # then go down to mlp and softmax to get probs
+    # return x.dot(self.l1).relu().dot(self.l2).logsoftmax()            # then go down to mlp and softmax to get probs
 
 def train(model, optimizer, steps, BS=128):
   # ********* training the model *********
