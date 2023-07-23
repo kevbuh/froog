@@ -3,6 +3,7 @@
 # inspired by tinygrad
 
 from functools import partialmethod
+from inspect import signature
 import numpy as np
 
 # *********** Main Classes ***********
@@ -80,7 +81,7 @@ class Function:
   def save_for_backward(self, *x):
     self.saved_tensors.extend(x)
 
-  def apply(self, arg, *x):
+  def apply(self, arg, *x, **kwargs):
     """
     self  : is the tensor with data
     arg   : is the method  (.dot, .relu) 
@@ -93,6 +94,14 @@ class Function:
       op = arg
       x = [self]+list(x)
     ctx = op(*x)
+
+    params = signature(op.forward).parameters # gets the function params e.g. (ctx, x, y)
+    for p in params.values():                 # loops through each param
+      if p.default is not p.empty:            # p.default is the param value
+        setattr(ctx, p.name, p.default)       # add any func params to ctx
+    for k, v in kwargs.items(): 
+      setattr(ctx, k, v)                      # add any kwargs to ctx
+
     # this performs the actual operation (e.g., addition, multiplication, etc.) on the tensor data
     ret = Tensor(op.forward(ctx, *[t.data for t in x])) 
     ret._ctx = ctx

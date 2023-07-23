@@ -5,7 +5,7 @@ from frog.tensor import Tensor
 import timeit
 import functools
 
-def test_op(shape, torch_func, frog_func, atol=1e-7, grad_atol=1e-7):
+def helper_test_op(shape, torch_func, frog_func, atol=1e-7, grad_atol=1e-7):
   torch_tensors = [torch.rand(x, requires_grad=True) for x in shape]
   frog_tensors = [Tensor(x.detach().numpy()) for x in torch_tensors]
 
@@ -38,17 +38,17 @@ class TestOps(unittest.TestCase):
       for cin in [1,2,3]:
         for H in [2,3,5]:
           for W in [2,3,5]:
-            test_op([(bs,cin,10,7), (4,cin,H,W)], 
+            helper_test_op([(bs,cin,10,7), (4,cin,H,W)], 
                     lambda x,w: torch.nn.functional.conv2d(x,w).relu(),
                     lambda x,w: Tensor.conv2d(x,w).relu(), 
                     atol=2e-5, 
                     grad_atol=2e-6)
 
   def test_maxpool2x2(self):
-    test_op([(32,2,110,28)], lambda x: torch.nn.functional.max_pool2d(x, (2,2)), Tensor.max_pool2d)
+    helper_test_op([(32,2,110,28)], lambda x: torch.nn.functional.max_pool2d(x, (2,2)), Tensor.max_pool2d)
 
   def test_avgpool2x2(self):
-    test_op([(32,2,111,28)], lambda x: torch.nn.functional.avg_pool2d(x, (2,2)), Tensor.avg_pool2d)
+    helper_test_op([(32,2,111,28)], lambda x: torch.nn.functional.avg_pool2d(x, (2,2)), Tensor.avg_pool2d)
 
 if __name__ == '__main__':
   unittest.main(verbosity=2) # TODO: what does verbosity do? 

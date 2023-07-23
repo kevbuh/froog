@@ -181,8 +181,8 @@ def stack_for_pool(x, pool_y, pool_x):
 
 class MaxPool2D(Function):
   @staticmethod
-  def forward(ctx, x):
-    stack = stack_for_pool(x, 2, 2)
+  def forward(ctx, x, pool_size=(2,2)):
+    stack = stack_for_pool(x, *pool_size)
     idx_of_max = np.argmax(stack, axis=0)
     ctx.save_for_backward(idx_of_max, x.shape)
     return np.max(stack, axis=0)
@@ -195,30 +195,32 @@ class MaxPool2D(Function):
     The expression (Y*2+X) is a way to iterate through the four possible positions within the 2x2 block: (0,0), (0,1), (1,0), and (1,1), which get mapped to the indices 0, 1, 2, and 3 
     """
     idxs, s = ctx.saved_tensors                                     
-    my, mx = (s[2]//2)*2, (s[3]//2)*2                               # get shape that allows 2x2 max pool
+    py, px = ctx.pool_size
+    my, mx = (s[2]//py)*py, (s[3]//px)*px                               # get shape that allows 2x2 max pool
     ret = np.zeros(s, dtype=grad_output.dtype)                      
-    for Y in range(2):
-      for X in range(2):
-        ret[:, :, Y:my:2, X:mx:2] = grad_output * (idxs == (Y*2+X)) # selects the max and does the backward op
+    for Y in range(py):
+      for X in range(px):
+        ret[:, :, Y:my:py, X:mx:px] = grad_output * (idxs == (Y*px+X)) # selects the max and does the backward op
     return ret
 register('max_pool2d', MaxPool2D)
 
 
 class AvgPool2D(Function):
   @staticmethod
-  def forward(ctx, x):
-    stack = stack_for_pool(x, 2, 2)
+  def forward(ctx, x, pool_size=(2,2)):
+    stack = stack_for_pool(x, *pool_size)
     ctx.save_for_backward(x.shape)
     return np.mean(stack, axis=0)
 
   @staticmethod
   def backward(ctx, grad_output):
     s, = ctx.saved_tensors
-    my, mx = (s[2]//2)*2, (s[3]//2)*2
+    py, px = ctx.pool_size # TODO: where does pool_size come from?
+    my, mx = (s[2]//py)*py, (s[3]//px)*px
     ret = np.zeros(s, dtype=grad_output.dtype)
-    for Y in range(2):
-      for X in range(2):
-        ret[:, :, Y:my:2, X:mx:2] = grad_output / 4 # avg of 2x2, 4 weights
+    for Y in range(py):
+      for X in range(px):
+        ret[:, :, Y:my:py, X:mx:px] = grad_output / py / px # divide by avg of pool, e.g. for 2x2 pool /= 4
     return ret
 register('avg_pool2d', AvgPool2D)
 
