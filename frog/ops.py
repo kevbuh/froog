@@ -170,19 +170,19 @@ register('im2col2dconv', im2ColConv)
 
 
 def stack_for_pool(x, pool_y, pool_x):
-  my, mx = (x.shape[2]//pool_y)*pool_y, (x.shape[3]//pool_x)*pool_x # ensures input tensor can be evenly divided into 2x2 blocks for max pooling
+  my, mx = (x.shape[2]//pool_y)*pool_y, (x.shape[3]//pool_x)*pool_x        # ensures input tensor can be evenly divided into 2x2 blocks for max pooling
   stack = []
-  cropped_x = x[:, :, :my, :mx]                                     # crop input so 2x2 max pool can be taken
+  cropped_x = x[:, :, :my, :mx]                                            # crop input so 2x2 max pool can be taken
   for Y in range(pool_y):
       for X in range(pool_x):
-        stack.append(cropped_x[:, :, Y::pool_y, X::pool_x][None])             # ::2 so 2x2 goes to next pool, [None] is numpy way to add an extra dimension so we can concatenate
-  return np.concatenate(stack, axis=0)                              # put all into one row
+        stack.append(cropped_x[:, :, Y::pool_y, X::pool_x][None])          # ::2 so 2x2 goes to next pool, [None] is numpy way to add an extra dimension so we can concatenate
+  return np.concatenate(stack, axis=0)                                     # put all into one row
 
 
 class MaxPool2D(Function):
   @staticmethod
-  def forward(ctx, x, pool_size=(2,2)):
-    stack = stack_for_pool(x, *pool_size)
+  def forward(ctx, x, kernel_size=(2,2)):
+    stack = stack_for_pool(x, *kernel_size)
     idx_of_max = np.argmax(stack, axis=0)
     ctx.save_for_backward(idx_of_max, x.shape)
     return np.max(stack, axis=0)
@@ -195,27 +195,27 @@ class MaxPool2D(Function):
     The expression (Y*2+X) is a way to iterate through the four possible positions within the 2x2 block: (0,0), (0,1), (1,0), and (1,1), which get mapped to the indices 0, 1, 2, and 3 
     """
     idxs, s = ctx.saved_tensors                                     
-    py, px = ctx.pool_size
-    my, mx = (s[2]//py)*py, (s[3]//px)*px                               # get shape that allows 2x2 max pool
+    py, px = ctx.kernel_size
+    my, mx = (s[2]//py)*py, (s[3]//px)*px                                  # get shape that allows 2x2 max pool
     ret = np.zeros(s, dtype=grad_output.dtype)                      
     for Y in range(py):
       for X in range(px):
-        ret[:, :, Y:my:py, X:mx:px] = grad_output * (idxs == (Y*px+X)) # selects the max and does the backward op
+        ret[:, :, Y:my:py, X:mx:px] = grad_output * (idxs == (Y*px+X))     # selects the max and does the backward op
     return ret
 register('max_pool2d', MaxPool2D)
 
 
 class AvgPool2D(Function):
   @staticmethod
-  def forward(ctx, x, pool_size=(2,2)):
-    stack = stack_for_pool(x, *pool_size)
+  def forward(ctx, x, kernel_size=(2,2)):
+    stack = stack_for_pool(x, *kernel_size)
     ctx.save_for_backward(x.shape)
     return np.mean(stack, axis=0)
 
   @staticmethod
   def backward(ctx, grad_output):
     s, = ctx.saved_tensors
-    py, px = ctx.pool_size # TODO: where does pool_size come from?
+    py, px = ctx.kernel_size                                               # TODO: where does kernel_size come from?
     my, mx = (s[2]//py)*py, (s[3]//px)*px
     ret = np.zeros(s, dtype=grad_output.dtype)
     for Y in range(py):

@@ -103,7 +103,7 @@ class Function:
       setattr(ctx, k, v)                      # add any kwargs to ctx
 
     # this performs the actual operation (e.g., addition, multiplication, etc.) on the tensor data
-    ret = Tensor(op.forward(ctx, *[t.data for t in x])) 
+    ret = Tensor(op.forward(ctx, *[t.data for t in x], **kwargs))
     ret._ctx = ctx
     return ret
 

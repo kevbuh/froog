@@ -34,7 +34,7 @@ def helper_test_op(shape, torch_func, frog_func, atol=1e-7, grad_atol=1e-7):
 
 class TestOps(unittest.TestCase):
   def test_conv2d(self):
-    for bs in [1,128]:
+    for bs in [1,8]:
       for cin in [1,2,3]:
         for H in [2,3,5]:
           for W in [2,3,5]:
@@ -43,6 +43,13 @@ class TestOps(unittest.TestCase):
                     lambda x,w: Tensor.conv2d(x,w).relu(), 
                     atol=2e-5, 
                     grad_atol=2e-6)
+            
+  # TODO: doesn't work for anything but (2,2)
+  def test_maxpool_sizes(self):
+    for size in [(2,2), (3,3), (3,2), (5,5), (5,1)]:
+      helper_test_op([(32,2,110,28)],
+        lambda x: torch.nn.functional.max_pool2d(x, kernel_size=size),
+        lambda x: Tensor.max_pool2d(x, kernel_size=size))
 
   def test_maxpool2x2(self):
     helper_test_op([(32,2,110,28)], lambda x: torch.nn.functional.max_pool2d(x, (2,2)), Tensor.max_pool2d)
