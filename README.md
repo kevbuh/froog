@@ -60,7 +60,7 @@ We really want to get a useful model working right out of the box! Our top bount
 
 Here are some basic guidelines for contributing:
 
-* Reduce code
+* Reduce code, currently at 585 lines
 * Increase speed
 * Add features
 * In that order
