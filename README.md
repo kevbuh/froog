@@ -45,8 +45,11 @@ Our top bounty is to get EfficientNet v2 model working inside of the <a href="ht
 #### Easy
 - built in MLP model
 - binary cross entropy
-- dropout layer
 - flatten
+- batch_norm
+- pad
+- swish
+- dropout 
 #### Medium
 - simplify how context and gradients are handled
 #### Hard
