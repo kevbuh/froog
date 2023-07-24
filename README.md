@@ -1,19 +1,22 @@
 # frog <img src="https://github.com/kevbuh/frog/actions/workflows/test.yml/badge.svg" alt="unit test badge" >
 <div align="center" >
-  <img src="https://github.com/kevbuh/frog/blob/main/assets/froog.jpeg" alt="froog the frog" height="300">
+  <img src="https://raw.githubusercontent.com/kevbuh/frog/main/assets/froog.jpeg" alt="froog the frog" height="300">
   
   <br/>
   frog: fast real-time optimization of gradients 
   <br/>
-  <a href="https://github.com/kevbuh/frog/tree/main/docs">documentation</a> | <a href="https://github.com/kevbuh/frog/tree/main/examples">examples</a> 
+  <a href="https://github.com/kevbuh/frog/tree/main/docs">documentation</a> | <a href="https://github.com/kevbuh/frog/tree/main/examples">examples</a> | <a href="https://github.com/kevbuh/frog/tree/main/docs">documentation</a> | <a href="https://pypi.org/project/froog/">pypi</a> | <a href="https://github.com/kevbuh/frog">github</a>
   <br/>
   <br/>
 </div>
 
 a beautifully compact machine-learning library
 
-modern ml development is unintuitive, time consuming, and unaccessible. why not make it possible for anyone to build?
-
+<!-- modern ml development is unintuitive, time consuming, and unaccessible. why not make it possible for anyone to build? -->
+# Installation
+```bash
+pip install froog
+```
 
 ### Overview of Features
 - Tensors
@@ -34,7 +37,6 @@ modern ml development is unintuitive, time consuming, and unaccessible. why not 
 - 2D Convolution
 
 # Bounties
-
 We really want to get a useful model working right out of the box! Our top bounty is to get EfficientNet v2 model working inside of the <a href="https://github.com/kevbuh/frog/tree/main/examples">examples</a>  folder.
 
 - EfficientNet v2 (**top priority**)
@@ -44,8 +46,9 @@ We really want to get a useful model working right out of the box! Our top bount
 - binary cross entropy
 - dropout layer
 - flatten
+
 #### Medium
-- Simplify how context and gradients are handled
+- simplify how context and gradients are handled
 
 #### Hard
 - Transformers

@@ -5,3 +5,4 @@ notebooks
 build
 dist
 *.egg-info
+.pytest_cache

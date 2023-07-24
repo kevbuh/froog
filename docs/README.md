@@ -73,7 +73,7 @@ The tests are located <a href="https://github.com/kevbuh/frog/tree/main/tests">h
 
 You can run them in your terminal by going into the root folder and entering
 
-```
-python tests/test_tensor.py
+```bash
+python -m pytest
 ```
 

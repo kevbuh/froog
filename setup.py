@@ -7,10 +7,10 @@ from setuptools import setup
 
 directory = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(directory, 'README.md'), encoding='utf-8') as f:
-    long_description = f.read()
+  long_description = f.read()
 
-setup(name='frog',
-      version='0.1.0',
+setup(name='froog',
+      version='0.1.3',
       description='FROG: Fast Real-time Optimization of Gradients',
       author='Kevin Buhler',
       license='MIT',
@@ -18,8 +18,8 @@ setup(name='frog',
       long_description_content_type='text/markdown',
       packages = ['frog'],
       classifiers=[
-          "Programming Language :: Python :: 3",
-          "License :: OSI Approved :: MIT License"
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License"
       ],
       install_requires=['numpy', 'requests'],
       python_requires='>=3.6',
