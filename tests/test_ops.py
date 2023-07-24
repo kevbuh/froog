@@ -57,5 +57,16 @@ class TestOps(unittest.TestCase):
   def test_avgpool2x2(self):
     helper_test_op([(32,2,111,28)], lambda x: torch.nn.functional.avg_pool2d(x, (2,2)), Tensor.avg_pool2d)
 
+  def test_strided_conv2d(self):
+    bs = 4
+    cin = 3
+    H,W = 3,3
+    helper_test_op([(bs,cin,11,28), (4,cin,H,W)],
+      lambda x,w: torch.nn.functional.conv2d(x,w,stride=2).relu(),
+      lambda x,w: Tensor.conv2d(x,w,stride=2).relu(), atol=2e-5, grad_atol=2e-6)
+    helper_test_op([(bs,cin,11,28), (4,cin,H,W)],
+      lambda x,w: torch.nn.functional.conv2d(x,w,stride=(2,1)).relu(),
+      lambda x,w: Tensor.conv2d(x,w,stride=(2,1)).relu(), atol=2e-5, grad_atol=2e-6)
+
 if __name__ == '__main__':
-  unittest.main(verbosity=2) # TODO: what does verbosity do? 
+  unittest.main(verbosity=2) 

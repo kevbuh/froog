@@ -113,7 +113,7 @@ register("logsoftmax", LogSoftmax)
 
 class Conv2D(Function): 
   @staticmethod
-  def forward(ctx, input_image, conv_kernel):
+  def forward(ctx, x, w, stride=1):
     """
     https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md
     WARNING: doesn't handle padding or strides yet
@@ -124,34 +124,41 @@ class Conv2D(Function):
       x.shape[3]-(W-1)						  --> width of output
     Shape: 
       (a, b, c, d)(e, f, g, h)      --> (a, e, c-(g-1), d-(h-1)) 
+      in general, output x and y = [(W−K+2P)/S]+1
     """
-    ctx.save_for_backward(input_image, conv_kernel)
-    cout, cin, H, W = conv_kernel.shape
-    conv_to_return = np.zeros((input_image.shape[0], cout, input_image.shape[2]-(H-1), input_image.shape[3]-(W-1)), dtype=conv_kernel.dtype)
+    if type(ctx.stride) == int:                                                          # ctx stores function params
+      ctx.stride = (ctx.stride, ctx.stride)
 
-    tw = conv_kernel.reshape(conv_kernel.shape[0], -1).T                            # slice of kernel 
+    cout, cin, H, W = w.shape
+    tw = w.reshape(cout, -1).T                                                           # slice of kernel 
+    y_stride, x_stride = ctx.stride
+    bs, oy, ox = x.shape[0], (x.shape[2]-(H-y_stride))//y_stride, (x.shape[3]-(W-x_stride))//x_stride
+    ctx.save_for_backward(x, w)
 
-    for Y in range(conv_to_return.shape[2]):                                        # non_padded_height
-      for X in range(conv_to_return.shape[3]):                                      # non_padded_width
-        tx = input_image[:, :, Y:Y+H, X:X+W]
-        tx = tx.reshape(input_image.shape[0], -1)
-        conv_to_return[:, :, Y, X] = tx.dot(tw)
-    return conv_to_return
+    ret = np.zeros((bs, cout, oy, ox), dtype=w.dtype)
+
+    for Y in range(oy):                                                                  # non_padded_height of output
+      for X in range(ox):                                                                # non_padded_width  of output
+        iY, iX = Y*y_stride, X*x_stride                                    
+        tx = x[:, :, iY:iY+H, iX:iX+W].reshape(bs, -1)
+        ret[:, :, Y, X] = tx.dot(tw)
+    return ret
 
   @staticmethod
   def backward(ctx, grad_output):
     x, conv_kernel = ctx.saved_tensors
     cout, cin, H, W = conv_kernel.shape
     dx, dw = np.zeros_like(x), np.zeros_like(conv_kernel)
-
-    tw = conv_kernel.reshape(cout, -1)                                               # transformed kernel weights
+    tw = conv_kernel.reshape(cout, -1)                                                   # transformed kernel weights
+    y_stride, x_stride = ctx.stride
 
     for Y in range(grad_output.shape[2]):
       for X in range(grad_output.shape[3]):
-        gg = grad_output[:, :, Y, X]                                                 # backprop gradients from previous layer 
-        tx = x[:, :, Y:Y+H, X:X+W].reshape(x.shape[0], -1)                           # slice of tensor at current conv op                                                                                # 
-        dw += gg.T.dot(tx).reshape(dw.shape)                                         # gradient with respect to conv kernel
-        dx[:, :, Y:Y+H, X:X+W] += gg.dot(tw).reshape(dx.shape[0], dx.shape[1], H, W) # accumulate gradient of input (current multiply element in chain rule)
+        iY,iX = Y*y_stride, X*x_stride
+        gg = grad_output[:, :, Y, X]                                                     # current multiply element in chain rule
+        tx = x[:, :, iY:iY+H, iX:iX+W].reshape(x.shape[0], -1)                           # slice of tensor at current conv op                                                                                # 
+        dw += gg.T.dot(tx).reshape(dw.shape)                                             # gradient with respect to input 
+        dx[:, :, iY:iY+H, iX:iX+W] += gg.dot(tw).reshape(dx.shape[0], dx.shape[1], H, W) # accumulate gradient with respect to weights 
     return dx, dw
 register('conv2d', Conv2D)
 
