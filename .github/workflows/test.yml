@@ -5,7 +5,6 @@ on:
   pull_request:
 
 jobs:
-
   lines:
     name: Check lines of code (need <= 1000 lines)
     runs-on: ubuntu-latest
