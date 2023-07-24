@@ -17,7 +17,7 @@ You can create a Tensor in frog by
 import numpy as np
 from frog.tensor import Tensor
 
-my_tensor = Tensor(np.array([1,2,3]))
+my_tensor = Tensor([1,2,3])
 ```
 
 Notice how we had to import numpy. If you want to create a Tensor manually make sure that it is a Numpy array!
@@ -63,7 +63,7 @@ class SimpleConvNet:
   def forward(self, x):
     x.data = x.data.reshape((-1, 1, 28, 28))                          # get however many number of imgs in batch
     x = x.conv2d(self.c1).relu()                                      # pass through conv first
-    x = x.reshape(Tensor(np.array((x.shape[0], -1))))
+    x = x.reshape(Tensor((x.shape[0], -1)))
     return x.dot(self.l1).relu().dot(self.l2).logsoftmax()
 ```
 
