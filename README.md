@@ -58,6 +58,11 @@ We really want to get a useful model working right out of the box! Our top bount
 
 Here are some basic guidelines for contributing:
 
-Bug fixes are the best and always welcome.
-Conceptual cleanups are great!
-All features must include <a href="https://github.com/kevbuh/frog/tree/main/tests">tests</a>.
+* Reduce code
+* Increase speed
+* Add features
+* In that order
+
+Bug fixes are the best and always welcome
+Conceptual cleanups are great
+All features must include <a href="https://github.com/kevbuh/frog/tree/main/tests">tests</a>
