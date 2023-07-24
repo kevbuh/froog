@@ -1,16 +1,15 @@
 # frog <img src="https://github.com/kevbuh/frog/actions/workflows/test.yml/badge.svg" alt="unit test badge" >
 <div align="center" >
   <img src="https://raw.githubusercontent.com/kevbuh/frog/main/assets/froog.jpeg" alt="froog the frog" height="300">
-  
   <br/>
   frog: fast real-time optimization of gradients 
   <br/>
-  <a href="https://github.com/kevbuh/frog/tree/main/docs">documentation</a> | <a href="https://github.com/kevbuh/frog/tree/main/examples">examples</a> | <a href="https://github.com/kevbuh/frog/tree/main/docs">documentation</a> | <a href="https://pypi.org/project/froog/">pypi</a> | <a href="https://github.com/kevbuh/frog">github</a>
+  a beautifully compact machine-learning library
+  <br/>
+  <a href="https://github.com/kevbuh/frog">homepage</a> | <a href="https://github.com/kevbuh/frog/tree/main/docs">documentation</a> | <a href="https://github.com/kevbuh/frog/tree/main/examples">examples</a>| <a href="https://pypi.org/project/froog/">pip</a>
   <br/>
   <br/>
 </div>
-
-a beautifully compact machine-learning library
 
 <!-- modern ml development is unintuitive, time consuming, and unaccessible. why not make it possible for anyone to build? -->
 # Installation
