@@ -10,8 +10,8 @@ with open(os.path.join(directory, 'README.md'), encoding='utf-8') as f:
   long_description = f.read()
 
 setup(name='froog',
-      version='0.1.6',
-      description='froog: Fast Real-time Optimization of Gradients',
+      version='0.1.7',
+      description='FROOG: Fast Real-time Optimization Of Gradients',
       author='Kevin Buhler',
       license='MIT',
       long_description=long_description,
