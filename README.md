@@ -1,12 +1,12 @@
-# frog <img src="https://github.com/kevbuh/frog/actions/workflows/test.yml/badge.svg" alt="unit test badge" >
+# froog <img src="https://github.com/kevbuh/froog/actions/workflows/test.yml/badge.svg" alt="unit test badge" >
 <div align="center" >
-  <img src="https://raw.githubusercontent.com/kevbuh/frog/main/assets/froog.jpeg" alt="froog the frog" height="300">
+  <img src="https://raw.githubusercontent.com/kevbuh/froog/main/assets/froog.jpeg" alt="froog the froog" height="300">
   <br/>
-  frog: fast real-time optimization of gradients 
+  froog: fast real-time optimization of gradients 
   <br/>
   a beautifully compact machine-learning library
   <br/>
-  <a href="https://github.com/kevbuh/frog">homepage</a> | <a href="https://github.com/kevbuh/frog/tree/main/docs">documentation</a> | <a href="https://github.com/kevbuh/frog/tree/main/examples">examples</a> | <a href="https://pypi.org/project/froog/">pip</a>
+  <a href="https://github.com/kevbuh/froog">homepage</a> | <a href="https://github.com/kevbuh/froog/tree/main/docs">documentation</a> | <a href="https://github.com/kevbuh/froog/tree/main/examples">examples</a> | <a href="https://pypi.org/project/froog/">pip</a>
   <br/>
   <br/>
 </div>
@@ -35,12 +35,12 @@ pip install froog
 - Log Softmax
 - 2D Convolutions
 - Avg & Max pooling
-- <a href="https://github.com/kevbuh/frog/blob/main/frog/ops.py">More</a> 
+- <a href="https://github.com/kevbuh/froog/blob/main/froog/ops.py">More</a> 
 
 # Bounties
 Want to help but don't know where to start? 
 
-Our top bounty is to get EfficientNet v2 model working inside of the <a href="https://github.com/kevbuh/frog/tree/main/examples">examples</a> folder.
+Our top bounty is to get EfficientNet v2 model working inside of the <a href="https://github.com/kevbuh/froog/tree/main/examples">examples</a> folder.
 
 #### Easy
 - built in MLP model
@@ -64,7 +64,7 @@ Our top bounty is to get EfficientNet v2 model working inside of the <a href="ht
 here are some basic guidelines for contributing:
 * reduce complexity (currently at 585 lines of code)
 * increase speed
-* add features, must include <a href="https://github.com/kevbuh/frog/tree/main/tests">tests</a>
+* add features, must include <a href="https://github.com/kevbuh/froog/tree/main/tests">tests</a>
 * in that order
 
-more info on <a href="https://github.com/kevbuh/frog/blob/main/docs/contributing.md">contributing</a>
+more info on <a href="https://github.com/kevbuh/froog/blob/main/docs/contributing.md">contributing</a>

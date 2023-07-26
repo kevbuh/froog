@@ -1,3 +1,3 @@
-import frog.optim
-import frog.tensor
-import frog.utils
+import froog.optim
+import froog.tensor
+import froog.utils

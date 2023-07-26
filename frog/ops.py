@@ -1,6 +1,6 @@
 import numpy as np
-from frog.tensor import Function, register
-from frog.utils import im2col, col2im
+from froog.tensor import Function, register
+from froog.utils import im2col, col2im
 
 # *********** Elementary Functions ***********
 # Add, Mul, ReLU, Dot, Sum, Conv2D, Reshape 

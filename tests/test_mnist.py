@@ -1,8 +1,8 @@
 import numpy as np
 from tqdm import trange
-from frog.tensor import Tensor
-from frog.utils import fetch_mnist, dense_layer
-import frog.optim as optim
+from froog.tensor import Tensor
+from froog.utils import fetch_mnist, dense_layer
+import froog.optim as optim
 import unittest
 import os
 

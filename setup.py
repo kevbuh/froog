@@ -1,6 +1,6 @@
 
 #!/usr/bin/env python3
-# this file specifies how the frog package is installed, including any necessary dependencies required to run
+# this file specifies how the froog package is installed, including any necessary dependencies required to run
 
 import os
 from setuptools import setup
@@ -11,12 +11,12 @@ with open(os.path.join(directory, 'README.md'), encoding='utf-8') as f:
 
 setup(name='froog',
       version='0.1.6',
-      description='FROG: Fast Real-time Optimization of Gradients',
+      description='froog: Fast Real-time Optimization of Gradients',
       author='Kevin Buhler',
       license='MIT',
       long_description=long_description,
       long_description_content_type='text/markdown',
-      packages = ['frog'],
+      packages = ['froog'],
       classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License"

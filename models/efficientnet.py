@@ -8,7 +8,7 @@ The scaling method was found by performing a grid search to find the relationshi
 
 "SE" stands for "Squeeze-and-Excitation." Introduced by the "Squeeze-and-Excitation Networks" paper by Jie Hu, Li Shen, and Gang Sun (CVPR 2018).
 """
-from frog.tensor import Tensor
+from froog.tensor import Tensor
 
 class BatchNorm2D:
   def __init__(self, sz):

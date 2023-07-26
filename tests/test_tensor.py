@@ -1,8 +1,8 @@
 import numpy as np
 import torch
 import unittest
-from frog.tensor import Tensor
-from frog.gradcheck import numerical_jacobian, gradcheck, jacobian
+from froog.tensor import Tensor
+from froog.gradcheck import numerical_jacobian, gradcheck, jacobian
 
 x_init = np.random.randn(1,3).astype(np.float32)
 W_init = np.random.randn(3,3).astype(np.float32)
@@ -18,18 +18,18 @@ class TestTensor(unittest.TestCase):
     torch_W = torch.tensor(W, requires_grad=True)
     torch_func = lambda x: torch.nn.functional.log_softmax(x.matmul(torch_W).relu(), dim=1)
 
-    frog_x = Tensor(x)
-    frog_W = Tensor(W)
-    frog_func = lambda x: x.dot(frog_W).relu().logsoftmax()
+    froog_x = Tensor(x)
+    froog_W = Tensor(W)
+    froog_func = lambda x: x.dot(froog_W).relu().logsoftmax()
 
-    J = jacobian(frog_func, frog_x)
+    J = jacobian(froog_func, froog_x)
     PJ = torch.autograd.functional.jacobian(torch_func, torch_x).squeeze().numpy()
-    NJ = numerical_jacobian(frog_func, frog_x)
+    NJ = numerical_jacobian(froog_func, froog_x)
 
     np.testing.assert_allclose(PJ, J, atol = 1e-5)
     np.testing.assert_allclose(PJ, NJ, atol = 1e-5)
 
-    def test_frog():
+    def test_froog():
       x = Tensor(x_init)
       W = Tensor(W_init)
       m = Tensor(m_init)
@@ -49,7 +49,7 @@ class TestTensor(unittest.TestCase):
       out.backward()
       return out.detach().numpy(), x.grad, W.grad
 
-    for x,y in zip(test_frog(), test_pytorch()):
+    for x,y in zip(test_froog(), test_pytorch()):
       np.testing.assert_allclose(x, y, atol=1e-5)
 
   def test_gradcheck(self):
@@ -67,11 +67,11 @@ class TestTensor(unittest.TestCase):
 
     tiny_x = Tensor(x)
     tiny_W = Tensor(W)
-    frog_func = lambda x: x.dot(tiny_W).relu().logsoftmax()
+    froog_func = lambda x: x.dot(tiny_W).relu().logsoftmax()
 
-    self.assertTrue(gradcheck(frog_func, tiny_x))
-    self.assertTrue(gradcheck(frog_func, tiny_x)) 
-    self.assertFalse(gradcheck(frog_func, tiny_x, eps = 0.1)) 
+    self.assertTrue(gradcheck(froog_func, tiny_x))
+    self.assertTrue(gradcheck(froog_func, tiny_x)) 
+    self.assertFalse(gradcheck(froog_func, tiny_x, eps = 0.1)) 
 
 if __name__ == '__main__':
   unittest.main()

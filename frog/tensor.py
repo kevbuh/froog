@@ -123,4 +123,4 @@ def register(name, fxn):
   """
   setattr(Tensor, name, partialmethod(fxn.apply, fxn))
 
-import frog.ops # this registers all the operations
+import froog.ops # this registers all the operations

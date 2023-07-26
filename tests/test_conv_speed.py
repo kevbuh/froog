@@ -1,7 +1,7 @@
 import time
 import cProfile
 import unittest
-from frog.tensor import Tensor
+from froog.tensor import Tensor
 import pstats
 import numpy as np
 import torch
@@ -66,7 +66,7 @@ class TestConvSpeed(unittest.TestCase):
     print(f"avg torch backward pass: {self.bpt_baseline:.3f} ms")
     print(tprof.key_averages().table(sort_by="self_cpu_time_total", row_limit=20))
 
-    # ****** frog results ******
+    # ****** froog results ******
 
     c1 = Tensor(c1.detach().numpy()) # detach from torch, turn into numpy array
     c2 = Tensor(c2.detach().numpy())
@@ -94,8 +94,8 @@ class TestConvSpeed(unittest.TestCase):
     stop_profile(pr, sort='time')
     fpt = fpt*1000/cnt
     bpt = bpt*1000/cnt
-    print(f"avg frog forward pass:  {float(fpt):.3f} ms, {float(fpt/self.fpt_baseline):.2f}x off baseline of {self.fpt_baseline:.3f} ms")
-    print(f"avg frog backward pass: {float(bpt):.3f} ms, {float(fpt/self.bpt_baseline):.2f}x off baseline of {self.bpt_baseline:.3f} ms")
+    print(f"avg froog forward pass:  {float(fpt):.3f} ms, {float(fpt/self.fpt_baseline):.2f}x off baseline of {self.fpt_baseline:.3f} ms")
+    print(f"avg froog backward pass: {float(bpt):.3f} ms, {float(fpt/self.bpt_baseline):.2f}x off baseline of {self.bpt_baseline:.3f} ms")
   
     
 if __name__ == '__main__':
