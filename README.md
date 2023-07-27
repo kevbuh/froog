@@ -12,6 +12,10 @@
 </div>
 
 <!-- modern ml development is unintuitive, time consuming, and unaccessible. why not make it possible for anyone to build? -->
+ml is like lego. you have many different pieces, of all shapes and colors, that can be combined into anything you can imagine
+
+froog is building those pieces
+
 # Installation
 ```bash
 pip install froog
