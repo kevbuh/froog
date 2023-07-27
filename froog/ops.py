@@ -63,18 +63,31 @@ register("sum", Sum)
 
 # ******* nn ops *******
 
-class ReLU(Function): # max(0,x)
+class ReLU(Function): 
   @staticmethod
   def forward(ctx, input):
     ctx.save_for_backward(input)
-    return np.maximum(input, 0)
+    return np.maximum(input, 0) # relu(x) = max(0,x)
 
   @staticmethod
   def backward(ctx, grad_output):
-    (input,) = ctx.saved_tensors
+    input, = ctx.saved_tensors
     grad_input = grad_output * (input >= 0)
     return grad_input
 register("relu", ReLU)
+
+class Sigmoid(Function): 
+  @staticmethod
+  def forward(ctx, input):
+    ctx.save_for_backward(input)
+    return 1 / (1 + np.exp(-1*input)) # sigmoid(x) = 1 / (1 + exp(-x))
+
+  @staticmethod
+  def backward(ctx, grad_output):
+    ret, = ctx.saved_tensors
+    grad_input = grad_output * (ret * (1 - ret)) # just take the derivative of sigmoid
+    return grad_input
+register("sigmoid", Sigmoid)
 
 class Reshape(Function):
   @staticmethod

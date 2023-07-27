@@ -12,9 +12,9 @@
 </div>
 
 <!-- modern ml development is unintuitive, time consuming, and unaccessible. why not make it possible for anyone to build? -->
-machine learning is like making a lego. combine pieces, of all shapes and colors, to make anything you could possibly imagine. 
+machine learning is like making a lego. you combine standardized pieces, of all shapes and sizes, to create anything you imagine
 
-froog is making those essential building blocks. 
+froog is making those essential building blocks.
 
 # Installation
 ```bash
