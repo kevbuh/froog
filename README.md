@@ -13,9 +13,10 @@
 
 <!-- modern ml development is unintuitive, time consuming, and unaccessible. why not make it possible for anyone to build? -->
 <!-- the goal of froog is to make a neural network libary to power any type of device from enterprise to small home robotics -->
-machine learning is like making a lego. you combine standardized pieces, of all shapes and sizes, to create anything you imagine
+<!-- machine learning is like making a lego. you combine standardized pieces, of all shapes and sizes, to create anything you imagine -->
+<!-- froog is making those essential building blocks. -->
 
-froog is making those essential building blocks.
+froog is extremely simple, with a goal of running ml on any device, by any human, easily and efficiently
 
 # Installation
 ```bash
@@ -63,9 +64,9 @@ Want to help but don't know where to start? Here are some bounties for you to cl
 
 # Contributing
 Here are some basic guidelines for contributing:
-* reduce complexity 
-* increase speed
-* reduce lines of code (currently at 584 lines of code)
-* add features
+* increase simplicity
+* increase efficiency
+* increase functionality
+* in that order
 
 more info on <a href="https://github.com/kevbuh/froog/blob/main/docs/contributing.md">contributing</a>

@@ -11,7 +11,7 @@ with open(os.path.join(directory, 'README.md'), encoding='utf-8') as f:
 
 setup(name='froog',
       version='0.1.7',
-      description='FROOG: Fast Real-time Optimization Of Gradients',
+      description='a beautifully compact machine-learning library',
       author='Kevin Buhler',
       license='MIT',
       long_description=long_description,

@@ -101,6 +101,19 @@ class Reshape(Function):
     return grad_output.reshape(in_shape), None
 register('reshape', Reshape)
 
+class Pad2D(Function):
+  """
+  The first element (0,0) corresponds to padding along the batch dimension, which indicates no padding on both sides (0 elements added).
+  """
+  @staticmethod
+  def forward(ctx, x, padding=None): # (top, bottom, left, right)
+    return np.pad(x, ((0,0), (0,0), (padding[0], padding[1]), (padding[2], padding[3])))
+
+  @staticmethod
+  def backward(ctx, grad_output):
+    raise Exception("write this")
+register('pad2d', Pad2D)
+
 class LogSoftmax(Function):
   """
   converts a vector of numbers into a vector of probabilities
