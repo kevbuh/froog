@@ -12,9 +12,9 @@
 </div>
 
 <!-- modern ml development is unintuitive, time consuming, and unaccessible. why not make it possible for anyone to build? -->
-machine learning is like making a lego. you combine pieces --of all shapes and colors-- to make anything you can imagine
+machine learning is like making a lego. combine pieces, of all shapes and colors, to make anything you could possibly imagine. 
 
-froog makes those essential pieces 
+froog is making those essential building blocks. 
 
 # Installation
 ```bash
@@ -51,7 +51,7 @@ Want to help but don't know where to start? Here are some bounties for you to cl
 - pad
 - swish
 - dropout 
-#### $$  <!-- medium  -->
+#### $$  <!-- mid tier -->
 - simplify how context and gradients are handled
 #### $$$ <!-- EXPERT LEVEL!!!  -->
 - efficient net
