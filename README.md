@@ -6,15 +6,15 @@
   <br/>
   a beautifully compact machine-learning library
   <br/>
-  <a href="https://github.com/kevbuh/froog">homepage</a> | <a href="https://github.com/kevbuh/froog/tree/main/docs">documentation</a> | <a href="https://github.com/kevbuh/froog/tree/main/examples">examples</a> | <a href="https://pypi.org/project/froog/">pip</a>
+  <a href="https://github.com/kevbuh/froog">homepage</a> | <a href="https://github.com/kevbuh/froog/tree/main/docs">documentation</a> | <a href="https://pypi.org/project/froog/">pip</a>
   <br/>
   <br/>
 </div>
 
 <!-- modern ml development is unintuitive, time consuming, and unaccessible. why not make it possible for anyone to build? -->
-ml is like lego. you have many different pieces, of all shapes and colors, that can be combined into anything you can imagine
+machine learning is like making a lego. you combine pieces --of all shapes and colors-- to make anything you can imagine
 
-froog is building those pieces
+froog makes those essential pieces 
 
 # Installation
 ```bash
@@ -42,22 +42,19 @@ pip install froog
 - <a href="https://github.com/kevbuh/froog/blob/main/froog/ops.py">More</a> 
 
 # Bounties
-Want to help but don't know where to start? 
+Want to help but don't know where to start? Here are some bounties for you to claim
 
-Our top bounty is to get EfficientNet v2 model working inside of the <a href="https://github.com/kevbuh/froog/tree/main/examples">examples</a> folder.
-
-#### Easy
-- built in MLP model
+#### $   <!-- ez money  -->
 - binary cross entropy
 - flatten
 - batch_norm
 - pad
 - swish
 - dropout 
-#### Medium
+#### $$  <!-- medium  -->
 - simplify how context and gradients are handled
-#### Hard
-- efficientNet
+#### $$$ <!-- EXPERT LEVEL!!!  -->
+- efficient net
 - transformers
 - stable Diffusion
 - winograd Convs
@@ -65,10 +62,10 @@ Our top bounty is to get EfficientNet v2 model working inside of the <a href="ht
 - CUDA support
 
 # Contributing
-here are some basic guidelines for contributing:
-* reduce complexity (currently at 585 lines of code)
+Here are some basic guidelines for contributing:
+* reduce complexity 
 * increase speed
-* add features, must include <a href="https://github.com/kevbuh/froog/tree/main/tests">tests</a>
-* in that order
+* reduce lines of code (currently at 584 lines of code)
+* add features
 
 more info on <a href="https://github.com/kevbuh/froog/blob/main/docs/contributing.md">contributing</a>
