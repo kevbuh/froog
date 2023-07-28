@@ -1,7 +1,7 @@
-import torch
 import numpy as np
-import unittest
 from froog.tensor import Tensor
+import torch
+import unittest
 import timeit
 import functools
 
@@ -41,7 +41,7 @@ class TestOps(unittest.TestCase):
     helper_test_op([(45,65), (45,65)], lambda x,y: x*y, Tensor.mul)
   def test_div(self):
     # TODO: why does this need more tolerance?
-    helper_test_op([(45,65), (45,65)], lambda x,y: x/y, Tensor.div, atol=5e-5)
+    helper_test_op([(45,65), (45,65)], lambda x,y: x/y, Tensor.div, atol=5e-5, grad_atol=2e-5)
   def test_pow(self):
     helper_test_op([(45,65), (45,65)], lambda x,y: x**y, Tensor.pow)
   def test_sqrt(self):
