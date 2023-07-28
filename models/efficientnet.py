@@ -12,6 +12,8 @@ from froog.tensor import Tensor
 from froog.ops import AvgPool2D
 from froog.utils import fetch
 import io
+import sys
+import numpy as np
 
 def swish(x):
   return x.mul(x.sigmoid())
@@ -138,7 +140,6 @@ class EfficientNet:
       if '_blocks.' in k:
         k = "%s[%s].%s" % tuple(k.split(".", 2))
       mk = "self."+k
-      #print(k, v.shape)
       try:
         mv = eval(mk)
       except AttributeError:
@@ -150,8 +151,33 @@ class EfficientNet:
       mv.data[:] = vnp if k != '_fc.weight' else vnp.T
 
 if __name__ == "__main__":
-  model = EfficientNet()
-  model.load_weights_from_torch()
+  # instantiate and get weights
+  # model = EfficientNet()
+  # model.load_weights_from_torch() 
+
+  # load image and preprocess
+  from PIL import Image
+  if len(sys.argv) > 1:
+    url = sys.argv[1]
+  else:
+    url = "https://c.files.bbci.co.uk/12A9B/production/_111434467_gettyimages-1143489763.jpg"
+
+  img = Image.open(io.BytesIO(fetch(url)))
+  aspect_ratio = img.size[0] / img.size[1]
+  img = img.resize((int(224*aspect_ratio), 224))
+  img = np.array(img)
+
+  chapo = (img.shape[1]-224)//2
+  img = img[:, chapo:chapo+224]
+  img = np.moveaxis(img, [2,0,1], [0,1,2])
+  img = img.astype(np.float32).reshape(1,3,224,224)
+  img /= 256
+  img -= np.array([0.485, 0.456, 0.406]).reshape((1,-1,1,1))
+  img /= np.array([0.229, 0.224, 0.225]).reshape((1,-1,1,1))
+
+  import matplotlib.pyplot as plt
+  plt.imshow(img[0].mean(axis=0))
+  plt.show()
 
 
 
