@@ -16,7 +16,11 @@ class Tensor:
       print(f"error constructing tensor with {data}")
       assert False
     
-    self.data = data.astype(np.float32) # all data in  float32
+    if data.dtype != np.float32:
+      # warning? float64 needed for numerical jacobian
+      pass
+
+    self.data = data
 
     # internal variables used for autograd graph construction
     self.grad = None

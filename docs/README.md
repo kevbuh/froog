@@ -63,7 +63,7 @@ class SimpleConvNet:
   def forward(self, x):
     x.data = x.data.reshape((-1, 1, 28, 28))                          # get however many number of imgs in batch
     x = x.conv2d(self.c1).relu()                                      # pass through conv first
-    x = x.reshape(Tensor((x.shape[0], -1)))
+    x = x.reshape(shape=(x.shape[0], -1))
     return x.dot(self.l1).relu().dot(self.l2).logsoftmax()
 ```
 
