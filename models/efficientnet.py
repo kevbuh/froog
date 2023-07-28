@@ -3,14 +3,12 @@ Paper           : https://arxiv.org/abs/1905.11946
 PyTorch version : https://github.com/lukemelas/EfficientNet-PyTorch/blob/master/efficientnet_pytorch/model.py
 
 ConvNets are commonly developed at a fixed resource cost, and then scaled up in order to achieve better accuracy when more resources are made available
-
 The scaling method was found by performing a grid search to find the relationship between different scaling dimensions of the baseline network under a fixed resource constraint
-
 "SE" stands for "Squeeze-and-Excitation." Introduced by the "Squeeze-and-Excitation Networks" paper by Jie Hu, Li Shen, and Gang Sun (CVPR 2018).
 """
 from froog import Tensor
-from froog.ops import AvgPool2D, Conv2D
-from froog.Tensor import Tensor
+from froog.ops import AvgPool2D
+from froog.tensor import Tensor
 
 def swish(x):
   return x.mul(x.sigmoid())
@@ -23,37 +21,32 @@ class BatchNorm2D:
 
   def __call__(self, x):
     return x
-  
+
 class MBConvBlock: # Mobile Inverted Residual Bottleneck Block
   """
-  Args:
-    block_args    (namedtuple): BlockArgs, defined in utils.py.
-    global_params (namedtuple): GlobalParam, defined in utils.py.
-    image_size (tuple or list): [image_height, image_width].
+   Mobile Inverted Residual Bottleneck Block
   """
   def __init__(self, kernel_size, strides, expand_ratio, input_filters, output_filters, se_ratio):
-    
     # Expansion Phase (Inverted Bottleneck)
     oup = input_filters * expand_ratio
-
-    self.se = se_ratio and 0 < se_ratio <= 1 # don't need?
+    self.has_se = se_ratio and 0 < se_ratio <= 1 # don't need?
 
     if expand_ratio != 1:
-      self.expand_conv = Conv2D((oup, input_filters, 1,1))
-      self._bn0 = BatchNorm2D((oup)) # TODO: how does work?
+      self.expand_conv = Tensor.zeros(oup, input_filters, 1, 1)
+      self._bn0 = BatchNorm2D(oup)          
 
     # Depthwise convolution phase
-    self._depthwise_conv = Conv2D((oup, oup, kernel_size, kernel_size)) # should be Tensor.zeros? Tensor.zeros(oup, 1, kernel_size, kernel_size)
+    self._depthwise_conv = Tensor.zeros(oup, oup, kernel_size, kernel_size)
     self._bn1 = BatchNorm2D(oup)
 
-    # Squeeze and Excitation layer, if desired
+    # Squeeze and Excitation (SE) layer
     if self.has_se:
       num_squeezed_channels = max(1, int(input_filters * se_ratio))
-      self._se_reduce = Tensor.zeros((num_squeezed_channels, oup, 1, 1))
-      self._se_expand = Tensor.zeros((oup, num_squeezed_channels, 1, 1))
+      self._se_reduce = Tensor.zeros(num_squeezed_channels, oup, 1, 1)
+      self._se_expand = Tensor.zeros(oup, num_squeezed_channels, 1, 1)
 
     # Pointwise convolution phase
-    self._project_conv = Tensor.zeros((output_filters, oup, 1, 1))
+    self._project_conv = Tensor.zeros(output_filters, oup, 1, 1)
     self._bn2 = BatchNorm2D(output_filters)
   
 
