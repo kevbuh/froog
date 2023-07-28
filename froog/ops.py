@@ -40,6 +40,30 @@ class Mul(Function): # x.mul(y)
     return y * grad_output, x * grad_output
 register("mul", Mul)
 
+class Div(Function): # x.div(y)
+  @staticmethod
+  def forward(ctx, x, y):
+    ctx.save_for_backward(x, y)
+    return x / y
+  
+  @staticmethod
+  def backward(ctx, grad_output):
+    x, y = ctx.saved_tensors
+    return y / grad_output, x / grad_output # TODO: grad_y = -grad_output * x / y**2 ?
+register("div", Div)
+
+class Sqrt(Function): # x.sqrt(y)
+  @staticmethod
+  def forward(ctx, x):
+    ctx.save_for_backward(x)
+    return np.sqrt(x)
+  
+  @staticmethod
+  def backward(ctx, grad_output):
+    # x, = ctx.saved_tensors
+    raise Exception("write div backward pass")
+register("sqrt", Sqrt)
+
 
 class Dot(Function):  # x.dot(y)
   @staticmethod
