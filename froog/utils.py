@@ -6,6 +6,19 @@ def dense_layer(*tensor_size):
   ret = np.random.uniform(-1., 1., size=tensor_size)/np.sqrt(np.prod(tensor_size)) # random init weights
   return ret.astype(np.float32)
 
+def fetch(url):
+  print(f"fetching {url}...")
+  import requests, os, hashlib
+  fp = os.path.join("/tmp", hashlib.md5(url.encode('utf-8')).hexdigest())
+  if os.path.isfile(fp):
+    with open(fp, "rb") as f:
+      dat = f.read()
+  else:
+    with open(fp, "wb") as f:
+      dat = requests.get(url).content
+      f.write(dat)
+  return dat
+
 def mask_like(like, mask_inx, mask_value=1.0):
   mask = np.zeros_like(like).reshape(-1) # flatten
   mask[mask_inx] = mask_value            # fill 

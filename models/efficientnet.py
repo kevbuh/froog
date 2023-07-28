@@ -8,9 +8,10 @@ The scaling method was found by performing a grid search to find the relationshi
 
 go to bottom of file to see params and weights
 """
-from froog import Tensor
-from froog.ops import AvgPool2D
 from froog.tensor import Tensor
+from froog.ops import AvgPool2D
+from froog.utils import fetch
+import io
 
 def swish(x):
   return x.mul(x.sigmoid())
@@ -36,42 +37,41 @@ class MBConvBlock: # Mobile Inverted Residual Bottleneck Block
 
     if expand_ratio != 1:
       self.expand_conv = Tensor.zeros(oup, input_filters, 1, 1)
-      self._bn0 = BatchNorm2D(oup)          
+      self._bn0 = BatchNorm2D(oup)    
+    else: 
+      self._expand_conv = None
+
+    self.pad = (kernel_size-1)//2
+    self.strides = strides      
 
     # Depthwise convolution phase
-    self._depthwise_conv = Tensor.zeros(oup, oup, kernel_size, kernel_size)
+    self._depthwise_conv = Tensor.zeros(oup, 1, kernel_size, kernel_size)
     self._bn1 = BatchNorm2D(oup)
 
     # Squeeze and Excitation (SE) layer
     num_squeezed_channels = max(1, int(input_filters * se_ratio))
     self._se_reduce = Tensor.zeros(num_squeezed_channels, oup, 1, 1)
-    self._se_expand = Tensor.zeros(oup, num_squeezed_channels, 1, 1)
     self._se_reduce_bias = Tensor.zeros(num_squeezed_channels)
+    self._se_expand = Tensor.zeros(oup, num_squeezed_channels, 1, 1)
+    self._se_expand_bias = Tensor.zeros(oup)
 
     # Pointwise convolution phase
     self._project_conv = Tensor.zeros(output_filters, oup, 1, 1)
     self._bn2 = BatchNorm2D(output_filters)
   
-  def __call__(self, inputs): # TODO: what is __call__ 
-    """
-    Args:
-      inputs (Tensor): Input Tensor.
-      drop_connect_rate (bool): Drop connect rate (float, between 0 and 1).
-    Returns:
-      Output of this block after processing.
-    """
+  def __call__(self, inputs):                                     # __call__ allows instance of class to be called as a function
     # Expansion and Depthwise Convolution
     x = inputs
     if self._expand_conv:
       x = swish(self._bn0(x.conv2d(self._expand_conv)))
-    x = x.pad2d(padding=(self.pad, self.pad, self.pad, self.pad)) # TODO: why needed?
+    x = x.pad2d(padding=(self.pad, self.pad, self.pad, self.pad)) # maintain same size ouput as input after conv operation
     x = self._depthwise_conv(x)
     x = self._bn1(x)
     x = swish(x)
 
     # Squeeze and Excitation
     if self.has_se:
-      x_squeezed = AvgPool2D(x, kernel_size=x.shape[2:4])         # TODO: what is adaptive avg pool? 
+      x_squeezed = AvgPool2D(x, kernel_size=x.shape[2:4])         # actual paper uses adaptive avg pool
       x_squeezed = self._se_reduce(x_squeezed)
       x_squeezed = swish(x_squeezed)
       x_squeezed = x_squeezed.add(self._se_reduce_bias).reshape(shape=[1, -1, 1, 1])
@@ -85,7 +85,7 @@ class MBConvBlock: # Mobile Inverted Residual Bottleneck Block
     if x.shape == inputs.shape:
       x = x.add(inputs)
 
-    return x                                                      # TODO: what is drop connect?
+    return x     
 
 class EfficientNet:
   """
@@ -105,7 +105,7 @@ class EfficientNet:
     ] 
     self._blocks = []
     
-    for block_arg in block_args:                      # TODO: build blocks
+    for block_arg in block_args:                      
       args = block_arg[1:]
       for n in range(block_arg[0]):                   # num times to repeat block
         self._blocks.append(MBConvBlock(*args))
@@ -127,11 +127,32 @@ class EfficientNet:
     x = x.reshape(shape=(-1, 1280))
     # x = x.dropout(0.2)
     return x.dot(self._fc).add(self._fc_bias) 
+  
+  def load_weights_from_torch(self):
+    # load b0
+    import torch
+    b0 = fetch("https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b0-355c32eb.pth")
+    b0 = torch.load(io.BytesIO(b0))
+
+    for k,v in b0.items():
+      if '_blocks.' in k:
+        k = "%s[%s].%s" % tuple(k.split(".", 2))
+      mk = "self."+k
+      #print(k, v.shape)
+      try:
+        mv = eval(mk)
+      except AttributeError:
+        try:
+          mv = eval(mk.replace(".weight", ""))
+        except AttributeError:
+          mv = eval(mk.replace(".bias", "_bias"))
+      vnp = v.numpy().astype(np.float32)
+      mv.data[:] = vnp if k != '_fc.weight' else vnp.T
 
 if __name__ == "__main__":
   model = EfficientNet()
-  # out = model.forward(Tensor.zeros(1, 3, 224, 224))
-  # print(out)
+  model.load_weights_from_torch()
+
 
 
 """
