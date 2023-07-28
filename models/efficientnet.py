@@ -22,12 +22,11 @@ class MBConvBlock: # Mobile Inverted Residual Bottleneck Block
    Mobile Inverted Residual Bottleneck Block
   """
   def __init__(self, kernel_size, strides, expand_ratio, input_filters, output_filters, se_ratio):
+    
     # Expansion Phase (Inverted Bottleneck)
     oup = input_filters * expand_ratio
-    # self.has_se = se_ratio and 0 < se_ratio <= 1 # don't need?
-
     if expand_ratio != 1:
-      self.expand_conv = Tensor.zeros(oup, input_filters, 1, 1)
+      self._expand_conv = Tensor.zeros(oup, input_filters, 1, 1)
       self._bn0 = BatchNorm2D(oup)    
     else: 
       self._expand_conv = None
@@ -56,26 +55,22 @@ class MBConvBlock: # Mobile Inverted Residual Bottleneck Block
     if self._expand_conv:
       x = swish(self._bn0(x.conv2d(self._expand_conv)))
     x = x.pad2d(padding=(self.pad, self.pad, self.pad, self.pad)) # maintain same size ouput as input after conv operation
-    x = self._depthwise_conv(x)
+    x = x.conv2d(self._depthwise_conv, stride=self.strides, groups=self._depthwise_conv.shape[0])
     x = self._bn1(x)
     x = swish(x)
 
     # Squeeze and Excitation
-    if self.has_se:
-      x_squeezed = AvgPool2D(x, kernel_size=x.shape[2:4])         # actual paper uses adaptive avg pool
-      x_squeezed = self._se_reduce(x_squeezed)
-      x_squeezed = swish(x_squeezed)
-      x_squeezed = x_squeezed.add(self._se_reduce_bias).reshape(shape=[1, -1, 1, 1])
-      x_squeezed = self._se_expand(x_squeezed)
-      x = x.mul(x_squeezed.sigmoid())
+    x_squeezed = x.avg_pool2d(kernel_size=x.shape[2:4]) # actual paper uses adaptive pool
+    x_squeezed = swish(x_squeezed.conv2d(self._se_reduce).add(self._se_reduce_bias.reshape(shape=[1, -1, 1, 1])))
+    x_squeezed = x_squeezed.conv2d(self._se_expand).add(self._se_expand_bias.reshape(shape=[1, -1, 1, 1]))
+    x = x.mul(x_squeezed.sigmoid())
 
     # Pointwise Convolution
     x = x.conv2d(self._project_conv)
-    x = x.conv2d(self._bn2)
+    x = self._bn2(x)
 
     if x.shape == inputs.shape:
       x = x.add(inputs)
-
     return x     
 
 class EfficientNet:
@@ -95,10 +90,10 @@ class EfficientNet:
       [1, 3, (1,1), 6, 192, 320, 0.25],
     ] 
     self._blocks = []
-    
+  
     for block_arg in block_args:                      
       args = block_arg[1:]
-      for n in range(block_arg[0]):                   # num times to repeat block
+      for _ in range(block_arg[0]):                   # num times to repeat block
         self._blocks.append(MBConvBlock(*args))
         args[3] = args[4]                             # why do this
         args[1] = (1,1)
@@ -107,19 +102,26 @@ class EfficientNet:
     self._conv_head = Tensor.zeros(1280,320,1,1)      # TODO: why 320?
     self._bn1 = BatchNorm2D(1280)
 
-    # Final linear layer
-    self._avg_pooling = AvgPool2D(1)
     # self._dropout = Dropout(0.2)                    # TODO: make dropout layer
     self._fc = Tensor.zeros(1280, 1000)
     self._fc_bias = Tensor.zeros(1000)        
 
   def forward(self, x):
-    x = AvgPool2D(x, kernel_size=(1,1))
+    x = x.pad2d(padding=(0,1,0,1))
+    x = x.conv2d(self._conv_stem, stride=2)
+    x = swish(self._bn0(x))
+
+    for block in self._blocks:
+      x = block(x)
+    
+    x = swish(self._bn1(x.conv2d(self._conv_head)))
+    x = x.avg_pool2d(kernel_size=x.shape[2:4])
     x = x.reshape(shape=(-1, 1280))
-    # x = x.dropout(0.2)
-    return x.dot(self._fc).add(self._fc_bias) 
+    #x = x.dropout(0.2) # TODO: make dropout layers
+    return x.dot(self._fc).add(self._fc_bias)
+
   
-  def load_weights_from_torch(self): # ???? 
+  def load_weights_from_torch(self): # TODO: what does eval do 
     # load b0
     import torch
     b0 = fetch("https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b0-355c32eb.pth")
@@ -149,16 +151,17 @@ if __name__ == "__main__":
   if len(sys.argv) > 1:                                       # for different url
     url = sys.argv[1]
   else:
-    url = "https://c.files.bbci.co.uk/12A9B/production/_111434467_gettyimages-1143489763.jpg"
+    url = "https://cdn.britannica.com/34/233234-050-1649BFA9/Pug-dog.jpg"
 
   img = Image.open(io.BytesIO(fetch(url)))
   aspect_ratio = img.size[0] / img.size[1]
   img = img.resize((int(224*aspect_ratio), 224))              # resizes height to 224 pixels and retains aspect ratio
   img = np.array(img)
-
   crop = (img.shape[1]-224)//2                                # crop img
   img = img[:, crop:crop+224]
   img = np.moveaxis(img, [2,0,1], [0,1,2])                    # (height, width, channels) --> (channels, height, width)
+  if img.shape[0] == 4:                                       # RGB if image has transparency channel
+    img = img[0:3,:,:]
   img = img.astype(np.float32).reshape(1,3,224,224)
 
   # normalize for pretrained
@@ -166,26 +169,24 @@ if __name__ == "__main__":
   img -= np.array([0.485, 0.456, 0.406]).reshape((1,-1,1,1))  # The values 0.485, 0.456, and 0.406 are the means of the red, green, and blue channels, respectively, of the ImageNet dataset.
   img /= np.array([0.229, 0.224, 0.225]).reshape((1,-1,1,1))  # The values 0.229, 0.224, and 0.225 are the standard deviations of the red, green, and blue channels, respectively, of the ImageNet dataset.
 
-  # import matplotlib.pyplot as plt
-  # plt.imshow(img[0].mean(axis=0))
-  # plt.show()
+  import matplotlib.pyplot as plt
+  plt.imshow(img[0].mean(axis=0))
+  plt.show()
 
   # get imagenet labels into dictionary
   import ast
   lbls = fetch("https://gist.githubusercontent.com/yrevar/942d3a0ac09ec9e5eb3a/raw/238f720ff059c1f82f368259d1ca4ffa5dd8f9f5/imagenet1000_clsidx_to_labels.txt")
   lbls = ast.literal_eval(lbls.decode('utf-8'))
 
-  # run the net
+  # inference
   import time
   st = time.time()
   out = model.forward(Tensor(img))
 
-  # if you want to look at the outputs
-  """
-  import matplotlib.pyplot as plt
-  plt.plot(out.data[0])
-  plt.show()
-  """
+  # outputs
+  # import matplotlib.pyplot as plt
+  # plt.plot(out.data[0])
+  # plt.show()
 
   print(f"did inference in {float(time.time()-st):.2f} s" )
   print(np.argmax(out.data), np.max(out.data), lbls[np.argmax(out.data)])

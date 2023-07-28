@@ -101,9 +101,9 @@ class Sigmoid(Function):
   @staticmethod
   def forward(ctx, input):
     ctx.save_for_backward(input)
-    with np.warnings.catch_warnings():           # TODO: stable sigmoid? does the overflow matter?
-      np.warnings.filterwarnings('ignore')
-      ret = 1/(1 + np.exp(-input))               # sigmoid(x) = 1 / (1 + exp(-x))
+    # with np.warnings.catch_warnings():           # TODO: stable sigmoid? does the overflow matter?
+    #   np.warnings.filterwarnings('ignore')
+    ret = 1/(1 + np.exp(-input))               # sigmoid(x) = 1 / (1 + exp(-x))
     return ret 
 
   @staticmethod
