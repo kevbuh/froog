@@ -12,18 +12,15 @@ class Tensor:
   def __init__(self, data):
     if type(data) == list:
       data = np.array(data, dtype=np.float32)
-    if type(data) != np.ndarray:
+    elif type(data) != np.ndarray:
       print(f"error constructing tensor with {data}")
       assert False
-    if data.dtype == np.float64:
-      # print(f"sure you want to use float64 with {data}")
-      pass
-    self.data = data
-    self.grad = None
+    
+    self.data = data.astype(np.float32) # all data in  float32
 
     # internal variables used for autograd graph construction
-    # these are where the backward gradient computation are saved
-    self._ctx = None
+    self.grad = None
+    self._ctx = None # these are where the backward gradient computation are saved
 
   def __repr__(self):
       return f"Tensor data: {self.data}, gradients: {self.grad}" 
@@ -72,9 +69,19 @@ class Tensor:
       t.grad = g
       t.backward(False) # what does inputting False do???
 
+  # ****** basic ops ******
+
   def mean(self):
     div = Tensor(np.array([1 / self.data.size], dtype=self.data.dtype))
     return self.sum().mul(div)
+  
+  def sqrt(self):
+    root = Tensor(np.zeros(self.shape)+0.5)
+    return self.pow(root)
+
+  def div(self, y):
+    root = Tensor(np.zeros(self.shape)-1)
+    return self.mul(y.pow(root))
 
 class Function:
   """
