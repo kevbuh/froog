@@ -5,6 +5,8 @@ PyTorch version : https://github.com/lukemelas/EfficientNet-PyTorch/blob/master/
 ConvNets are commonly developed at a fixed resource cost, and then scaled up in order to achieve better accuracy when more resources are made available
 The scaling method was found by performing a grid search to find the relationship between different scaling dimensions of the baseline network under a fixed resource constraint
 "SE" stands for "Squeeze-and-Excitation." Introduced by the "Squeeze-and-Excitation Networks" paper by Jie Hu, Li Shen, and Gang Sun (CVPR 2018).
+
+go to bottom of file to see params and weights
 """
 from froog import Tensor
 from froog.ops import AvgPool2D
@@ -17,7 +19,8 @@ class BatchNorm2D:
   def __init__(self, sz):
     self.weight = Tensor.zeros(sz)
     self.bias = Tensor.zeros(sz)
-    # TODO: need running_mean and running_var
+    # TODO: running_mean 
+    # TODO: running_var
 
   def __call__(self, x):
     return x
@@ -61,14 +64,14 @@ class MBConvBlock: # Mobile Inverted Residual Bottleneck Block
     x = inputs
     if self._expand_conv:
       x = swish(self._bn0(x.conv2d(self._expand_conv)))
-    x = x.pad2d(padding=(self.pad, self.pad, self.pad, self.pad)) # why needed?
+    x = x.pad2d(padding=(self.pad, self.pad, self.pad, self.pad)) # TODO: why needed?
     x = self._depthwise_conv(x)
     x = self._bn1(x)
     x = swish(x)
 
     # Squeeze and Excitation
     if self.has_se:
-      x_squeezed = AvgPool2D(x, kernel_size=x.shape[2:4])  # TODO: what is adaptive avg pool? 
+      x_squeezed = AvgPool2D(x, kernel_size=x.shape[2:4])         # TODO: what is adaptive avg pool? 
       x_squeezed = self._se_reduce(x_squeezed)
       x_squeezed = swish(x_squeezed)
       x_squeezed = x_squeezed.add(self._se_reduce_bias).reshape(shape=[1, -1, 1, 1])
@@ -82,36 +85,89 @@ class MBConvBlock: # Mobile Inverted Residual Bottleneck Block
     if x.shape == inputs.shape:
       x = x.add(inputs)
 
-    # TODO: what is drop connect?
-    return x
+    return x                                                      # TODO: what is drop connect?
 
 class EfficientNet:
+  """
+  blocks_args: (num_repeats, kernel_size, strides, expand_ratio, input_filters, output_filters, se_ratio)
+  """
   def __init__(self):
-    self._conv_stem = Tensor.zeros(32,3,3,3)  # in_channels, out_channels, k_h, k_w, need stride?
+    self._conv_stem = Tensor.zeros(32,3,3,3)          # in_channels, out_channels, k_h, k_w, need stride?
     self._bn0 = BatchNorm2D(32)
-    block_args = []
+    block_args = [
+      [1, 3, (1,1), 1, 32, 16, 0.25],
+      [2, 3, (2,2), 6, 16, 24, 0.25],
+      [2, 5, (2,2), 6, 24, 40, 0.25],
+      [3, 3, (2,2), 6, 40, 80, 0.25],
+      [3, 5, (1,1), 6, 80, 112, 0.25],
+      [4, 5, (2,2), 6, 112, 192, 0.25],
+      [1, 3, (1,1), 6, 192, 320, 0.25],
+    ] 
     self._blocks = []
-    # TODO: build blocks
-    for block_arg in block_args:
-      pass
+    
+    for block_arg in block_args:                      # TODO: build blocks
+      args = block_arg[1:]
+      for n in range(block_arg[0]):                   # num times to repeat block
+        self._blocks.append(MBConvBlock(*args))
+        args[3] = args[4]                             # why do this
+        args[1] = (1,1)
     
     # Head
-    self._conv_head = Tensor.zeros(1280,320,1,1) # why 320?
+    self._conv_head = Tensor.zeros(1280,320,1,1)      # TODO: why 320?
     self._bn1 = BatchNorm2D(1280)
 
     # Final linear layer
     self._avg_pooling = AvgPool2D(1)
-    # self._dropout = Dropout(0.2) # TODO: make dropout layer
+    # self._dropout = Dropout(0.2)                    # TODO: make dropout layer
     self._fc = Tensor.zeros(1280, 1000)
-    self._fc_bias = Tensor.zeros(1000)        # TODO: what is this bias?
+    self._fc_bias = Tensor.zeros(1000)        
 
   def forward(self, x):
     x = AvgPool2D(x, kernel_size=(1,1))
     x = x.reshape(shape=(-1, 1280))
     # x = x.dropout(0.2)
-    return x.dot(self._fc).add(self._fc_bias) # TODO: why add bias?
+    return x.dot(self._fc).add(self._fc_bias) 
 
 if __name__ == "__main__":
   model = EfficientNet()
   # out = model.forward(Tensor.zeros(1, 3, 224, 224))
   # print(out)
+
+
+"""
+EfficientNet b0-7 Params and Weights
+url_map = {
+    'efficientnet-b0': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b0-355c32eb.pth',
+    'efficientnet-b1': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b1-f1951068.pth',
+    'efficientnet-b2': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b2-8bb594d6.pth',
+    'efficientnet-b3': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b3-5fb5a3c3.pth',
+    'efficientnet-b4': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b4-6ed6700e.pth',
+    'efficientnet-b5': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b5-b6417697.pth',
+    'efficientnet-b6': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b6-c76e70fd.pth',
+    'efficientnet-b7': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b7-dcc49843.pth',
+}
+
+params_dict = {
+        # Coefficients:   width,depth,res,dropout
+        'efficientnet-b0': (1.0, 1.0, 224, 0.2),
+        'efficientnet-b1': (1.0, 1.1, 240, 0.2),
+        'efficientnet-b2': (1.1, 1.2, 260, 0.3),
+        'efficientnet-b3': (1.2, 1.4, 300, 0.3),
+        'efficientnet-b4': (1.4, 1.8, 380, 0.4),
+        'efficientnet-b5': (1.6, 2.2, 456, 0.4),
+        'efficientnet-b6': (1.8, 2.6, 528, 0.5),
+        'efficientnet-b7': (2.0, 3.1, 600, 0.5),
+        'efficientnet-b8': (2.2, 3.6, 672, 0.5),
+        'efficientnet-l2': (4.3, 5.3, 800, 0.5),
+    }
+
+blocks_args = [
+        'r1_k3_s11_e1_i32_o16_se0.25',
+        'r2_k3_s22_e6_i16_o24_se0.25',
+        'r2_k5_s22_e6_i24_o40_se0.25',
+        'r3_k3_s22_e6_i40_o80_se0.25',
+        'r3_k5_s11_e6_i80_o112_se0.25',
+        'r4_k5_s22_e6_i112_o192_se0.25',
+        'r1_k3_s11_e6_i192_o320_se0.25',
+    ]
+"""
