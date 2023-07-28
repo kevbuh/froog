@@ -18,6 +18,16 @@ class Add(Function):# x.add(y)
     return grad_output, grad_output 
 register("add", Add)
 
+class Sub(Function): # x.sub(y)
+  @staticmethod
+  def forward(ctx, x, y):
+    return x-y
+
+  @staticmethod
+  def backward(ctx, grad_output):
+    return grad_output, -grad_output
+register('sub', Sub)
+
 class Mul(Function): # x.mul(y)
   @staticmethod
   def forward(ctx, x, y):
