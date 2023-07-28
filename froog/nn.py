@@ -12,6 +12,15 @@ from froog.tensor import Tensor
 def swish(x):
   return x.mul(x.sigmoid())
 
+# *************************************
+#     _   ___   __   ____  ____  _____
+#    / | / / | / /  / __ \/ __ \/ ___/
+#   /  |/ /  |/ /  / / / / /_/ /\__ \ 
+#  / /|  / /|  /  / /_/ / ____/___/ / 
+# /_/ |_/_/ |_/   \____/_/    /____/  
+#
+# ************* nn ops ************   
+
 class BatchNorm2D:
   """
   __call__ follows the formula from the link below

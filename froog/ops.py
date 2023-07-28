@@ -5,14 +5,20 @@
 # |    ___||    __  ||  |_|  ||  |_|  ||   ||  |
 # |   |    |   |  | ||       ||       ||   |_| |
 # |___|    |___|  |_||_______||_______||_______|
-#
 
 import numpy as np
 from froog.tensor import Function, register
 from froog.utils import im2col, col2im
 
-# *********** Main Operations ***********
-# grad_output is the gradient of the loss with respect to the output of the operation.
+# *****************************************************
+#     ____  ___   _____ __________   ____  ____  _____
+#    / __ )/   | / ___//  _/ ____/  / __ \/ __ \/ ___/
+#   / __  / /| | \__ \ / // /      / / / / /_/ /\__ \ 
+#  / /_/ / ___ |___/ // // /___   / /_/ / ____/___/ / 
+# /_____/_/  |_/____/___/\____/   \____/_/    /____/  
+#
+# **************** Basic Operations ***************
+# - grad_output is the gradient of the loss with respect to the output of the operation.
 
 class Add(Function):# x.add(y)
   @staticmethod     # @staticmethod doesn't require an instance of Add to work, so you can do x.add(y)
@@ -46,32 +52,6 @@ class Mul(Function): # x.mul(y)
     return y * grad_output, x * grad_output
 register("mul", Mul)
 
-class Pow(Function): # x.pow(y)
-  @staticmethod
-  def forward(ctx, x, y):
-    ctx.save_for_backward(x, y)
-    return x ** y
-  
-  @staticmethod
-  def backward(ctx, grad_output):
-    x, y = ctx.saved_tensors
-    return y * (x**(y-1.0)) * grad_output, (x**y) * np.log(x) * grad_output # power rule, d/dx (y^x)
-register("pow", Pow)
-
-class Dot(Function):  # x.dot(y)
-  @staticmethod
-  def forward(ctx, input, weight):
-    ctx.save_for_backward(input, weight)
-    return input.dot(weight)
-
-  @staticmethod
-  def backward(ctx, grad_output):
-    input, weight = ctx.saved_tensors
-    grad_input = grad_output.dot(weight.T)
-    grad_weight = grad_output.T.dot(input).T
-    return grad_input, grad_weight
-register('dot', Dot)
-
 class Sum(Function):
   """
   reduce op
@@ -88,8 +68,52 @@ class Sum(Function):
     return grad_output * np.ones_like(input)
 register("sum", Sum)
 
-# ******* nn ops *******
+class Pow(Function): # x.pow(y)
+  @staticmethod
+  def forward(ctx, x, y):
+    ctx.save_for_backward(x, y)
+    return x ** y
+  
+  @staticmethod
+  def backward(ctx, grad_output):
+    x, y = ctx.saved_tensors
+    return y * (x**(y-1.0)) * grad_output, (x**y) * np.log(x) * grad_output # power rule, d/dx (y^x)
+register("pow", Pow)
 
+
+# *******************************               
+#    ______________  _____  ___
+#   / ____/ ____/  |/  /  |/  /
+#  / / __/ __/ / /|_/ / /|_/ / 
+# / /_/ / /___/ /  / / /  / /  
+# \____/_____/_/  /_/_/  /_/   
+# 
+# ******* GEMM ops *******          
+                             
+class Dot(Function):  # x.dot(y)
+  @staticmethod
+  def forward(ctx, input, weight):
+    ctx.save_for_backward(input, weight)
+    return input.dot(weight)
+
+  @staticmethod
+  def backward(ctx, grad_output):
+    input, weight = ctx.saved_tensors
+    grad_input = grad_output.dot(weight.T)
+    grad_weight = grad_output.T.dot(input).T
+    return grad_input, grad_weight
+register('dot', Dot)
+
+
+# ***********************************************************
+#    _____ ______  _______  __    ______   ____  ____  _____
+#   / ___//  _/  |/  / __ \/ /   / ____/  / __ \/ __ \/ ___/
+#   \__ \ / // /|_/ / /_/ / /   / __/    / / / / /_/ /\__ \ 
+#  ___/ // // /  / / ____/ /___/ /___   / /_/ / ____/___/ / 
+# /____/___/_/  /_/_/   /_____/_____/   \____/_/    /____/  
+#
+# ************************ nn ops ***********************              
+                                                          
 class ReLU(Function): 
   @staticmethod
   def forward(ctx, input):
@@ -165,7 +189,15 @@ class LogSoftmax(Function):
     return grad_output - np.exp(output) * grad_output.sum(axis=1).reshape((-1, 1))
 register("logsoftmax", LogSoftmax)
 
-# ************* conv ops *************
+
+# *************************************************
+#    __________  _   ___    __   ____  ____  _____
+#   / ____/ __ \/ | / / |  / /  / __ \/ __ \/ ___/
+#  / /   / / / /  |/ /| | / /  / / / / /_/ /\__ \ 
+# / /___/ /_/ / /|  / | |/ /  / /_/ / ____/___/ / 
+# \____/\____/_/ |_/  |___/   \____/_/    /____/  
+#
+# ****************** conv ops *****************
 
 class Conv2D(Function): # TODO: understand group splits
   @staticmethod
@@ -257,7 +289,15 @@ class im2ColConv(Function):
     return dx, dw
 register('im2col2dconv', im2ColConv)
 
-# ************* pooling ops *************
+
+# *************************************************
+#     ____  ____  ____  __       ____  ____  _____
+#    / __ \/ __ \/ __ \/ /      / __ \/ __ \/ ___/
+#   / /_/ / / / / / / / /      / / / / /_/ /\__ \ 
+#  / ____/ /_/ / /_/ / /___   / /_/ / ____/___/ / 
+# /_/    \____/\____/_____/   \____/_/    /____/  
+#
+# **************** pooling ops ***************
 
 def stack_for_pool(x, pool_y, pool_x):
   my, mx = (x.shape[2]//pool_y)*pool_y, (x.shape[3]//pool_x)*pool_x        # ensures input tensor can be evenly divided into 2x2 blocks for max pooling
