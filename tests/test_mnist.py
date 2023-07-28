@@ -38,7 +38,7 @@ class SimpleConvNet:
     x.data = x.data.reshape((-1, 1, 28, 28))                            # get however many number of imgs in batch
     x = x.conv2d(self.c1).relu().max_pool2d()                           # pass through layer 1 first
     x = x.conv2d(self.c2).relu().max_pool2d()                           # pass through layer 2
-    x = x.reshape(Tensor(np.array((x.shape[0], -1))))                   # then go down to mlp
+    x = x.reshape(shape=[x.shape[0], -1])                               # then go down to mlp
     return x.dot(self.l1).logsoftmax()                                  # softmax to get probs   
 
   def parameters(self):

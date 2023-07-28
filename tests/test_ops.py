@@ -40,7 +40,7 @@ class TestOps(unittest.TestCase):
   def test_mul(self):
     helper_test_op([(45,65), (45,65)], lambda x,y: x*y, Tensor.mul)
   def test_div(self):
-    # TODO: why does this need more tolerance?
+    # TODO: why needs more tolerance?
     helper_test_op([(45,65), (45,65)], lambda x,y: x/y, Tensor.div, atol=5e-5, grad_atol=2e-5)
   def test_pow(self):
     helper_test_op([(45,65), (45,65)], lambda x,y: x**y, Tensor.pow)

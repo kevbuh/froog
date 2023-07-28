@@ -101,7 +101,10 @@ class Sigmoid(Function):
   @staticmethod
   def forward(ctx, input):
     ctx.save_for_backward(input)
-    return 1 / (1 + np.exp(-1*input)) # sigmoid(x) = 1 / (1 + exp(-x))
+    with np.warnings.catch_warnings():           # TODO: stable sigmoid? does the overflow matter?
+      np.warnings.filterwarnings('ignore')
+      ret = 1/(1 + np.exp(-input))               # sigmoid(x) = 1 / (1 + exp(-x))
+    return ret 
 
   @staticmethod
   def backward(ctx, grad_output):
@@ -119,7 +122,7 @@ class Reshape(Function):
   @staticmethod
   def backward(ctx, grad_output):
     in_shape, = ctx.saved_tensors
-    return grad_output.reshape(in_shape), None
+    return grad_output.reshape(in_shape)
 register('reshape', Reshape)
 
 class Pad2D(Function):
@@ -127,8 +130,8 @@ class Pad2D(Function):
   The first element (0,0) corresponds to padding along the batch dimension, which indicates no padding on both sides (0 elements added).
   """
   @staticmethod
-  def forward(ctx, x, padding=None): # (top, bottom, left, right)
-    return np.pad(x, ((0,0), (0,0), (padding[0], padding[1]), (padding[2], padding[3])))
+  def forward(ctx, x, padding=None): 
+    return np.pad(x, ((0,0), (0,0), (padding[0], padding[1]), (padding[2], padding[3]))) # (top, bottom, left, right)
 
   @staticmethod
   def backward(ctx, grad_output):
