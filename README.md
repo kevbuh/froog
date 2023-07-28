@@ -1,6 +1,6 @@
 # froog <img src="https://github.com/kevbuh/froog/actions/workflows/test.yml/badge.svg" alt="unit test badge" >
 <div align="center" >
-  <img src="https://raw.githubusercontent.com/kevbuh/froog/main/assets/froog.png" alt="froog the froog" height="300">
+  <img src="https://raw.githubusercontent.com/kevbuh/froog/main/assets/froog.png" alt="froog the frog" height="300">
   <br/>
   froog: fast real-time optimization of gradients 
   <br/>
@@ -49,23 +49,24 @@ Want to help but don't know where to start? Here are some bounties for you to cl
 - binary cross entropy
 - flatten
 - batch_norm
-- pad
+- div
+- pow
 - dropout 
 #### Medium  <!-- mid tier -->
+- start doing ops with opencl
 - simplify how context and gradients are handled
-#### Large <!-- EXPERT LEVEL!!!  -->
 - efficient net
+#### Large <!-- EXPERT LEVEL!!!  -->
 - transformers
-- stable Diffusion
-- winograd Convs
+- stable diffusion
+- winograd convs
 - MPS support
 - CUDA support
 
 # Contributing
-Here are some basic guidelines for contributing:
+Here are the rules for contributing:
 * increase simplicity
 * increase efficiency
 * increase functionality
-* in that order
 
 more info on <a href="https://github.com/kevbuh/froog/blob/main/docs/contributing.md">contributing</a>
