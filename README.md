@@ -57,6 +57,7 @@ Want to help but don't know where to start? Here are some bounties for you to cl
 - dropout 
 #### Medium  <!-- mid tier -->
 - start doing ops with opencl
+- einsum convs
 - simplify how context and gradients are handled
 #### Large <!-- EXPERT LEVEL!!!  -->
 - transformers

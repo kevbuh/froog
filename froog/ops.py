@@ -1,12 +1,18 @@
+#  _______  ______    _______  _______  _______ 
+# |       ||    _ |  |       ||       ||       |
+# |    ___||   | ||  |   _   ||   _   ||    ___|
+# |   |___ |   |_||_ |  | |  ||  | |  ||   | __ 
+# |    ___||    __  ||  |_|  ||  |_|  ||   ||  |
+# |   |    |   |  | ||       ||       ||   |_| |
+# |___|    |___|  |_||_______||_______||_______|
+#
+
 import numpy as np
 from froog.tensor import Function, register
 from froog.utils import im2col, col2im
 
-# *********** Elementary Functions ***********
-# Add, Mul, ReLU, Dot, Sum, Conv2D, Reshape 
+# *********** Main Operations ***********
 # grad_output is the gradient of the loss with respect to the output of the operation.
-
-# ******* core ops *******
 
 class Add(Function):# x.add(y)
   @staticmethod     # @staticmethod doesn't require an instance of Add to work, so you can do x.add(y)
@@ -185,9 +191,9 @@ class Conv2D(Function): # TODO: understand group splits
     y_stride, x_stride = ctx.stride
 
     bs,cin_,oy,ox = x.shape[0], x.shape[1], (x.shape[2]-(H-y_stride))//y_stride, (x.shape[3]-(W-x_stride))//x_stride
-    assert cin*ctx.groups == cin_
-    assert cout % ctx.groups == 0
-    g_w_chans = cout//ctx.groups
+    assert cin*ctx.groups == cin_                                                                         # ensures that the channel dimensions match appropriately for grouping
+    assert cout % ctx.groups == 0                                                                         # ensures that the number of output channels can be evenly divided among the groups
+    g_w_chans = cout//ctx.groups                                                                          # number of output channels per group
 
     ctx.save_for_backward(x, w)
     ret = np.zeros((bs, cout, oy, ox), dtype=w.dtype)

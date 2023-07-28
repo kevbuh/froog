@@ -1,3 +1,11 @@
+#  _______  ______    _______  _______  _______ 
+# |       ||    _ |  |       ||       ||       |
+# |    ___||   | ||  |   _   ||   _   ||    ___|
+# |   |___ |   |_||_ |  | |  ||  | |  ||   | __ 
+# |    ___||    __  ||  |_|  ||  |_|  ||   ||  |
+# |   |    |   |  | ||       ||       ||   |_| |
+# |___|    |___|  |_||_______||_______||_______|
+#
 # inspired by pytorch
 # inspired by https://github.com/karpathy/micrograd/blob/master/micrograd/engine.py
 # inspired by tinygrad
@@ -6,8 +14,14 @@ from functools import partialmethod
 from inspect import signature
 import numpy as np
 
-# *********** Main Classes ***********
-# ********* Tensor, Function *********
+# ************ Main Classes ************
+# ********** Tensor, Function **********
+#   _____________   _______ ____  ____ 
+#  /_  __/ ____/ | / / ___// __ \/ __ \
+#   / / / __/ /  |/ /\__ \/ / / / /_/ /
+#  / / / /___/ /|  /___/ / /_/ / _, _/ 
+# /_/ /_____/_/ |_//____/\____/_/ |_|  
+
 class Tensor:
   did_float_warning = False
   def __init__(self, data):
@@ -89,6 +103,13 @@ class Tensor:
     root = Tensor(np.zeros(self.shape, dtype=self.data.dtype)-1)
     return self.mul(y.pow(root))
 
+
+#     ________  ___   ______________________  _   __
+#    / ____/ / / / | / / ____/_  __/  _/ __ \/ | / /
+#   / /_  / / / /  |/ / /     / /  / // / / /  |/ / 
+#  / __/ / /_/ / /|  / /___  / / _/ // /_/ / /|  /  
+# /_/    \____/_/ |_/\____/ /_/ /___/\____/_/ |_/     
+                    
 class Function:
   """
   An instantiation of the Function class includes the context
