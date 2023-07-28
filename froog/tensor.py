@@ -9,8 +9,8 @@ import numpy as np
 # *********** Main Classes ***********
 # ********* Tensor, Function *********
 class Tensor:
+  did_float_warning = False
   def __init__(self, data):
-    did_float_warning = False
     if isinstance(data, list):
       data = np.array(data, dtype=np.float32)
     elif not isinstance(data, np.ndarray):

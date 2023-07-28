@@ -161,7 +161,7 @@ register("logsoftmax", LogSoftmax)
 
 # ************* conv ops *************
 
-class Conv2D(Function): 
+class Conv2D(Function): # TODO: understand group splits
   @staticmethod
   def forward(ctx, x, w, stride=1, groups=1):
     """
@@ -176,43 +176,48 @@ class Conv2D(Function):
       (a, b, c, d)(e, f, g, h)      --> (a, e, c-(g-1), d-(h-1)) 
       in general, output x and y = [(W−K+2P)/S]+1
     """
-    if type(ctx.stride) == int:                                                          # ctx stores function params
+    if type(ctx.stride) == int:                                                                           # ctx stores function params
       ctx.stride = (ctx.stride, ctx.stride)
 
     cout, cin, H, W = w.shape
 
-    if groups > 1:                                                                       # allows grouped convolutions 
-      w = np.repeat(w, groups, axis=1) / groups                                          # TODO: why does this work?
-
-    tw = w.reshape(cout, -1).T                                                           # slice of kernel 
+    tw = w.reshape(cout, -1).T                                                                            # slice of kernel 
     y_stride, x_stride = ctx.stride
-    bs, oy, ox = x.shape[0], (x.shape[2]-(H-y_stride))//y_stride, (x.shape[3]-(W-x_stride))//x_stride
+
+    bs,cin_,oy,ox = x.shape[0], x.shape[1], (x.shape[2]-(H-y_stride))//y_stride, (x.shape[3]-(W-x_stride))//x_stride
+    assert cin*ctx.groups == cin_
+    assert cout % ctx.groups == 0
+    g_w_chans = cout//ctx.groups
+
     ctx.save_for_backward(x, w)
-
     ret = np.zeros((bs, cout, oy, ox), dtype=w.dtype)
-
-    for Y in range(oy):                                                                  # non_padded_height of output
-      for X in range(ox):                                                                # non_padded_width  of output
-        iY, iX = Y*y_stride, X*x_stride                                    
-        tx = x[:, :, iY:iY+H, iX:iX+W].reshape(bs, -1)
-        ret[:, :, Y, X] = tx.dot(tw)
+    
+    for g in range(ctx.groups):
+      tw = w[g*g_w_chans:(g*g_w_chans+g_w_chans)].reshape(g_w_chans, -1).T                                # transformed kernel weights
+      for Y in range(oy):
+        for X in range(ox):
+          iY,iX = Y*y_stride, X*x_stride
+          tx = x[:, g*cin:(g*cin+cin), iY:iY+H, iX:iX+W].reshape(bs, -1)
+          ret[:, g*g_w_chans:(g*g_w_chans+g_w_chans), Y, X] += tx.dot(tw)
     return ret
 
   @staticmethod
   def backward(ctx, grad_output):
-    x, conv_kernel = ctx.saved_tensors
-    cout, cin, H, W = conv_kernel.shape
-    dx, dw = np.zeros_like(x), np.zeros_like(conv_kernel)
-    tw = conv_kernel.reshape(cout, -1)                                                   # transformed kernel weights
+    x, w = ctx.saved_tensors
+    cout, cin, H, W = w.shape
+    dx, dw = np.zeros_like(x), np.zeros_like(w)                                         
     y_stride, x_stride = ctx.stride
+    g_w_chans = cout//ctx.groups
 
-    for Y in range(grad_output.shape[2]):
-      for X in range(grad_output.shape[3]):
-        iY,iX = Y*y_stride, X*x_stride
-        gg = grad_output[:, :, Y, X]                                                     # current multiply element in chain rule
-        tx = x[:, :, iY:iY+H, iX:iX+W].reshape(x.shape[0], -1)                           # slice of tensor at current conv op                                                                                # 
-        dw += gg.T.dot(tx).reshape(dw.shape)                                             # gradient with respect to input 
-        dx[:, :, iY:iY+H, iX:iX+W] += gg.dot(tw).reshape(dx.shape[0], dx.shape[1], H, W) # accumulate gradient with respect to weights 
+    for g in range(ctx.groups):
+      tw = w[g*g_w_chans:(g*g_w_chans+g_w_chans)].reshape(g_w_chans, -1)
+      for Y in range(grad_output.shape[2]):
+        for X in range(grad_output.shape[3]):
+          iY,iX = Y*y_stride, X*x_stride
+          gg = grad_output[:, g*g_w_chans:(g*g_w_chans+g_w_chans), Y, X]                                  # current multiply element in chain rule
+          tx = x[:, g*cin:(g*cin+cin), iY:iY+H, iX:iX+W].reshape(x.shape[0], -1)                          # slice of tensor at current conv op        
+          dw[g*g_w_chans:(g*g_w_chans+g_w_chans)] += gg.T.dot(tx).reshape((g_w_chans,cin,H,W))            # gradient with respect to input
+          dx[:, g*cin:(g*cin+cin), iY:iY+H, iX:iX+W] += gg.dot(tw).reshape(dx.shape[0], cin, H, W)        # accumulate gradient with respect to weights 
     return dx, dw
 register('conv2d', Conv2D)
 
