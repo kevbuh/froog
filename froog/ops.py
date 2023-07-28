@@ -139,7 +139,7 @@ register("logsoftmax", LogSoftmax)
 
 class Conv2D(Function): 
   @staticmethod
-  def forward(ctx, x, w, stride=1):
+  def forward(ctx, x, w, stride=1, groups=1):
     """
     https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md
     WARNING: doesn't handle padding or strides yet
@@ -156,6 +156,10 @@ class Conv2D(Function):
       ctx.stride = (ctx.stride, ctx.stride)
 
     cout, cin, H, W = w.shape
+
+    if groups > 1:                                                                       # allows grouped convolutions 
+      w = np.repeat(w, groups, axis=1)
+
     tw = w.reshape(cout, -1).T                                                           # slice of kernel 
     y_stride, x_stride = ctx.stride
     bs, oy, ox = x.shape[0], (x.shape[2]-(H-y_stride))//y_stride, (x.shape[3]-(W-x_stride))//x_stride

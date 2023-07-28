@@ -45,16 +45,15 @@ pip install froog
 
 # Bounties
 Want to help but don't know where to start? Here are some bounties for you to claim
-
-#### $   <!-- ez money  -->
+#### Small   <!-- ez money  -->
 - binary cross entropy
 - flatten
 - batch_norm
 - pad
 - dropout 
-#### $$  <!-- mid tier -->
+#### Medium  <!-- mid tier -->
 - simplify how context and gradients are handled
-#### $$$ <!-- EXPERT LEVEL!!!  -->
+#### Large <!-- EXPERT LEVEL!!!  -->
 - efficient net
 - transformers
 - stable Diffusion
