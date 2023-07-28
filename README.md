@@ -43,6 +43,9 @@ pip install froog
 - Avg & Max pooling
 - <a href="https://github.com/kevbuh/froog/blob/main/froog/ops.py">More</a> 
 
+### Ready-to-Go Models
+- <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">EfficientNet-B0</a> 
+
 # Bounties
 Want to help but don't know where to start? Here are some bounties for you to claim
 #### Small   <!-- ez money  -->
@@ -55,7 +58,6 @@ Want to help but don't know where to start? Here are some bounties for you to cl
 #### Medium  <!-- mid tier -->
 - start doing ops with opencl
 - simplify how context and gradients are handled
-- efficient net
 #### Large <!-- EXPERT LEVEL!!!  -->
 - transformers
 - stable diffusion
