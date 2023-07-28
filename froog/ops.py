@@ -40,30 +40,17 @@ class Mul(Function): # x.mul(y)
     return y * grad_output, x * grad_output
 register("mul", Mul)
 
-class Div(Function): # x.div(y)
+class Pow(Function): # x.pow(y)
   @staticmethod
   def forward(ctx, x, y):
     ctx.save_for_backward(x, y)
-    return x / y
+    return x ** y
   
   @staticmethod
   def backward(ctx, grad_output):
     x, y = ctx.saved_tensors
-    return y / grad_output, x / grad_output # TODO: grad_y = -grad_output * x / y**2 ?
-register("div", Div)
-
-class Sqrt(Function): # x.sqrt(y)
-  @staticmethod
-  def forward(ctx, x):
-    ctx.save_for_backward(x)
-    return np.sqrt(x)
-  
-  @staticmethod
-  def backward(ctx, grad_output):
-    # x, = ctx.saved_tensors
-    raise Exception("write div backward pass")
-register("sqrt", Sqrt)
-
+    return y * (x**(y-1.0)) * grad_output, (x**y) * np.log(x) * grad_output # power rule, d/dx (y^x)
+register("pow", Pow)
 
 class Dot(Function):  # x.dot(y)
   @staticmethod
@@ -192,7 +179,7 @@ class Conv2D(Function):
     cout, cin, H, W = w.shape
 
     if groups > 1:                                                                       # allows grouped convolutions 
-      w = np.repeat(w, groups, axis=1)
+      w = np.repeat(w, groups, axis=1) / groups                                          # TODO: why does this work?
 
     tw = w.reshape(cout, -1).T                                                           # slice of kernel 
     y_stride, x_stride = ctx.stride
