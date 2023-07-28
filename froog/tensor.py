@@ -10,14 +10,14 @@ import numpy as np
 # ********* Tensor, Function *********
 class Tensor:
   def __init__(self, data):
-    if type(data) == list:
+    if isinstance(data, list):
       data = np.array(data, dtype=np.float32)
-    elif type(data) != np.ndarray:
-      print(f"error constructing tensor with {data}")
-      assert False
+    elif not isinstance(data, np.ndarray):
+      raise TypeError(f"Error constructing tensor with {data}")
     
     if data.dtype != np.float32:
       # warning? float64 needed for numerical jacobian
+      # TODO: set env flag to print all warnings
       pass
 
     self.data = data
@@ -80,11 +80,11 @@ class Tensor:
     return self.sum().mul(div)
   
   def sqrt(self):
-    root = Tensor(np.zeros(self.shape)+0.5)
+    root = Tensor(np.zeros(self.shape, dtype=self.data.dtype)+0.5)
     return self.pow(root)
 
   def div(self, y):
-    root = Tensor(np.zeros(self.shape)-1)
+    root = Tensor(np.zeros(self.shape, dtype=self.data.dtype)-1)
     return self.mul(y.pow(root))
 
 class Function:
