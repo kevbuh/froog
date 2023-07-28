@@ -3,3 +3,5 @@ tqdm
 requests
 torch 
 pytest
+# pillow
+# matplotlib

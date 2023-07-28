@@ -11,22 +11,11 @@ go to bottom of file to see params and weights
 from froog.tensor import Tensor
 from froog.ops import AvgPool2D
 from froog.utils import fetch
+from froog.nn import swish, BatchNorm2D
 import io
 import sys
 import numpy as np
 
-def swish(x):
-  return x.mul(x.sigmoid())
-
-class BatchNorm2D:
-  def __init__(self, sz):
-    self.weight = Tensor.zeros(sz)
-    self.bias = Tensor.zeros(sz)
-    # TODO: running_mean 
-    # TODO: running_var
-
-  def __call__(self, x):
-    return x
 
 class MBConvBlock: # Mobile Inverted Residual Bottleneck Block
   """
@@ -130,7 +119,7 @@ class EfficientNet:
     # x = x.dropout(0.2)
     return x.dot(self._fc).add(self._fc_bias) 
   
-  def load_weights_from_torch(self):
+  def load_weights_from_torch(self): # ???? 
     # load b0
     import torch
     b0 = fetch("https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b0-355c32eb.pth")
@@ -148,37 +137,58 @@ class EfficientNet:
         except AttributeError:
           mv = eval(mk.replace(".bias", "_bias"))
       vnp = v.numpy().astype(np.float32)
-      mv.data[:] = vnp if k != '_fc.weight' else vnp.T
+      mv.data[:] = vnp if k != '_fc.weight' else vnp.T        # assigns data to enet
 
 if __name__ == "__main__":
   # instantiate and get weights
-  # model = EfficientNet()
-  # model.load_weights_from_torch() 
+  model = EfficientNet()
+  model.load_weights_from_torch() 
 
   # load image and preprocess
   from PIL import Image
-  if len(sys.argv) > 1:
+  if len(sys.argv) > 1:                                       # for different url
     url = sys.argv[1]
   else:
     url = "https://c.files.bbci.co.uk/12A9B/production/_111434467_gettyimages-1143489763.jpg"
 
   img = Image.open(io.BytesIO(fetch(url)))
   aspect_ratio = img.size[0] / img.size[1]
-  img = img.resize((int(224*aspect_ratio), 224))
+  img = img.resize((int(224*aspect_ratio), 224))              # resizes height to 224 pixels and retains aspect ratio
   img = np.array(img)
 
-  chapo = (img.shape[1]-224)//2
-  img = img[:, chapo:chapo+224]
-  img = np.moveaxis(img, [2,0,1], [0,1,2])
+  crop = (img.shape[1]-224)//2                                # crop img
+  img = img[:, crop:crop+224]
+  img = np.moveaxis(img, [2,0,1], [0,1,2])                    # (height, width, channels) --> (channels, height, width)
   img = img.astype(np.float32).reshape(1,3,224,224)
-  img /= 256
-  img -= np.array([0.485, 0.456, 0.406]).reshape((1,-1,1,1))
-  img /= np.array([0.229, 0.224, 0.225]).reshape((1,-1,1,1))
 
+  # normalize for pretrained
+  img /= 256                                                  # scales the pixel values from [0, 256) to [0, 1)
+  img -= np.array([0.485, 0.456, 0.406]).reshape((1,-1,1,1))  # The values 0.485, 0.456, and 0.406 are the means of the red, green, and blue channels, respectively, of the ImageNet dataset.
+  img /= np.array([0.229, 0.224, 0.225]).reshape((1,-1,1,1))  # The values 0.229, 0.224, and 0.225 are the standard deviations of the red, green, and blue channels, respectively, of the ImageNet dataset.
+
+  # import matplotlib.pyplot as plt
+  # plt.imshow(img[0].mean(axis=0))
+  # plt.show()
+
+  # get imagenet labels into dictionary
+  import ast
+  lbls = fetch("https://gist.githubusercontent.com/yrevar/942d3a0ac09ec9e5eb3a/raw/238f720ff059c1f82f368259d1ca4ffa5dd8f9f5/imagenet1000_clsidx_to_labels.txt")
+  lbls = ast.literal_eval(lbls.decode('utf-8'))
+
+  # run the net
+  import time
+  st = time.time()
+  out = model.forward(Tensor(img))
+
+  # if you want to look at the outputs
+  """
   import matplotlib.pyplot as plt
-  plt.imshow(img[0].mean(axis=0))
+  plt.plot(out.data[0])
   plt.show()
+  """
 
+  print(f"did inference in {float(time.time()-st):.2f} s" )
+  print(np.argmax(out.data), np.max(out.data), lbls[np.argmax(out.data)])
 
 
 """

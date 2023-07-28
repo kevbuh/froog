@@ -10,15 +10,17 @@ import numpy as np
 # ********* Tensor, Function *********
 class Tensor:
   def __init__(self, data):
+    did_float_warning = False
     if isinstance(data, list):
       data = np.array(data, dtype=np.float32)
     elif not isinstance(data, np.ndarray):
       raise TypeError(f"Error constructing tensor with {data}")
     
-    if data.dtype != np.float32:
+    if data.dtype != np.float32 and not Tensor.did_float_warning:
       # warning? float64 needed for numerical jacobian
       # TODO: set env flag to print all warnings
-      pass
+      print(f"warning, {data.shape} isn't float32")
+      Tensor.did_float_warning = True
 
     self.data = data
 
