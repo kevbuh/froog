@@ -14,14 +14,13 @@ ConvNets are commonly developed at a fixed resource cost, and then scaled up in 
 The scaling method was found by performing a grid search to find the relationship between different scaling dimensions of the baseline network under a fixed resource constraint
 "SE" stands for "Squeeze-and-Excitation." Introduced by the "Squeeze-and-Excitation Networks" paper by Jie Hu, Li Shen, and Gang Sun (CVPR 2018).
 
-Environment Variable:
+Environment Variables:
   VIZ=1 --> plots processed image and output probabilities
 
 How to Run:
-  python examples/efficientnet.py <optional_url>
+  <VIZ=1> python models/efficientnet.py <https://image_url>
 
-
-EfficientNet Hyper-Parameters and Weights
+EfficientNet Hyper-Parameters and Weights:
 url_map = {
     'efficientnet-b0': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b0-355c32eb.pth',
     'efficientnet-b1': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b1-f1951068.pth',
@@ -125,7 +124,7 @@ class MBConvBlock:
 
 class EfficientNet:
   """
-  blocks_args: (num_repeats, kernel_size, strides, expand_ratio, input_filters, output_filters, se_ratio)
+  blocks_args: [[num_repeats, kernel_size, strides, expand_ratio, input_filters, output_filters, se_ratio]]
   """
   def __init__(self):
     self._conv_stem = Tensor.zeros(32,3,3,3)          # in_channels, out_channels, k_h, k_w, need stride?
