@@ -40,26 +40,31 @@ def helper_test_op(shape, torch_func, froog_func, atol=1e-7, grad_atol=1e-7, gpu
 
 
 class TestOps(unittest.TestCase):
+  # **************** Add ****************
   def test_add(self):
     helper_test_op([(45,65), (45,65)], lambda x,y: x+y, Tensor.add)
   @unittest.skipUnless(GPU, "Requires GPU")
   def test_gpu_add(self):
     helper_test_op([(45,65), (45,65)], lambda x,y: x+y, Tensor.add, gpu=True)
+  # **************** Sub ****************
   def test_sub(self):
     helper_test_op([(45,65), (45,65)], lambda x,y: x-y, Tensor.sub)
+  # **************** Mul ****************
   def test_mul(self):
     helper_test_op([(45,65), (45,65)], lambda x,y: x*y, Tensor.mul)
   @unittest.skipUnless(GPU, "Requires GPU")
   def test_gpu_mul(self):
     helper_test_op([(45,65), (45,65)], lambda x,y: x*y, Tensor.mul, gpu=True)
+  # **************** Div ****************
   def test_div(self):
-    # TODO: why needs more tolerance?
     helper_test_op([(45,65), (45,65)], lambda x,y: x/y, Tensor.div, atol=1e-3, grad_atol=1e-3)
+  # **************** Pow ****************
   def test_pow(self):
     helper_test_op([(45,65), (45,65)], lambda x,y: x**y, Tensor.pow)
+  # **************** Sqrt ****************
   def test_sqrt(self):
     helper_test_op([(45,65)], lambda x: x.sqrt(), Tensor.sqrt)
-    
+  # **************** Conv ****************
   def test_conv2d(self):
     for bs in [1,8]:
       for cin in [1,2,3]:
@@ -69,30 +74,30 @@ class TestOps(unittest.TestCase):
               helper_test_op([(bs,cin,11,28), (6,cin//groups,H,W)],
                 lambda x,w: torch.nn.functional.conv2d(x,w,groups=groups).relu(),
                 lambda x,w: Tensor.conv2d(x,w,groups=groups).relu(), atol=2e-5, grad_atol=2e-6)
-            
-  # TODO: doesn't work for anything but (2,2)
-  def test_maxpool_sizes(self):
-    for size in [(2,2), (3,3), (3,2), (5,5), (5,1)]:
-      helper_test_op([(32,2,110,28)],
-        lambda x: torch.nn.functional.max_pool2d(x, kernel_size=size),
-        lambda x: Tensor.max_pool2d(x, kernel_size=size))
-
-  def test_maxpool2x2(self):
-    helper_test_op([(32,2,110,28)], lambda x: torch.nn.functional.max_pool2d(x, (2,2)), Tensor.max_pool2d)
-
-  def test_avgpool2x2(self):
-    helper_test_op([(32,2,111,28)], lambda x: torch.nn.functional.avg_pool2d(x, (2,2)), Tensor.avg_pool2d)
-
   def test_strided_conv2d(self):
     bs = 4
     cin = 3
     H,W = 3,3
     helper_test_op([(bs,cin,11,28), (4,cin,H,W)],
-      lambda x,w: torch.nn.functional.conv2d(x,w,stride=2).relu(),
-      lambda x,w: Tensor.conv2d(x,w,stride=2).relu(), atol=2e-5, grad_atol=2e-6)
+                    lambda x,w: torch.nn.functional.conv2d(x,w,stride=2).relu(),
+                    lambda x,w: Tensor.conv2d(x,w,stride=2).relu(),
+                    atol=2e-5, grad_atol=2e-6)
     helper_test_op([(bs,cin,11,28), (4,cin,H,W)],
-      lambda x,w: torch.nn.functional.conv2d(x,w,stride=(2,1)).relu(),
-      lambda x,w: Tensor.conv2d(x,w,stride=(2,1)).relu(), atol=2e-5, grad_atol=2e-6)
+                    lambda x,w: torch.nn.functional.conv2d(x,w,stride=(2,1)).relu(),
+                    lambda x,w: Tensor.conv2d(x,w,stride=(2,1)).relu(),
+                    atol=2e-5, grad_atol=2e-6)
+
+  # **************** Max Pool ****************
+  def test_maxpool_sizes(self):
+    for size in [(2,2), (3,3), (3,2), (5,5), (5,1)]:
+      helper_test_op([(32,2,110,28)],
+        lambda x: torch.nn.functional.max_pool2d(x, kernel_size=size),
+        lambda x: Tensor.max_pool2d(x, kernel_size=size))
+  def test_maxpool2x2(self):
+    helper_test_op([(32,2,110,28)], lambda x: torch.nn.functional.max_pool2d(x, (2,2)), Tensor.max_pool2d)
+  # **************** Avg Pool ****************
+  def test_avgpool2x2(self):
+    helper_test_op([(32,2,111,28)], lambda x: torch.nn.functional.avg_pool2d(x, (2,2)), Tensor.avg_pool2d)
 
 if __name__ == '__main__':
   unittest.main(verbosity=2) 
