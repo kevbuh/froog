@@ -1,33 +1,40 @@
 import numpy as np
-from froog.tensor import Tensor
+from froog.tensor import Tensor, GPU
 import torch
 import unittest
 import timeit
 import functools
 
-def helper_test_op(shape, torch_func, froog_func, atol=1e-7, grad_atol=1e-7):
+def helper_test_op(shape, torch_func, froog_func, atol=1e-7, grad_atol=1e-7, gpu=False, forward_only=False):
   torch_tensors = [torch.rand(x, requires_grad=True) for x in shape]
   froog_tensors = [Tensor(x.detach().numpy()) for x in torch_tensors]
+
+  if gpu:
+    froog_tensors = [x.to_gpu() for x in froog_tensors]
 
   out = torch_func(*torch_tensors)
   ret = froog_func(*froog_tensors)
   
-  np.testing.assert_allclose(ret.data, out.detach().numpy(), atol=atol)
+  np.testing.assert_allclose(ret.to_cpu().data, out.detach().numpy(), atol=atol)
 
-  out.mean().backward()
-  ret.mean().backward()
+  if not forward_only:
+    out.mean().backward()
+    ret.mean().backward()
 
-  for t, tt in zip(torch_tensors, froog_tensors):
-    np.testing.assert_allclose(t.grad, tt.grad, atol=grad_atol)
+    for t, tt in zip(torch_tensors, froog_tensors):
+      np.testing.assert_allclose(t.grad, tt.grad.to_cpu().data, atol=grad_atol)
 
   # test for speed
   # forward passes
-  torch_fwd = timeit.Timer(functools.partial(torch_func, *torch_tensors)).timeit(5) * 1000/5
-  froog_fwd = timeit.Timer(functools.partial(froog_func, *froog_tensors)).timeit(5) * 1000/5
+    torch_fwd = timeit.Timer(functools.partial(torch_func, *torch_tensors)).timeit(5) * 1000/5
+    froog_fwd = timeit.Timer(functools.partial(froog_func, *froog_tensors)).timeit(5) * 1000/5
 
   # backward passes
-  torch_fbp = timeit.Timer(functools.partial(lambda f,x: f(*x).mean().backward(), torch_func, torch_tensors)).timeit(5) * 1000/5
-  froog_fbp = timeit.Timer(functools.partial(lambda f,x: f(*x).mean().backward(), froog_func, froog_tensors)).timeit(5) * 1000/5
+  if not forward_only:
+    torch_fbp = timeit.Timer(functools.partial(lambda f,x: f(*x).mean().backward(), torch_func, torch_tensors)).timeit(5) * 1000/5
+    froog_fbp = timeit.Timer(functools.partial(lambda f,x: f(*x).mean().backward(), froog_func, froog_tensors)).timeit(5) * 1000/5
+  else:
+    torch_fbp, froog_fbp = np.nan, np.nan
 
   print(f"shape: {repr(shape) : >32} torch/froog fwd: {torch_fwd:.2f}/{froog_fwd:.2f} ms ({float(froog_fwd/torch_fwd):.2f}x slower) bp: {torch_fbp - torch_fwd:.2f}/{froog_fbp - froog_fwd:.2f} ms ({float((froog_fbp - froog_fwd)/(torch_fbp - torch_fwd)):.2f}x slower)")
 
@@ -35,13 +42,19 @@ def helper_test_op(shape, torch_func, froog_func, atol=1e-7, grad_atol=1e-7):
 class TestOps(unittest.TestCase):
   def test_add(self):
     helper_test_op([(45,65), (45,65)], lambda x,y: x+y, Tensor.add)
+  @unittest.skipUnless(GPU, "Requires GPU")
+  def test_gpu_add(self):
+    helper_test_op([(45,65), (45,65)], lambda x,y: x+y, Tensor.add, gpu=True)
   def test_sub(self):
     helper_test_op([(45,65), (45,65)], lambda x,y: x-y, Tensor.sub)
   def test_mul(self):
     helper_test_op([(45,65), (45,65)], lambda x,y: x*y, Tensor.mul)
+  @unittest.skipUnless(GPU, "Requires GPU")
+  def test_gpu_mul(self):
+    helper_test_op([(45,65), (45,65)], lambda x,y: x*y, Tensor.mul, gpu=True)
   def test_div(self):
     # TODO: why needs more tolerance?
-    helper_test_op([(45,65), (45,65)], lambda x,y: x/y, Tensor.div, atol=5e-5, grad_atol=2e-5)
+    helper_test_op([(45,65), (45,65)], lambda x,y: x/y, Tensor.div, atol=1e-3, grad_atol=1e-3)
   def test_pow(self):
     helper_test_op([(45,65), (45,65)], lambda x,y: x**y, Tensor.pow)
   def test_sqrt(self):

@@ -16,7 +16,8 @@
 <!-- machine learning is like making a lego. you combine standardized pieces, of all shapes and sizes, to create anything you imagine -->
 <!-- froog is making those essential building blocks. -->
 
-froog is extremely simple, with a goal of running ml on any device, by any human, easily and efficiently
+froog is **extremely simple** with the goal of running machine learning on any device--easily and efficiently.
+<!-- , by any human. -->
 
 # Installation
 ```bash
@@ -48,8 +49,6 @@ pip install froog
 
 <!-- Here’s an example, to give you an impression: -->
 
-
-
 # Bounties
 Want to help but don't know where to start? Here are some bounties for you to claim
 #### Small   <!-- ez money  -->
@@ -64,11 +63,14 @@ Want to help but don't know where to start? Here are some bounties for you to cl
 - einsum convs
 - simplify how context and gradients are handled
 #### Large <!-- EXPERT LEVEL!!!  -->
+- float16 support
 - transformers
 - stable diffusion
 - winograd convs
-- MPS support
-- CUDA support
+- GPU Support
+  - MPS
+  - CUDA
+  - OpenCL
 
 # Contributing
 Here are the rules for contributing:

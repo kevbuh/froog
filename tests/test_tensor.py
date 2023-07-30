@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import unittest
-from froog.tensor import Tensor
+from froog.tensor import Tensor, GPU
 from froog.gradcheck import numerical_jacobian, gradcheck, jacobian
 
 x_init = np.random.randn(1,3).astype(np.float32)
@@ -9,7 +9,6 @@ W_init = np.random.randn(3,3).astype(np.float32)
 m_init = np.random.randn(1,3).astype(np.float32)
 
 class TestTensor(unittest.TestCase):
-
   def test_jacobian(self):
     W = np.random.RandomState(1337).random((10, 5))
     x = np.random.RandomState(7331).random((1, 10)) - 0.5
@@ -37,7 +36,7 @@ class TestTensor(unittest.TestCase):
       out = out.logsoftmax()
       out = out.mul(m).add(m).sum()
       out.backward()
-      return out.data, x.grad, W.grad
+      return out.data, x.grad.data, W.grad.data
 
     def test_pytorch():
       x = torch.tensor(x_init, requires_grad=True)
