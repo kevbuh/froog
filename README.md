@@ -46,6 +46,10 @@ pip install froog
 ### Ready-to-Go Models
 - <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">EfficientNet-B0</a> 
 
+<!-- Here’s an example, to give you an impression: -->
+
+
+
 # Bounties
 Want to help but don't know where to start? Here are some bounties for you to claim
 #### Small   <!-- ez money  -->

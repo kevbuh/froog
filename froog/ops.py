@@ -118,7 +118,7 @@ class ReLU(Function):
   @staticmethod
   def forward(ctx, input):
     ctx.save_for_backward(input)
-    return np.maximum(input, 0) # relu(x) = max(0,x)
+    return np.maximum(input, 0)                     # relu(x) = max(0,x)
 
   @staticmethod
   def backward(ctx, grad_output):
@@ -131,15 +131,13 @@ class Sigmoid(Function):
   @staticmethod
   def forward(ctx, input):
     ctx.save_for_backward(input)
-    # with np.warnings.catch_warnings():           # TODO: stable sigmoid? does the overflow matter?
-    #   np.warnings.filterwarnings('ignore')
-    ret = 1/(1 + np.exp(-input))               # sigmoid(x) = 1 / (1 + exp(-x))
+    ret = 1/(1 + np.exp(-input))                    # sigmoid(x) = 1 / (1 + exp(-x))
     return ret 
 
   @staticmethod
   def backward(ctx, grad_output):
     ret, = ctx.saved_tensors
-    grad_input = grad_output * (ret * (1 - ret)) # just take the derivative of sigmoid
+    grad_input = grad_output * (ret * (1 - ret))    # just take the derivative of sigmoid
     return grad_input
 register("sigmoid", Sigmoid)
 
@@ -310,11 +308,11 @@ def stack_for_pool(x, pool_y, pool_x):
 
 
 def unstack_for_pool(fxn, s, py, px):
-  max_y, max_x = (s[2]//py)*py, (s[3]//px)*px                               # get shape that allows (pool_size_y,pool_size_x) max pool
+  max_y, max_x = (s[2]//py)*py, (s[3]//px)*px                              # get shape that allows (pool_size_y,pool_size_x) max pool
   for Y in range(py):
     for X in range(px):
       level_w_new_grad = fxn(Y*px+X)
-      if X == 0 and Y == 0:                                                 # pool of zero size
+      if X == 0 and Y == 0:                                                # pool of zero size
         ret = np.zeros(s, dtype=level_w_new_grad.dtype)
       ret[:, :, Y:max_y:py, X:max_x:px] = level_w_new_grad
   return ret
@@ -352,11 +350,11 @@ class AvgPool2D(Function):
   @staticmethod
   def backward(ctx, grad_output):
     s, = ctx.saved_tensors
-    py, px = ctx.kernel_size                                               # TODO: where does kernel_size come from?
+    py, px = ctx.kernel_size                                  # TODO: where does kernel_size come from?
     my, mx = (s[2]//py)*py, (s[3]//px)*px
     ret = np.zeros(s, dtype=grad_output.dtype)
     for Y in range(py):
       for X in range(px):
-        ret[:, :, Y:my:py, X:mx:px] = grad_output / py / px # divide by avg of pool, e.g. for 2x2 pool /= 4
+        ret[:, :, Y:my:py, X:mx:px] = grad_output / py / px   # divide by avg of pool, e.g. for 2x2 pool /= 4
     return ret
 register('avg_pool2d', AvgPool2D)

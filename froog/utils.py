@@ -5,7 +5,6 @@
 # |    ___||    __  ||  |_|  ||  |_|  ||   ||  |
 # |   |    |   |  | ||       ||       ||   |_| |
 # |___|    |___|  |_||_______||_______||_______|
-#
 
 import numpy as np
 from functools import lru_cache
@@ -17,8 +16,8 @@ def dense_layer(*tensor_size):
 
 def fetch(url):
   print(f"fetching {url}...")
-  import requests, os, hashlib
-  fp = os.path.join("/tmp", hashlib.md5(url.encode('utf-8')).hexdigest())
+  import requests, os, hashlib, tempfile
+  fp = os.path.join(tempfile.gettempdir(), hashlib.md5(url.encode('utf-8')).hexdigest())
   if os.path.isfile(fp):
     with open(fp, "rb") as f:
       dat = f.read()

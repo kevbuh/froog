@@ -1,4 +1,12 @@
 """
+ _______  _______  _______  ___  _______  ___  _______  __    _  _______       __    _  _______  _______ 
+|       ||       ||       ||   ||       ||   ||       ||  |  | ||       |     |  |  | ||       ||       |
+|    ___||    ___||    ___||   ||       ||   ||    ___||   |_| ||_     _|     |   |_| ||    ___||_     _|
+|   |___ |   |___ |   |___ |   ||       ||   ||   |___ |       |  |   |       |       ||   |___   |   |  
+|    ___||    ___||    ___||   ||      _||   ||    ___||  _    |  |   |       |  _    ||    ___|  |   |  
+|   |___ |   |    |   |    |   ||     |_ |   ||   |___ | | |   |  |   |       | | |   ||   |___   |   |  
+|_______||___|    |___|    |___||_______||___||_______||_|  |__|  |___|       |_|  |__||_______|  |___|  
+
 Paper           : https://arxiv.org/abs/1905.11946
 PyTorch version : https://github.com/lukemelas/EfficientNet-PyTorch/blob/master/efficientnet_pytorch/model.py
 
@@ -6,18 +14,60 @@ ConvNets are commonly developed at a fixed resource cost, and then scaled up in 
 The scaling method was found by performing a grid search to find the relationship between different scaling dimensions of the baseline network under a fixed resource constraint
 "SE" stands for "Squeeze-and-Excitation." Introduced by the "Squeeze-and-Excitation Networks" paper by Jie Hu, Li Shen, and Gang Sun (CVPR 2018).
 
-go to bottom of file to see params and weights
+Environment Variable:
+  VIZ=1 --> plots processed image and output probabilities
+
+How to Run:
+  python examples/efficientnet.py <optional_url>
+
+
+EfficientNet Hyper-Parameters and Weights
+url_map = {
+    'efficientnet-b0': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b0-355c32eb.pth',
+    'efficientnet-b1': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b1-f1951068.pth',
+    'efficientnet-b2': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b2-8bb594d6.pth',
+    'efficientnet-b3': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b3-5fb5a3c3.pth',
+    'efficientnet-b4': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b4-6ed6700e.pth',
+    'efficientnet-b5': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b5-b6417697.pth',
+    'efficientnet-b6': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b6-c76e70fd.pth',
+    'efficientnet-b7': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b7-dcc49843.pth',
+}
+
+params_dict = {
+        # Coefficients:   width,depth,res,dropout
+        'efficientnet-b0': (1.0, 1.0, 224, 0.2),
+        'efficientnet-b1': (1.0, 1.1, 240, 0.2),
+        'efficientnet-b2': (1.1, 1.2, 260, 0.3),
+        'efficientnet-b3': (1.2, 1.4, 300, 0.3),
+        'efficientnet-b4': (1.4, 1.8, 380, 0.4),
+        'efficientnet-b5': (1.6, 2.2, 456, 0.4),
+        'efficientnet-b6': (1.8, 2.6, 528, 0.5),
+        'efficientnet-b7': (2.0, 3.1, 600, 0.5),
+        'efficientnet-b8': (2.2, 3.6, 672, 0.5),
+        'efficientnet-l2': (4.3, 5.3, 800, 0.5),
+    }
+
+blocks_args = [
+        'r1_k3_s11_e1_i32_o16_se0.25',
+        'r2_k3_s22_e6_i16_o24_se0.25',
+        'r2_k5_s22_e6_i24_o40_se0.25',
+        'r3_k3_s22_e6_i40_o80_se0.25',
+        'r3_k5_s11_e6_i80_o112_se0.25',
+        'r4_k5_s22_e6_i112_o192_se0.25',
+        'r1_k3_s11_e6_i192_o320_se0.25',
+    ]
 """
+
+import io
+import os
+import sys
+import json
+import numpy as np
 from froog.tensor import Tensor
-from froog.ops import AvgPool2D
 from froog.utils import fetch
 from froog.nn import swish, BatchNorm2D
-import io
-import sys
-import numpy as np
 
-
-class MBConvBlock: # Mobile Inverted Residual Bottleneck Block
+class MBConvBlock: 
   """
    Mobile Inverted Residual Bottleneck Block
   """
@@ -60,7 +110,7 @@ class MBConvBlock: # Mobile Inverted Residual Bottleneck Block
     x = swish(x)
 
     # Squeeze and Excitation
-    x_squeezed = x.avg_pool2d(kernel_size=x.shape[2:4]) # actual paper uses adaptive pool
+    x_squeezed = x.avg_pool2d(kernel_size=x.shape[2:4])           # actual paper uses adaptive pool
     x_squeezed = swish(x_squeezed.conv2d(self._se_reduce).add(self._se_reduce_bias.reshape(shape=[1, -1, 1, 1])))
     x_squeezed = x_squeezed.conv2d(self._se_expand).add(self._se_expand_bias.reshape(shape=[1, -1, 1, 1]))
     x = x.mul(x_squeezed.sigmoid())
@@ -141,18 +191,7 @@ class EfficientNet:
       vnp = v.numpy().astype(np.float32)
       mv.data[:] = vnp if k != '_fc.weight' else vnp.T        # assigns data to enet
 
-if __name__ == "__main__":
-  # instantiate and get weights
-  model = EfficientNet()
-  model.load_weights_from_torch() 
-
-  # load image and preprocess
-  from PIL import Image
-  if len(sys.argv) > 1:                                       # for different url
-    url = sys.argv[1]
-  else:
-    url = "https://cdn.britannica.com/34/233234-050-1649BFA9/Pug-dog.jpg"
-
+def processImage(url):
   img = Image.open(io.BytesIO(fetch(url)))
   aspect_ratio = img.size[0] / img.size[1]
   img = img.resize((int(224*aspect_ratio), 224))              # resizes height to 224 pixels and retains aspect ratio
@@ -164,68 +203,53 @@ if __name__ == "__main__":
     img = img[0:3,:,:]
   img = img.astype(np.float32).reshape(1,3,224,224)
 
-  # normalize for pretrained
+  # normalize image for pretrained model
   img /= 256                                                  # scales the pixel values from [0, 256) to [0, 1)
   img -= np.array([0.485, 0.456, 0.406]).reshape((1,-1,1,1))  # The values 0.485, 0.456, and 0.406 are the means of the red, green, and blue channels, respectively, of the ImageNet dataset.
   img /= np.array([0.229, 0.224, 0.225]).reshape((1,-1,1,1))  # The values 0.229, 0.224, and 0.225 are the standard deviations of the red, green, and blue channels, respectively, of the ImageNet dataset.
+  return img
 
-  import matplotlib.pyplot as plt
-  plt.imshow(img[0].mean(axis=0))
-  plt.show()
+if __name__ == "__main__":
+  # instantiate and get weights
+  model = EfficientNet()
+  model.load_weights_from_torch() 
+
+  # load image and preprocess
+  from PIL import Image
+  if len(sys.argv) > 1:                                       
+    url = sys.argv[1]
+  else:
+    url = "https://cdn.britannica.com/34/233234-050-1649BFA9/Pug-dog.jpg"
+
+  # process image for pretrained weights
+  img = processImage(url)
+
+  if os.getenv('VIZ') == "1":
+    import matplotlib.pyplot as plt
+    plt.imshow(img[0].mean(axis=0))
+    plt.show()
 
   # get imagenet labels into dictionary
-  import ast
-  lbls = fetch("https://gist.githubusercontent.com/yrevar/942d3a0ac09ec9e5eb3a/raw/238f720ff059c1f82f368259d1ca4ffa5dd8f9f5/imagenet1000_clsidx_to_labels.txt")
-  lbls = ast.literal_eval(lbls.decode('utf-8'))
+  with open('examples/imagenet_classes.txt', 'r') as f:
+    lbls = json.load(f)
 
   # inference
   import time
   st = time.time()
   out = model.forward(Tensor(img))
 
-  # outputs
-  # import matplotlib.pyplot as plt
-  # plt.plot(out.data[0])
-  # plt.show()
+  if os.getenv('VIZ') == "1":
+    # outputs
+    import matplotlib.pyplot as plt
+    plt.plot(out.data[0])
+    plt.show()
 
-  print(f"did inference in {float(time.time()-st):.2f} s" )
-  print(np.argmax(out.data), np.max(out.data), lbls[np.argmax(out.data)])
-
-
-"""
-EfficientNet b0-7 Params and Weights
-url_map = {
-    'efficientnet-b0': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b0-355c32eb.pth',
-    'efficientnet-b1': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b1-f1951068.pth',
-    'efficientnet-b2': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b2-8bb594d6.pth',
-    'efficientnet-b3': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b3-5fb5a3c3.pth',
-    'efficientnet-b4': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b4-6ed6700e.pth',
-    'efficientnet-b5': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b5-b6417697.pth',
-    'efficientnet-b6': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b6-c76e70fd.pth',
-    'efficientnet-b7': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b7-dcc49843.pth',
-}
-
-params_dict = {
-        # Coefficients:   width,depth,res,dropout
-        'efficientnet-b0': (1.0, 1.0, 224, 0.2),
-        'efficientnet-b1': (1.0, 1.1, 240, 0.2),
-        'efficientnet-b2': (1.1, 1.2, 260, 0.3),
-        'efficientnet-b3': (1.2, 1.4, 300, 0.3),
-        'efficientnet-b4': (1.4, 1.8, 380, 0.4),
-        'efficientnet-b5': (1.6, 2.2, 456, 0.4),
-        'efficientnet-b6': (1.8, 2.6, 528, 0.5),
-        'efficientnet-b7': (2.0, 3.1, 600, 0.5),
-        'efficientnet-b8': (2.2, 3.6, 672, 0.5),
-        'efficientnet-l2': (4.3, 5.3, 800, 0.5),
-    }
-
-blocks_args = [
-        'r1_k3_s11_e1_i32_o16_se0.25',
-        'r2_k3_s22_e6_i16_o24_se0.25',
-        'r2_k5_s22_e6_i24_o40_se0.25',
-        'r3_k3_s22_e6_i40_o80_se0.25',
-        'r3_k5_s11_e6_i80_o112_se0.25',
-        'r4_k5_s22_e6_i112_o192_se0.25',
-        'r1_k3_s11_e6_i192_o320_se0.25',
-    ]
-"""
+  print("")
+  print("******************************")
+  print(f"inference {float(time.time()-st):.2f} s")
+  print("")
+  print("imagenet class:", np.argmax(out.data))
+  print("prediction    :", lbls.get(str(np.argmax(out.data))))
+  print("probability   :", np.max(out.data) / 10)
+  print("******************************")
+  print("")
