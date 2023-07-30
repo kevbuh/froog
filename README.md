@@ -16,8 +16,7 @@
 <!-- machine learning is like making a lego. you combine standardized pieces, of all shapes and sizes, to create anything you imagine -->
 <!-- froog is making those essential building blocks. -->
 
-froog is **extremely simple** with the goal of running machine learning on any device--easily and efficiently.
-<!-- , by any human. -->
+froog is **extremely simple** with the goal of running machine learning on any device --> easily and efficiently.
 
 # Installation
 ```bash

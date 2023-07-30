@@ -1,3 +1,11 @@
+#  _______  ______    _______  _______  _______ 
+# |       ||    _ |  |       ||       ||       |
+# |    ___||   | ||  |   _   ||   _   ||    ___|
+# |   |___ |   |_||_ |  | |  ||  | |  ||   | __ 
+# |    ___||    __  ||  |_|  ||  |_|  ||   ||  |
+# |   |    |   |  | ||       ||       ||   |_| |
+# |___|    |___|  |_||_______||_______||_______|
+
 import numpy as np
 import pyopencl as cl
 from froog.tensor import Function, register, Tensor
@@ -77,11 +85,67 @@ class Sum(Function):
 register('sum', Sum, gpu=True)
 
 class Dot(Function):
-  # TODO: write me!
   @staticmethod
-  def forward(ctx, x, y):
-    pass
+  def forward(ctx, x, w):
+    """
+    A[gid_y * size + i] accesses an element in the row gid_y of matrix A and the column i
+    """
+    assert x.shape[1] == w.shape[0] # inner dims must match for dot product
+    input_size = np.int32(x.shape[0])
+    inner_size = np.int32(x.shape[1]) 
+    outer_size = np.int32(w.shape[1])
+    one = np.int32(1)
+    ret = buffer_new(ctx, (input_size, outer_size)) # TODO: why not cl_ctx?
+
+    prg = cl.Program(ctx.cl_ctx, """
+    __kernel void matmul(
+        __global const float *input,
+        __global const float *weight,
+        __global float *res,
+        int input_row_size,
+        int input_col_size,
+        int msize,
+        int weight_row_size,
+        int weight_col_size,
+        int osize
+        )
+    {
+      int gid_y = get_global_id(0); // row index
+      int gid_x = get_global_id(1); // col index
+      
+      float acc = 0.0;
+      for (int i = 0; i < msize; i++) {
+        acc += input[gid_y * input_row_size + i * input_col_size] * weight[gid_x * weight_row_size + i * weight_col_size];
+      }
+      res[gid_y * osize + gid_x] = acc;
+    }
+    """).build()
+
+    ctx.save_for_backward(x, w, prg)
+    prg.matmul(ctx.cl_queue, [input_size, outer_size], None, x, w, ret, inner_size, one, inner_size, one, outer_size, outer_size)
+    return ret
 
   @staticmethod
   def backward(ctx, grad_output):
-    pass
+    input, weight, prg = ctx.saved_tensors
+    isize = np.int32(input.shape[0])
+    msize = np.int32(input.shape[1])
+    osize = np.int32(weight.shape[1])
+    one = np.int32(1)
+
+    grad_input = buffer_like(ctx, input)
+    grad_weight = buffer_like(ctx, weight)
+
+    # (isize,osize) x (msize,osize) = (isize,msize)
+    prg.matmul(ctx.cl_queue, [isize, msize], None,
+      grad_output, weight, grad_input,
+      osize, one, osize, osize, one, msize)
+
+    # (isize,msize) x (isize,osize) = (msize,osize)
+    prg.matmul(ctx.cl_queue, [msize, osize], None,
+      input, grad_output, grad_weight,
+      one, msize, isize, one, isize, osize)
+
+    return grad_input, grad_weight
+register('dot', Dot, gpu=True)
+register('matmul', Dot, gpu=True)
