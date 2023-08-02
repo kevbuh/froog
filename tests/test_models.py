@@ -76,7 +76,7 @@ def train(model, optimizer, steps, BS=128, gpu=False):
     loss.backward()
     optimizer.step()
 
-    pred = np.argmax(model_outputs.cpu().data, axis=1)
+    pred = np.argmax(model_outputs.to_cpu().data, axis=1)
     accuracy = (pred == Y).mean()
   
     loss = loss.data
@@ -86,7 +86,7 @@ def train(model, optimizer, steps, BS=128, gpu=False):
 
 def evaluate(model, gpu=False):
   def numpy_eval():
-    Y_test_preds_out = model.forward(Tensor(X_test.reshape((-1, 28*28)).astype(np.float32), gpu=gpu)).cpu()
+    Y_test_preds_out = model.forward(Tensor(X_test.reshape((-1, 28*28)).astype(np.float32), gpu=gpu)).to_cpu()
     Y_test_preds = np.argmax(Y_test_preds_out.data, axis=1)
     return (Y_test == Y_test_preds).mean()
 
@@ -111,7 +111,7 @@ class TestMNIST(unittest.TestCase):
   def test_sgd_gpu(self):
     np.random.seed(1337)
     model = SimpleMLP()
-    [x.cuda_() for x in model.parameters()]
+    [x.gpu_() for x in model.parameters()]
     optimizer = optim.SGD(model.parameters(), lr=0.001)
     train(model, optimizer, steps=1000, gpu=True)
     evaluate(model, gpu=True)

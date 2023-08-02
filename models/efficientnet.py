@@ -193,17 +193,18 @@ class EfficientNet:
 def processImage(url):
   img = Image.open(io.BytesIO(fetch(url)))
   aspect_ratio = img.size[0] / img.size[1]
-  img = img.resize((int(224*aspect_ratio), 224))              # resizes height to 224 pixels and retains aspect ratio
+  img = img.resize((int(224*max(aspect_ratio,1.0)), int(224*max(1.0/aspect_ratio,1.0))))     
   img = np.array(img)
-  crop = (img.shape[1]-224)//2                                # crop img
-  img = img[:, crop:crop+224]
+  y0,x0=(np.asarray(img.shape)[:2]-224)//2
+  img = img[y0:y0+224, x0:x0+224]
   img = np.moveaxis(img, [2,0,1], [0,1,2])                    # (height, width, channels) --> (channels, height, width)
   if img.shape[0] == 4:                                       # RGB if image has transparency channel
     img = img[0:3,:,:]
   img = img.astype(np.float32).reshape(1,3,224,224)
+  
 
   # normalize image for pretrained model
-  img /= 256                                                  # scales the pixel values from [0, 256) to [0, 1)
+  img /= 255.0                                                # scales the pixel values from [0, 256) to [0, 1)
   img -= np.array([0.485, 0.456, 0.406]).reshape((1,-1,1,1))  # The values 0.485, 0.456, and 0.406 are the means of the red, green, and blue channels, respectively, of the ImageNet dataset.
   img /= np.array([0.229, 0.224, 0.225]).reshape((1,-1,1,1))  # The values 0.229, 0.224, and 0.225 are the standard deviations of the red, green, and blue channels, respectively, of the ImageNet dataset.
   return img
