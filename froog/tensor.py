@@ -62,8 +62,7 @@ class Tensor:
     self.grad = None # TODO: why self.grad.data instead of self.grad?
 
     if gpu:
-      self.data = self.to_gpu().data
-      self.gpu = True
+      self.gpu_()
 
     # internal variables used for autograd graph construction
     self._ctx = None # these are where the backward gradient computation are saved
@@ -116,6 +115,7 @@ class Tensor:
       t.backward(allow_fill=False) 
 
   # ****** cpu/gpu ******
+    
   def to_cpu(self):
     if self.gpu:
       data = np.empty(self.shape, dtype=np.float32)
@@ -123,6 +123,10 @@ class Tensor:
       return Tensor(data)
     else: 
       return self
+    
+  def gpu_(self):
+    self.data = self.to_gpu().data
+    self.gpu = True
   
   def to_gpu(self):
     if not GPU:

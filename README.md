@@ -2,7 +2,7 @@
 <div align="center" >
   <img src="https://raw.githubusercontent.com/kevbuh/froog/main/assets/froog.png" alt="froog the frog" height="200">
   <br/>
-  froog: fast real-time optimization of gradients 
+  FROOG: fast real-time optimization of gradients 
   <br/>
   a beautifully compact machine-learning library
   <br/>
@@ -15,9 +15,10 @@
 <!-- the goal of froog is to make a neural network libary to power any type of device from enterprise to small home robotics -->
 <!-- machine learning is like making a lego. you combine standardized pieces, of all shapes and sizes, to create anything you imagine -->
 <!-- froog is making those essential building blocks. -->
+<!-- grug say never be not improving tooling  -->
 <!-- ml toolkit -->
 
-froog is **extremely simple** with the goal of running machine learning on any device --> easily and efficiently.
+FROOG is a neural network framework that is actually **SIMPLE** with the goal of running machine learning on any device --> easily and efficiently.
 
 # Installation
 ```bash
