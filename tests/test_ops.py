@@ -56,9 +56,11 @@ class TestOps(unittest.TestCase):
   def test_gpu_mul(self):
     helper_test_op([(45,65), (45,65)], lambda x,y: x*y, Tensor.mul, gpu=True)
   # **************** Dot ****************
+  def test_dot(self):
+    helper_test_op([(45,65), (65,100)], lambda x,y: x.matmul(y), Tensor.dot, atol=1e-5)
   @unittest.skipUnless(GPU, "Requires GPU")
   def test_gpu_dot(self):
-    helper_test_op([(3,4), (4,5)], lambda x,y: x.matmul(y), Tensor.dot, atol=1e-5, gpu=True)
+    helper_test_op([(45,65), (65,100)], lambda x,y: x.matmul(y), Tensor.dot, atol=1e-5, gpu=True)
   # **************** Div ****************
   def test_div(self):
     helper_test_op([(45,65), (45,65)], lambda x,y: x/y, Tensor.div, atol=1e-3, grad_atol=1e-3)

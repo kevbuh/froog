@@ -1,6 +1,6 @@
 import numpy as np
 from tqdm import trange
-from froog.tensor import Tensor
+from froog.tensor import Tensor, GPU
 from froog.utils import fetch_mnist, dense_layer
 import froog.optim as optim
 import unittest
@@ -44,18 +44,18 @@ class SimpleConvNet:
   def parameters(self):
     return [self.l1, self.c1, self.c2]  
 
-def train(model, optimizer, steps, BS=128):
+def train(model, optimizer, steps, BS=128, gpu=False):
   # ********* training the model *********
   losses, accuracies = [], []
 
-  for i in (t := trange(steps, disable=os.getenv('CI') is not None)):
+  for _ in (t := trange(steps, disable=os.getenv('CI') is not None)):
     # X_train.shape[0] == 60,000 --> number of images in MNIST
     # this is choosing a random training image
     samp = np.random.randint(0, X_train.shape[0], size=(BS))
 
     # X_train[samp] is selecting a random batch of training examples
     # 28x28 pixel size of MNIST images
-    x = Tensor(X_train[samp].reshape((-1, 28*28)).astype(np.float32))
+    x = Tensor(X_train[samp].reshape((-1, 28*28)).astype(np.float32), gpu=gpu)
     Y = Y_train[samp]
 
     # 2D array where each row corresponds to an example in
@@ -66,7 +66,7 @@ def train(model, optimizer, steps, BS=128):
     # selects the element of y that corresponds 
     # to the true class for each example
     y[range(y.shape[0]),Y] = -10.0
-    y = Tensor(y)
+    y = Tensor(y, gpu=gpu)
 
     # ********* foward/backward pass *********
     model_outputs = model.forward(x)
@@ -76,7 +76,7 @@ def train(model, optimizer, steps, BS=128):
     loss.backward()
     optimizer.step()
 
-    pred = np.argmax(model_outputs.data, axis=1)
+    pred = np.argmax(model_outputs.cpu().data, axis=1)
     accuracy = (pred == Y).mean()
   
     loss = loss.data
@@ -84,9 +84,9 @@ def train(model, optimizer, steps, BS=128):
     accuracies.append(accuracy)
     t.set_description(f"loss: {float(loss[0]):.2f} accuracy: {float(accuracy):.2f}")
 
-def evaluate(model):
+def evaluate(model, gpu=False):
   def numpy_eval():
-    Y_test_preds_out = model.forward(Tensor(X_test.reshape((-1, 28*28)).astype(np.float32)))
+    Y_test_preds_out = model.forward(Tensor(X_test.reshape((-1, 28*28)).astype(np.float32), gpu=gpu)).cpu()
     Y_test_preds = np.argmax(Y_test_preds_out.data, axis=1)
     return (Y_test == Y_test_preds).mean()
 
@@ -107,12 +107,21 @@ class TestMNIST(unittest.TestCase):
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     train(model, optimizer, steps=1000)
     evaluate(model)
+  @unittest.skipUnless(GPU, "Requires GPU")
+  def test_sgd_gpu(self):
+    np.random.seed(1337)
+    model = SimpleMLP()
+    [x.cuda_() for x in model.parameters()]
+    optimizer = optim.SGD(model.parameters(), lr=0.001)
+    train(model, optimizer, steps=1000, gpu=True)
+    evaluate(model, gpu=True)
   def test_mnist_mlp_rmsprop(self):
     np.random.seed(369)
     model = SimpleMLP()
     optimizer = optim.RMSprop(model.parameters(), lr=0.0002)
     train(model, optimizer, steps=1000)
     evaluate(model)
+
 
 if __name__ == '__main__':
   unittest.main()
