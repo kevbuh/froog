@@ -15,6 +15,7 @@
 <!-- the goal of froog is to make a neural network libary to power any type of device from enterprise to small home robotics -->
 <!-- machine learning is like making a lego. you combine standardized pieces, of all shapes and sizes, to create anything you imagine -->
 <!-- froog is making those essential building blocks. -->
+<!-- ml toolkit -->
 
 froog is **extremely simple** with the goal of running machine learning on any device --> easily and efficiently.
 
@@ -62,6 +63,7 @@ Want to help but don't know where to start? Here are some bounties for you to cl
 - einsum convs
 - simplify how context and gradients are handled
 #### Large <!-- EXPERT LEVEL!!!  -->
+- ability training on FROOG!!!!
 - float16 support
 - transformers
 - stable diffusion
