@@ -17,10 +17,9 @@
 <!-- froog is making those essential building blocks. -->
 <!-- grug say never be not improving tooling  -->
 <!-- ml toolkit -->
+<!-- This project should be art. Code is art. Machine learning should be easy to use, why do you need PHD's to able to create anything awesome with it?   -->
 
 FROOG is a neural network framework that is actually **SIMPLE** with the goal of running machine learning on any device --> easily and efficiently.
-
-<!-- This project should be art. Code is art. Machine learning should be easy to use, why do you need PHD's to able to create anything awesome with it?   -->
 
 # Installation
 ```bash
@@ -35,9 +34,10 @@ pip install froog
 - MNIST example
 - 2D Convolutions (im2col)
 - Numerical gradient checking
-- The most common optimizers (SGD, Adam, RMSProp)
+- Efficient Net Inference
+- Machine learning <a href="https://github.com/kevbuh/froog/blob/main/froog/ops.py">operations</a> 
 
-### Math Operations
+<!-- ### Math Operations
 - Scalar-Matrix Multiplication
 - Dot Product
 - Sum
@@ -45,36 +45,13 @@ pip install froog
 - Log Softmax
 - 2D Convolutions
 - Avg & Max pooling
-- <a href="https://github.com/kevbuh/froog/blob/main/froog/ops.py">More</a> 
+- <a href="https://github.com/kevbuh/froog/blob/main/froog/ops.py">More</a>  -->
 
-### Ready-to-Go Models
-- <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">EfficientNet-B0</a> 
-
-<!-- Here’s an example, to give you an impression: -->
+<!-- ### Ready-to-Go Models
+- <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">EfficientNet-B0</a>  -->
 
 # Bounties
-Want to help but don't know where to start? Here are some bounties for you to claim
-#### Small   <!-- ez money  -->
-- binary cross entropy
-- flatten
-- batch_norm
-- div
-- pow
-- dropout 
-#### Medium  <!-- mid tier -->
-- start doing ops with opencl
-- einsum convs
-- simplify how context and gradients are handled
-#### Large <!-- EXPERT LEVEL!!!  -->
-- ability training on FROOG!!!!
-- float16 support
-- transformers
-- stable diffusion
-- winograd convs
-- GPU Support
-  - MPS
-  - CUDA
-  - OpenCL
+THERES LOT OF STUFF TO WORK ON! Here are some <a href="https://github.com/kevbuh/froog/blob/main/docs/bounties.md">bounties</a>
 
 # Contributing
 Here are the rules for contributing:
