@@ -19,28 +19,29 @@ pip install froog
 ```
 
 ### Overview of Features
-- Tensors
-- Backpropogation
-- Automatic Differentiation (autograd)
-    - Forward and backward passes
-- 2D Convolutions (im2col)
-- Numerical gradient checking
-- Acceleration methods (Adam)
-- Avg & Max pooling
+- <a href="https://github.com/kevbuh/froog/blob/main/froog/tensor.py">Tensors</a> 
+  - Backpropogation
+  - Automatic Differentiation (autograd)
+      - Forward and backward passes
+- <a href="https://github.com/kevbuh/froog/blob/main/froog/ops.py">ML operations</a> 
+  - 2D Convolutions (im2col)
+  - Numerical gradient checking
+  - Acceleration methods (Adam)
+  - Avg & Max pooling
 - <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">Efficient Net </a> inference
 - <a href="https://github.com/kevbuh/froog/blob/main/froog/ops_gpu.py">GPU Support</a> 
-- <a href="https://github.com/kevbuh/froog/blob/main/froog/ops.py">ML operations</a> 
 - and a bunch <a href="https://github.com/kevbuh/froog/tree/main/froog">more</a> 
 
 ### Sneak Peek
 ```python
 from froog.tensor import Tensor
+from froog.utils import fetch_mnist, Linear
 import froog.optim as optim
 
 class mnistMLP:
   def __init__(self):
-    self.l1 = Tensor(layer_init(784, 128))
-    self.l2 = Tensor(layer_init(128, 10))
+    self.l1 = Tensor(Linear(784, 128))
+    self.l2 = Tensor(Linear(128, 10))
 
   def forward(self, x):
     return x.dot(self.l1).relu().dot(self.l2).logsoftmax()
@@ -50,14 +51,11 @@ optim = optim.SGD([model.l1, model.l2], lr=0.001)
 ```
 
 # Bounties
-THERES LOT OF STUFF TO WORK ON! 
+THERES LOT OF STUFF TO WORK ON! VISIT THE <a href="https://github.com/kevbuh/froog/blob/main/docs/bounties.md">BOUNTY SHOP</a>
 
-VISIT THE BOUNTY SHOP <a href="https://github.com/kevbuh/froog/blob/main/docs/bounties.md">HERE</a>
-
-# Contributing
 Pull requests will be merged if they:
 * increase simplicity
-* increase efficiency
 * increase functionality
+* increase efficiency
 
 more info on <a href="https://github.com/kevbuh/froog/blob/main/docs/contributing.md">contributing</a>
