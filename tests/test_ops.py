@@ -40,36 +40,30 @@ def helper_test_op(shape, torch_func, froog_func, atol=1e-7, grad_atol=1e-7, gpu
 
 
 class TestOps(unittest.TestCase):
+  gpu = False
   # **************** Add ****************
   def test_add(self):
-    helper_test_op([(45,65), (45,65)], lambda x,y: x+y, Tensor.add)
-  @unittest.skipUnless(GPU, "Requires GPU")
-  def test_gpu_add(self):
-    helper_test_op([(45,65), (45,65)], lambda x,y: x+y, Tensor.add, gpu=True)
+    helper_test_op([(45,65), (45,65)], lambda x,y: x+y, Tensor.add, gpu=self.gpu)
+  def test_sum(self):
+    helper_test_op([(45,3)], lambda x: x.sum(), Tensor.sum, atol=1e-4, gpu=self.gpu)
   # **************** Sub ****************
   def test_sub(self):
-    helper_test_op([(45,65), (45,65)], lambda x,y: x-y, Tensor.sub)
+    helper_test_op([(45,65), (45,65)], lambda x,y: x-y, Tensor.sub, gpu=self.gpu)
   # **************** Mul ****************
   def test_mul(self):
-    helper_test_op([(45,65), (45,65)], lambda x,y: x*y, Tensor.mul)
-  @unittest.skipUnless(GPU, "Requires GPU")
-  def test_gpu_mul(self):
-    helper_test_op([(45,65), (45,65)], lambda x,y: x*y, Tensor.mul, gpu=True)
+    helper_test_op([(45,65), (45,65)], lambda x,y: x*y, Tensor.mul, gpu=self.gpu)
   # **************** Dot ****************
   def test_dot(self):
-    helper_test_op([(45,65), (65,100)], lambda x,y: x.matmul(y), Tensor.dot, atol=1e-5)
-  @unittest.skipUnless(GPU, "Requires GPU")
-  def test_gpu_dot(self):
-    helper_test_op([(45,65), (65,100)], lambda x,y: x.matmul(y), Tensor.dot, atol=1e-5, gpu=True)
+    helper_test_op([(45,65), (65,100)], lambda x,y: x.matmul(y), Tensor.dot, atol=1e-5, gpu=self.gpu)
   # **************** Div ****************
   def test_div(self):
-    helper_test_op([(45,65), (45,65)], lambda x,y: x/y, Tensor.div, atol=1e-3, grad_atol=1e-3)
+    helper_test_op([(45,65), (45,65)], lambda x,y: x/y, Tensor.div, atol=1e-3, grad_atol=1e-3, gpu=self.gpu)
   # **************** Pow ****************
   def test_pow(self):
-    helper_test_op([(45,65), (45,65)], lambda x,y: x**y, Tensor.pow)
+    helper_test_op([(45,65), (45,65)], lambda x,y: x**y, Tensor.pow, gpu=self.gpu)
   # **************** Sqrt ****************
   def test_sqrt(self):
-    helper_test_op([(45,65)], lambda x: x.sqrt(), Tensor.sqrt)
+    helper_test_op([(45,65)], lambda x: x.sqrt(), Tensor.sqrt, gpu=self.gpu)
   # **************** Conv ****************
   def test_conv2d(self):
     for bs in [1,8]:
@@ -86,7 +80,7 @@ class TestOps(unittest.TestCase):
     H,W = 3,3
     helper_test_op([(bs,cin,11,28), (4,cin,H,W)],
                     lambda x,w: torch.nn.functional.conv2d(x,w,stride=2).relu(),
-                    lambda x,w: Tensor.conv2d(x,w,stride=2).relu(),
+                    lambda x,w: Tensor.conv2d(x,w,stride=2).relu(), 
                     atol=2e-5, grad_atol=2e-6)
     helper_test_op([(bs,cin,11,28), (4,cin,H,W)],
                     lambda x,w: torch.nn.functional.conv2d(x,w,stride=(2,1)).relu(),
@@ -104,6 +98,13 @@ class TestOps(unittest.TestCase):
   # **************** Avg Pool ****************
   def test_avgpool2x2(self):
     helper_test_op([(32,2,111,28)], lambda x: torch.nn.functional.avg_pool2d(x, (2,2)), Tensor.avg_pool2d)
+  # **************** Activations ****************
+  def test_relu(self):
+    helper_test_op([(45,65)], lambda x: x.relu(), Tensor.relu, gpu=self.gpu)
+
+if GPU:
+  class TestOpsGPU(TestOps):
+    gpu = True
 
 if __name__ == '__main__':
   unittest.main(verbosity=2) 

@@ -1,7 +1,7 @@
 import numpy as np
 from tqdm import trange
 from froog.tensor import Tensor, GPU
-from froog.utils import fetch_mnist, dense_layer
+from froog.utils import fetch_mnist, Linear
 import froog.optim as optim
 import unittest
 import os
@@ -15,9 +15,9 @@ X_train, Y_train, X_test, Y_test = fetch_mnist()
 class SimpleMLP:
   def __init__(self):
     # 784 pixel inputs -> 128 -> 10 output
-    # TODO: why down to 128? maybe because its the BS?
-    self.l1 = Tensor(dense_layer(784, 128))
-    self.l2 = Tensor(dense_layer(128, 10))
+    # TODO: why down to 128?
+    self.l1 = Tensor(Linear(784, 128))
+    self.l2 = Tensor(Linear(128, 10))
 
   def forward(self, x):
     return x.dot(self.l1).relu().dot(self.l2).logsoftmax()
@@ -30,9 +30,9 @@ class SimpleConvNet:
     # from https://keras.io/examples/vision/mnist_convnet/
     conv = 3
     inter_chan, out_chan = 8, 16 # for speed
-    self.c1 = Tensor(dense_layer(inter_chan,1,conv,conv))               # (num_filters, color_channels, kernel_h, kernel_w)
-    self.c2 = Tensor(dense_layer(out_chan,inter_chan,conv,conv))        # (28-conv+1)(28-conv+1) since kernel isn't padded
-    self.l1 = Tensor(dense_layer(out_chan*5*5, 10))                     # MNIST output is 10 classes
+    self.c1 = Tensor(Linear(inter_chan,1,conv,conv))               # (num_filters, color_channels, kernel_h, kernel_w)
+    self.c2 = Tensor(Linear(out_chan,inter_chan,conv,conv))        # (28-conv+1)(28-conv+1) since kernel isn't padded
+    self.l1 = Tensor(Linear(out_chan*5*5, 10))                     # MNIST output is 10 classes
 
   def forward(self, x):
     x.data = x.data.reshape((-1, 1, 28, 28))                            # get however many number of imgs in batch
@@ -46,6 +46,7 @@ class SimpleConvNet:
 
 def train(model, optimizer, steps, BS=128, gpu=False):
   # ********* training the model *********
+  print("****", gpu)
   losses, accuracies = [], []
 
   for _ in (t := trange(steps, disable=os.getenv('CI') is not None)):
@@ -68,6 +69,7 @@ def train(model, optimizer, steps, BS=128, gpu=False):
     y[range(y.shape[0]),Y] = -10.0
     y = Tensor(y, gpu=gpu)
 
+    print("*****")
     # ********* foward/backward pass *********
     model_outputs = model.forward(x)
 
@@ -79,7 +81,7 @@ def train(model, optimizer, steps, BS=128, gpu=False):
     pred = np.argmax(model_outputs.to_cpu().data, axis=1)
     accuracy = (pred == Y).mean()
   
-    loss = loss.data
+    loss = loss.to_cpu().data
     losses.append(loss)
     accuracies.append(accuracy)
     t.set_description(f"loss: {float(loss[0]):.2f} accuracy: {float(accuracy):.2f}")
@@ -121,7 +123,6 @@ class TestMNIST(unittest.TestCase):
     optimizer = optim.RMSprop(model.parameters(), lr=0.0002)
     train(model, optimizer, steps=1000)
     evaluate(model)
-
 
 if __name__ == '__main__':
   unittest.main()

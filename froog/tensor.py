@@ -29,7 +29,11 @@ def init_gpu():
   """
   global cl_ctx, cl_queue
   if cl_queue is None:
-    cl_ctx = cl.create_some_context(answers=[0,2])   # CHANGE IF YOU HAVE MULTIPLE COMPUTE DEVICES
+    try:
+      # if you have an m2 mac 
+      cl_ctx = cl.create_some_context(answers=[0]) 
+    except (cl._cl.RuntimeError, TypeError):
+      cl_ctx = cl.create_some_context(interactive=False)
     cl_queue = cl.CommandQueue(cl_ctx)
 
 # ************ Main Classes ************
@@ -69,6 +73,9 @@ class Tensor:
 
   def __repr__(self):
     return f"Tensor data: {self.data}, gradients: {self.grad.data if self.grad else None}" 
+  
+  def assign(self, x):
+    self.data = x.data
 
   @property
   def shape(self):
@@ -120,7 +127,10 @@ class Tensor:
     if self.gpu:
       data = np.empty(self.shape, dtype=np.float32)
       cl.enqueue_copy(cl_queue, data, self.data) # copy data from cpu to gpu (queue, dest, src)
-      return Tensor(data)
+      ret = Tensor(data)
+      if self.grad:
+        ret.grad = self.grad.to_cpu()
+      return ret
     else: 
       return self
     
@@ -130,7 +140,7 @@ class Tensor:
   
   def to_gpu(self):
     if not GPU:
-      raise Exception("no gpu support 4 u")
+      raise Exception("no gpu support! install pyopencl")
     if not self.gpu:
       init_gpu()
       assert self.data.dtype == np.float32 # GPU only allows float32
@@ -138,7 +148,10 @@ class Tensor:
       data = cl.Buffer(cl_ctx, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=self.data) # from pyopencl docs
       data.shape = self.shape
       data.dtype = self.data.dtype
-      return Tensor(data)
+      ret = Tensor(data)
+      if self.grad:
+        ret.grad = self.grad.to_gpu()
+      return ret
     else:
       return self 
 
@@ -158,7 +171,6 @@ class Tensor:
   def div(self, y):
     root = Tensor(np.zeros(self.shape, dtype=self.data.dtype)-1, gpu=self.gpu)
     return self.mul(y.pow(root))
-
 
 #     ________  ___   ______________________  _   __
 #    / ____/ / / / | / / ____/_  __/  _/ __ \/ | / /
@@ -213,7 +225,12 @@ def register(name, fxn, gpu=False):
     op_func = (Tensor.ops_gpu if self.gpu else Tensor.ops)[name]
     op_func.cl_ctx, op_func.cl_queue = cl_ctx, cl_queue
     return op_func.apply(op_func, self, *x, **kwargs)
+  
   setattr(Tensor, name, dispatch)
+
+  if name in ['add', 'sub', 'mul', 'div']:
+    setattr(Tensor, "__%s__" % name, dispatch)
+    setattr(Tensor, "__i%s__" % name, lambda self,x: self.assign(dispatch(self,x)))
 
 import froog.ops # this registers all the operations
 if GPU:

@@ -7,19 +7,23 @@
 # |___|    |___|  |_||_______||_______||_______|
 
 import numpy as np
+from froog.tensor import Tensor, GPU
 
 class Optimizer:
-   def __init__(self, params):
-      self.params = params
+  def __init__(self, params):
+    self.params = params
 
 class SGD(Optimizer):
+  """
+  Stochastic Gradient Descent
+  """
   def __init__(self, params, lr=0.001):
     super(SGD, self).__init__(params)
-    self.lr = lr
+    self.lr = Tensor([lr], gpu=params[0].gpu)
 
   def step(self):
     for t in self.params:
-      t.data -= self.lr * t.grad.data
+      t -= t.grad * self.lr
 
 class Adam(Optimizer):  
   """

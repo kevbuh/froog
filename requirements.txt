@@ -3,5 +3,6 @@ tqdm
 requests
 torch 
 pytest
-# pillow
-# matplotlib
+pillow
+matplotlib
+pyopencl

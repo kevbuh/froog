@@ -5,7 +5,6 @@
 # |    ___||    __  ||  |_|  ||  |_|  ||   ||  |
 # |   |    |   |  | ||       ||       ||   |_| |
 # |___|    |___|  |_||_______||_______||_______|
-#
 
 import numpy as np
 from froog.tensor import Tensor

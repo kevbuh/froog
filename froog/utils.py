@@ -9,22 +9,24 @@
 import numpy as np
 from functools import lru_cache
 
-def dense_layer(*tensor_size):
+def Linear(*tensor_size):
   # TODO: why dividing by sqrt?
   ret = np.random.uniform(-1., 1., size=tensor_size)/np.sqrt(np.prod(tensor_size)) # random init weights
   return ret.astype(np.float32)
 
 def fetch(url):
-  print(f"fetching {url}...")
   import requests, os, hashlib, tempfile
   fp = os.path.join(tempfile.gettempdir(), hashlib.md5(url.encode('utf-8')).hexdigest())
   if os.path.isfile(fp):
+    print(f"opening cache from {url}...")
     with open(fp, "rb") as f:
       dat = f.read()
   else:
-    with open(fp, "wb") as f:
+    print(f"fetching {url}")
+    with open(fp+".tmp", "wb") as f:
       dat = requests.get(url).content
       f.write(dat)
+    os.rename(fp+".tmp", fp)
   return dat
 
 def fetch_mnist():
@@ -62,7 +64,7 @@ def rearrange_col2im_index(oy, ox, cin, H, W):
         break
   return r_idx
 
-# matlab uses these to speed up convs
+# im2col convolution helpers
 def im2col(x, H, W):
   bs, cin, oy, ox = x.shape[0], x.shape[1], x.shape[2]-(H-1), x.shape[3]-(W-1)
   idx = get_im2col_index(oy, ox, cin, H, W)
