@@ -32,6 +32,23 @@ pip install froog
 - <a href="https://github.com/kevbuh/froog/blob/main/froog/ops.py">ML operations</a> 
 - and a bunch <a href="https://github.com/kevbuh/froog/tree/main/froog">more</a> 
 
+### Sneak Peek
+```python
+from froog.tensor import Tensor
+import froog.optim as optim
+
+class mnistMLP:
+  def __init__(self):
+    self.l1 = Tensor(layer_init(784, 128))
+    self.l2 = Tensor(layer_init(128, 10))
+
+  def forward(self, x):
+    return x.dot(self.l1).relu().dot(self.l2).logsoftmax()
+
+model = mnistMLP()
+optim = optim.SGD([model.l1, model.l2], lr=0.001)
+```
+
 # Bounties
 THERES LOT OF STUFF TO WORK ON! 
 
