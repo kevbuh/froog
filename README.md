@@ -11,15 +11,7 @@
   <br/>
 </div>
 
-<!-- modern ml development is unintuitive, time consuming, and unaccessible. why not make it possible for anyone to build? -->
-<!-- the goal of froog is to make a neural network libary to power any type of device from enterprise to small home robotics -->
-<!-- machine learning is like making a lego. you combine standardized pieces, of all shapes and sizes, to create anything you imagine -->
-<!-- froog is making those essential building blocks. -->
-<!-- grug say never be not improving tooling  -->
-<!-- ml toolkit -->
-<!-- This project should be art. Code is art. Machine learning should be easy to use, why do you need PHD's to able to create anything awesome with it?   -->
-
-FROOG is a neural network framework that is actually **SIMPLE** with the goal of running machine learning on any device --> easily and efficiently.
+FROOG is a SUPER SIMPLE machine learning framework with the goal of creating tools with AI --> easily and efficiently.
 
 # Installation
 ```bash
@@ -28,33 +20,25 @@ pip install froog
 
 ### Overview of Features
 - Tensors
-- Automatic Differentiation
+- Backpropogation
+- Automatic Differentiation (autograd)
     - Forward and backward passes
-- Input/gradient shape-tracking
-- MNIST example
 - 2D Convolutions (im2col)
 - Numerical gradient checking
-- Efficient Net Inference
-- Machine learning <a href="https://github.com/kevbuh/froog/blob/main/froog/ops.py">operations</a> 
-
-<!-- ### Math Operations
-- Scalar-Matrix Multiplication
-- Dot Product
-- Sum
-- ReLU
-- Log Softmax
-- 2D Convolutions
+- Acceleration methods (Adam)
 - Avg & Max pooling
-- <a href="https://github.com/kevbuh/froog/blob/main/froog/ops.py">More</a>  -->
-
-<!-- ### Ready-to-Go Models
-- <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">EfficientNet-B0</a>  -->
+- <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">Efficient Net </a> inference
+- <a href="https://github.com/kevbuh/froog/blob/main/froog/ops_gpu.py">GPU Support</a> 
+- <a href="https://github.com/kevbuh/froog/blob/main/froog/ops.py">ML operations</a> 
+- and a bunch <a href="https://github.com/kevbuh/froog/tree/main/froog">more</a> 
 
 # Bounties
-THERES LOT OF STUFF TO WORK ON! Here are some <a href="https://github.com/kevbuh/froog/blob/main/docs/bounties.md">bounties</a>
+THERES LOT OF STUFF TO WORK ON! 
+
+VISIT THE BOUNTY SHOP <a href="https://github.com/kevbuh/froog/blob/main/docs/bounties.md">HERE</a>
 
 # Contributing
-Here are the rules for contributing:
+Pull requests will be merged if they:
 * increase simplicity
 * increase efficiency
 * increase functionality
