@@ -20,7 +20,7 @@ pip install froog
 
 ### Overview of Features
 - <a href="https://github.com/kevbuh/froog/blob/main/froog/tensor.py">Tensors</a> 
-  - Backpropogation
+  - Backpropagation
   - Automatic Differentiation (autograd)
       - Forward and backward passes
 - <a href="https://github.com/kevbuh/froog/blob/main/froog/ops.py">ML operations</a> 
@@ -35,7 +35,7 @@ pip install froog
 ### Sneak Peek
 ```python
 from froog.tensor import Tensor
-from froog.utils import fetch_mnist, Linear
+from froog.utils import Linear
 import froog.optim as optim
 
 class mnistMLP:

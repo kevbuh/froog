@@ -204,6 +204,24 @@ class Dot(Function):
 register('dot', Dot, gpu=True)
 register('matmul', Dot, gpu=True)
 
+# ***** SIMPLE OPS ********
+
+class Reshape(Function):
+  @staticmethod
+  def forward(ctx, x, shape):
+    ctx.save_for_backward(x.shape)
+    x.shape = shape
+    return x
+
+  @staticmethod
+  def backward(ctx, grad_output):
+    in_shape, = ctx.saved_tensors
+    grad_output.shape = in_shape
+    return grad_output
+register('reshape', Reshape, gpu=True)
+
+# ***** ACTIVATION OPS ********
+
 class ReLU(Function):
   @staticmethod
   def forward(ctx, input):

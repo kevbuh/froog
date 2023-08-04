@@ -35,7 +35,7 @@ class SimpleConvNet:
     self.l1 = Tensor(Linear(out_chan*5*5, 10))                     # MNIST output is 10 classes
 
   def forward(self, x):
-    x.data = x.data.reshape((-1, 1, 28, 28))                            # get however many number of imgs in batch
+    x = x.reshape(shape=(-1, 1, 28, 28))                            # get however many number of imgs in batch
     x = x.conv2d(self.c1).relu().max_pool2d()                           # pass through layer 1 first
     x = x.conv2d(self.c2).relu().max_pool2d()                           # pass through layer 2
     x = x.reshape(shape=[x.shape[0], -1])                               # then go down to mlp
@@ -46,7 +46,6 @@ class SimpleConvNet:
 
 def train(model, optimizer, steps, BS=128, gpu=False):
   # ********* training the model *********
-  print("****", gpu)
   losses, accuracies = [], []
 
   for _ in (t := trange(steps, disable=os.getenv('CI') is not None)):
@@ -96,6 +95,14 @@ def evaluate(model, gpu=False):
   assert accuracy > 0.95
 
 class TestMNIST(unittest.TestCase):
+  # @unittest.skipUnless(GPU, "Requires GPU")
+  # def test_conv_gpu(self):
+  #   np.random.seed(1337)
+  #   model = SimpleConvNet()
+  #   [x.gpu_() for x in model.parameters()]
+  #   optimizer = optim.SGD(model.parameters(), lr=0.001)
+  #   train(model, optimizer, steps=1000, gpu=True)
+  #   evaluate(model, gpu=True)
   def test_mnist_conv_adam(self):
     np.random.seed(1337)
     model = SimpleConvNet()

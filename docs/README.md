@@ -36,11 +36,12 @@ Heres an example of how to create an MNIST multi layer perceptron (MLP)
 ```python
 from froog.tensor import Tensor
 import froog.optim as optim
+from froog.utils import Linear
 
 class mnistMLP:
   def __init__(self):
-    self.l1 = Tensor(layer_init(784, 128))
-    self.l2 = Tensor(layer_init(128, 10))
+    self.l1 = Tensor(Linear(784, 128))
+    self.l2 = Tensor(Linear(128, 10))
 
   def forward(self, x):
     return x.dot(self.l1).relu().dot(self.l2).logsoftmax()
@@ -56,9 +57,9 @@ class SimpleConvNet:
   def __init__(self):
     conv_size = 5
     channels = 17
-    self.c1 = Tensor(dense_layer(channels,1,conv_size,conv_size))     # (num_filters, color_channels, kernel_h, kernel_w)
-    self.l1 = Tensor(dense_layer((28-conv_size+1)**2*channels, 128))  # (28-conv+1)(28-conv+1) since kernel isn't padded
-    self.l2 = Tensor(dense_layer(128, 10))                            # MNIST output is 10 classes
+    self.c1 = Tensor(Linear(channels,1,conv_size,conv_size))     # (num_filters, color_channels, kernel_h, kernel_w)
+    self.l1 = Tensor(Linear((28-conv_size+1)**2*channels, 128))  # (28-conv+1)(28-conv+1) since kernel isn't padded
+    self.l2 = Tensor(Linear(128, 10))                            # MNIST output is 10 classes
 
   def forward(self, x):
     x.data = x.data.reshape((-1, 1, 28, 28))                          # get however many number of imgs in batch
@@ -68,8 +69,7 @@ class SimpleConvNet:
 ```
 
 ### Tests
-
-The tests are located <a href="https://github.com/kevbuh/froog/tree/main/tests">here</a>.
+Tests are located <a href="https://github.com/kevbuh/froog/tree/main/tests">here</a>.
 
 You can run them in your terminal by going into the root folder and entering
 
