@@ -20,6 +20,8 @@
 
 FROOG is a neural network framework that is actually **SIMPLE** with the goal of running machine learning on any device --> easily and efficiently.
 
+<!-- This project should be art. Code is art. Machine learning should be easy to use, why do you need PHD's to able to create anything awesome with it?   -->
+
 # Installation
 ```bash
 pip install froog

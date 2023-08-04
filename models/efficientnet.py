@@ -202,7 +202,6 @@ def processImage(url):
     img = img[0:3,:,:]
   img = img.astype(np.float32).reshape(1,3,224,224)
   
-
   # normalize image for pretrained model
   img /= 255.0                                                # scales the pixel values from [0, 256) to [0, 1)
   img -= np.array([0.485, 0.456, 0.406]).reshape((1,-1,1,1))  # The values 0.485, 0.456, and 0.406 are the means of the red, green, and blue channels, respectively, of the ImageNet dataset.

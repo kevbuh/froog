@@ -22,5 +22,5 @@ setup(name='froog',
         "License :: OSI Approved :: MIT License"
       ],
       install_requires=['numpy', 'requests'],
-      python_requires='>=3.6',
+      python_requires='>=3.8',
       include_package_data=True)
