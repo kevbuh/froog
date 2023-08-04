@@ -26,11 +26,7 @@ def buffer_like(ctx, x):
 def clbuild(cl_ctx, prg):
   return cl.Program(cl_ctx, prg).build()
 
-@functools.lru_cache
-def cl_reduct_krnl_build(cl_ctx, *args, **kwargs):
-  return ReductionKernel(cl_ctx, *args, **kwargs)
-
-def binary_op(ctx, code, x, y):
+def binary_op(ctx, code, x, y): 
   ret = buffer_like(ctx, x)
   prg = clbuild(ctx.cl_ctx, """
   __kernel void add(
@@ -40,7 +36,7 @@ def binary_op(ctx, code, x, y):
     """+code+"""
   }
   """)
-  prg.add(ctx.cl_queue, [np.prod(ret.shape)], None, x, y, ret)
+  prg.add(ctx.cl_queue, [np.prod(ret.shape)], None, x, y, ret) # (queue, size, ???, arg1, arg2, dest)
   return ret
 
 def unary_op(ctx, code, x):
@@ -119,7 +115,7 @@ class Sum(Function):
   @staticmethod
   def forward(ctx, input):
     ctx.save_for_backward(input)
-    ret = buffer_new(ctx, (1,))
+    ret = buffer_new(ctx, (1,)) # buffer of size 1, which will hold the sum
     prg = clbuild(ctx.cl_ctx, """
     __kernel void sum(
         __global const float *a_g, int sz, __global float *res_g)
@@ -141,9 +137,12 @@ class Sum(Function):
 register('sum', Sum, gpu=True)
 
 class Dot(Function):
+  """
+  A[gid_y * size + i] accesses an element in the row gid_y of matrix A and the column i
+  """
   @staticmethod
   def forward(ctx, input, weight):
-    assert input.shape[1] == weight.shape[0]
+    assert input.shape[1] == weight.shape[0] # inner dims must match for dot product
     isize = np.int32(input.shape[0])
     msize = np.int32(input.shape[1])
     osize = np.int32(weight.shape[1])
@@ -155,23 +154,22 @@ class Dot(Function):
         __global const float *input,
         __global const float *weight,
         __global float *res,
-        int is0,
-        int is1,
+        int input_row_size,
+        int input_col_size,
         int msize,
-        int ws0,
-        int ws1,
+        int weight_row_size,
+        int weight_col_size,
         int osize
         )
     {
-      int X = get_global_id(0); // isize
-      int Y = get_global_id(1); // osize
-
-      float ret = 0.0;
-      for (int x = 0; x < msize; x++) {
-        ret += input[X * is0 + x * is1] * weight[Y * ws0 + x * ws1];
+      int gid_y = get_global_id(0); // row index
+      int gid_x = get_global_id(1); // col index
+      
+      float acc = 0.0;
+      for (int i = 0; i < msize; i++) {
+        acc += input[gid_y * input_row_size + i * input_col_size] * weight[gid_x * weight_row_size + i * weight_col_size];
       }
-
-      res[X * osize + Y] = ret;
+      res[gid_y * osize + gid_x] = acc;
     }
     """)
     ctx.save_for_backward(input, weight, prg)
@@ -205,9 +203,6 @@ class Dot(Function):
     return grad_input, grad_weight
 register('dot', Dot, gpu=True)
 register('matmul', Dot, gpu=True)
-
-
-# *** these two are unfinished, optimizer fixed, fix this and TestMNIST.test_sgd_gpu should pass ***
 
 class ReLU(Function):
   @staticmethod

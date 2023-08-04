@@ -69,7 +69,6 @@ def train(model, optimizer, steps, BS=128, gpu=False):
     y[range(y.shape[0]),Y] = -10.0
     y = Tensor(y, gpu=gpu)
 
-    print("*****")
     # ********* foward/backward pass *********
     model_outputs = model.forward(x)
 
