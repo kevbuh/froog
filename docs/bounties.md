@@ -1,18 +1,15 @@
 # Bounties
 
 #### Small   <!-- ez money  -->
+- improve docs
 - binary cross entropy
 - flatten
-- batch_norm
-- div
-- pow
 - dropout 
 #### Medium  <!-- mid tier -->
-- start doing ops with opencl
-- einsum convs
+- faster conv
 - simplify how context and gradients are handled
 #### Large <!-- EXPERT LEVEL!!!  -->
-- ability training on FROOG!!!!
+- ability to train
 - float16 support
 - transformers
 - stable diffusion
