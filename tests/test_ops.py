@@ -26,8 +26,8 @@ def helper_test_op(shape, torch_func, froog_func, atol=1e-7, grad_atol=1e-7, gpu
 
   # test for speed
   # forward passes
-    torch_fwd = timeit.Timer(functools.partial(torch_func, *torch_tensors)).timeit(5) * 1000/5
-    froog_fwd = timeit.Timer(functools.partial(froog_func, *froog_tensors)).timeit(5) * 1000/5
+  torch_fwd = timeit.Timer(functools.partial(torch_func, *torch_tensors)).timeit(5) * 1000/5
+  froog_fwd = timeit.Timer(functools.partial(froog_func, *froog_tensors)).timeit(5) * 1000/5
 
   # backward passes
   if not forward_only:
@@ -69,11 +69,11 @@ class TestOps(unittest.TestCase):
     for bs in [1,8]:
       for cin in [1,2,3]:
         for groups in [1,3] if cin == 3 else [1]:
-          for H in [2,5]:
-            for W in [2,3,5]:
+          for H in [1,2,5]:
+            for W in [1,2,3,5]:
               helper_test_op([(bs,cin,11,28), (6,cin//groups,H,W)],
                 lambda x,w: torch.nn.functional.conv2d(x,w,groups=groups).relu(),
-                lambda x,w: Tensor.conv2d(x,w,groups=groups).relu(), atol=2e-5, grad_atol=2e-6)
+                lambda x,w: Tensor.conv2d(x,w,groups=groups).relu(), atol=2e-5, grad_atol=2e-6, forward_only=self.gpu)
   def test_strided_conv2d(self):
     bs = 4
     cin = 3

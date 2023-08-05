@@ -19,16 +19,16 @@ pip install froog
 ```
 
 ### Overview of Features
-- <a href="https://github.com/kevbuh/froog/blob/main/froog/tensor.py">Tensors</a> 
+- <a href="https://github.com/kevbuh/froog/blob/main/froog/tensor.py">Custom Tensors</a> 
   - Backpropagation
   - Automatic Differentiation (autograd)
       - Forward and backward passes
-- <a href="https://github.com/kevbuh/froog/blob/main/froog/ops.py">ML operations</a> 
+- <a href="https://github.com/kevbuh/froog/blob/main/froog/ops.py">Comming ML Operations</a> 
   - 2D Convolutions (im2col)
   - Numerical gradient checking
   - Acceleration methods (Adam)
   - Avg & Max pooling
-- <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">Efficient Net </a> inference
+- <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">Efficient-Net</a> inference
 - <a href="https://github.com/kevbuh/froog/blob/main/froog/ops_gpu.py">GPU Support</a> 
 - and a bunch <a href="https://github.com/kevbuh/froog/tree/main/froog">more</a> 
 

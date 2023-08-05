@@ -7,6 +7,7 @@
 # |___|    |___|  |_||_______||_______||_______|
 
 import numpy as np
+import os
 from functools import lru_cache
 
 def Linear(*tensor_size):
@@ -17,7 +18,7 @@ def Linear(*tensor_size):
 def fetch(url):
   import requests, os, hashlib, tempfile
   fp = os.path.join(tempfile.gettempdir(), hashlib.md5(url.encode('utf-8')).hexdigest())
-  if os.path.isfile(fp):
+  if os.path.isfile(fp) and os.stat(fp).st_size > 0:
     print(f"opening cache from {url}...")
     with open(fp, "rb") as f:
       dat = f.read()
@@ -52,7 +53,6 @@ def get_im2col_index(oy, ox, cin, H, W):
   idx = idx_channel * OY * OX + idx_y * OX + idx_x
   return idx
 
-# TODO: whats this doing? 
 @lru_cache
 def rearrange_col2im_index(oy, ox, cin, H, W):
   idx = get_im2col_index(oy, ox, cin, H, W)
