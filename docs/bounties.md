@@ -1,6 +1,9 @@
 # Bounties
 
 #### Small   <!-- ez money  -->
+- ensemble trees 
+- support vector machines
+- basic linear regression model
 - improve docs
 - binary cross entropy
 - flatten

@@ -25,7 +25,7 @@ pip install froog
   - Backpropagation
   - Automatic Differentiation (autograd)
       - Forward and backward passes
-- <a href="https://github.com/kevbuh/froog/blob/main/froog/ops.py">Comming ML Operations</a> 
+- <a href="https://github.com/kevbuh/froog/blob/main/froog/ops.py">ML Operations</a> 
   - 2D Convolutions (im2col)
   - Numerical gradient checking
   - Acceleration methods (Adam)
