@@ -13,6 +13,8 @@
 
 FROOG is a SUPER SIMPLE machine learning framework with the goal of creating tools with AI --> easily and efficiently.
 
+It's an end-to-end framework, encapsulating everything from ensemble trees to deep neural networks (still working on all that lol)
+
 # Installation
 ```bash
 pip install froog

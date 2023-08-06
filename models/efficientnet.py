@@ -66,6 +66,8 @@ from froog.tensor import Tensor
 from froog.utils import fetch
 from froog.nn import swish, BatchNorm2D
 
+GPU = os.getenv("GPU", None) is not None
+
 class MBConvBlock: 
   """
    Mobile Inverted Residual Bottleneck Block
@@ -189,6 +191,8 @@ class EfficientNet:
           mv = eval(mk.replace(".bias", "_bias"))
       vnp = v.numpy().astype(np.float32)
       mv.data[:] = vnp if k != '_fc.weight' else vnp.T        # assigns data to enet
+      if GPU:
+        mv.gpu_()
 
 def processImage(url):
   img = Image.open(io.BytesIO(fetch(url)))
@@ -229,13 +233,16 @@ if __name__ == "__main__":
     plt.show()
 
   # get imagenet labels into dictionary
-  with open('examples/imagenet_classes.txt', 'r') as f:
+  with open('datasets/imagenet_classes.txt', 'r') as f:
     lbls = json.load(f)
 
   # inference
   import time
   st = time.time()
-  out = model.forward(Tensor(img))
+  if GPU:
+    out = model.forward(Tensor(img).to_gpu())
+  else:
+    out = model.forward(Tensor(img))
 
   if os.getenv('VIZ') == "1":
     # outputs
@@ -243,12 +250,9 @@ if __name__ == "__main__":
     plt.plot(out.data[0])
     plt.show()
 
-  print("")
-  print("******************************")
-  print(f"inference {float(time.time()-st):.2f} s")
-  print("")
+  print("\n******************************")
+  print(f"inference {float(time.time()-st):.2f} s\n")
   print("imagenet class:", np.argmax(out.data))
   print("prediction    :", lbls.get(str(np.argmax(out.data))))
   print("probability   :", np.max(out.data) / 10)
-  print("******************************")
-  print("")
+  print("******************************\n")
