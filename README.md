@@ -30,7 +30,7 @@ pip install froog
   - Numerical gradient checking
   - Acceleration methods (Adam)
   - Avg & Max pooling
-- <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">Efficient-Net</a> inference
+- <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">EfficientNet</a> inference
 - <a href="https://github.com/kevbuh/froog/blob/main/froog/ops_gpu.py">GPU Support</a> 
 - and a bunch <a href="https://github.com/kevbuh/froog/tree/main/froog">more</a> 
 
