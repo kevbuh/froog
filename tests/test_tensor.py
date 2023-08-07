@@ -1,8 +1,8 @@
 import numpy as np
 import torch
 import unittest
-from froog.tensor import Tensor, GPU
-from froog.gradcheck import numerical_jacobian, gradcheck, jacobian
+from ribbit.tensor import Tensor, GPU
+from ribbit.gradcheck import numerical_jacobian, gradcheck, jacobian
 
 x_init = np.random.randn(1,3).astype(np.float32)
 W_init = np.random.randn(3,3).astype(np.float32)
@@ -17,18 +17,18 @@ class TestTensor(unittest.TestCase):
     torch_W = torch.tensor(W, requires_grad=True)
     torch_func = lambda x: torch.nn.functional.log_softmax(x.matmul(torch_W).relu(), dim=1)
 
-    froog_x = Tensor(x)
-    froog_W = Tensor(W)
-    froog_func = lambda x: x.dot(froog_W).relu().logsoftmax()
+    ribbit_x = Tensor(x)
+    ribbit_W = Tensor(W)
+    ribbit_func = lambda x: x.dot(ribbit_W).relu().logsoftmax()
 
-    J = jacobian(froog_func, froog_x)
+    J = jacobian(ribbit_func, ribbit_x)
     PJ = torch.autograd.functional.jacobian(torch_func, torch_x).squeeze().numpy()
-    NJ = numerical_jacobian(froog_func, froog_x)
+    NJ = numerical_jacobian(ribbit_func, ribbit_x)
 
     np.testing.assert_allclose(PJ, J, atol = 1e-5)
     np.testing.assert_allclose(PJ, NJ, atol = 1e-5)
 
-    def test_froog():
+    def test_ribbit():
       x = Tensor(x_init)
       W = Tensor(W_init)
       m = Tensor(m_init)
@@ -48,7 +48,7 @@ class TestTensor(unittest.TestCase):
       out.backward()
       return out.detach().numpy(), x.grad, W.grad
 
-    for x,y in zip(test_froog(), test_pytorch()):
+    for x,y in zip(test_ribbit(), test_pytorch()):
       np.testing.assert_allclose(x, y, atol=1e-5)
 
   def test_gradcheck(self):
@@ -66,11 +66,11 @@ class TestTensor(unittest.TestCase):
 
     tiny_x = Tensor(x)
     tiny_W = Tensor(W)
-    froog_func = lambda x: x.dot(tiny_W).relu().logsoftmax()
+    ribbit_func = lambda x: x.dot(tiny_W).relu().logsoftmax()
 
-    self.assertTrue(gradcheck(froog_func, tiny_x))
-    self.assertTrue(gradcheck(froog_func, tiny_x)) 
-    self.assertFalse(gradcheck(froog_func, tiny_x, eps = 0.1)) 
+    self.assertTrue(gradcheck(ribbit_func, tiny_x))
+    self.assertTrue(gradcheck(ribbit_func, tiny_x)) 
+    self.assertFalse(gradcheck(ribbit_func, tiny_x, eps = 0.1)) 
 
 if __name__ == '__main__':
   unittest.main()

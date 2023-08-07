@@ -7,8 +7,8 @@
 # |___|    |___|  |_||_______||_______||_______|
 
 import numpy as np
-from froog.tensor import Tensor
-from froog.utils import mask_like
+from ribbit.tensor import Tensor
+from ribbit.utils import mask_like
 
 def jacobian(model, input):
   output = model(input)
@@ -30,7 +30,7 @@ def numerical_jacobian(model, input, eps = 1e-6):
 #     Computes :
 #         First-order partial derivatives using Finite-Difference Approximation with Central Difference Method (CDM)
 #     Params:
-#         model : A froog model
+#         model : A ribbit model
 #         input : An input
 #         eps   : Perturbation step
 #     Returns:
@@ -58,7 +58,7 @@ def gradcheck(model, input, eps = 1e-06, atol = 1e-5, rtol = 0.001):
   """
   Checks whether computed gradient is close to numerical approximation of the Jacobian
   Params:
-    model       : froog model   
+    model       : ribbit model   
     eps         : eps used to see if gradient is within tolerances
     atol        : absolute tolerance
     rtol        : relative tolerance 

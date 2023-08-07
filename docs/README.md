@@ -1,42 +1,42 @@
-# What is froog?
+# What is ribbit?
 
-froog (Fast Real-time Optimization of Gradients) is an easy to read machine learning library. froog's driving philosophy is demanding simplicity in a world of complexity. Tensorflow and PyTorch are insanely complex with enormous codebases and meant for expert development.
+ribbit is an easy to read machine learning library. ribbit's driving philosophy is demanding simplicity in a world of complexity. Tensorflow and PyTorch are insanely complex with enormous codebases and meant for expert development.
 
-Instead, froog is meant for those who are looking to get into machine learning, and want to actually understand how machine learning works before it is ultra optimized (which all modern ml libraries are).
+Instead, ribbit is meant for those who are looking to get into machine learning, and want to actually understand how machine learning works before it is ultra optimized (which all modern ml libraries are).
 
 ### Where to start?
 
-First, download froog using the <a href="https://github.com/kevbuh/froog/blob/main/docs/install.md">installation</a> docs. 
+First, download ribbit using the <a href="https://github.com/kevbuh/ribbit/blob/main/docs/install.md">installation</a> docs. 
 
 # How to build
 
-The most fundamental item in all of froog and machine learning is the Tensor. A tensor is simply a matrix of matrices (more accurately a multi-dimensional array). 
+The most fundamental item in all of ribbit and machine learning is the Tensor. A tensor is simply a matrix of matrices (more accurately a multi-dimensional array). 
 
-You can create a Tensor in froog by
+You can create a Tensor in ribbit by
 ```python
 import numpy as np
-from froog.tensor import Tensor
+from ribbit.tensor import Tensor
 
 my_tensor = Tensor([1,2,3])
 ```
 
 Notice how we had to import numpy. If you want to create a Tensor manually make sure that it is a Numpy array!
 
-learn more about Tensors <a href="https://github.com/kevbuh/froog/blob/main/docs/tensors.md">here</a> 
+learn more about Tensors <a href="https://github.com/kevbuh/ribbit/blob/main/docs/tensors.md">here</a> 
 
 
 ### Actually creating something
 
-Okay cool, so now you know that froog's main datatype is a Tensor and uses NumPy in the background. How do I actually build something? 
+Okay cool, so now you know that ribbit's main datatype is a Tensor and uses NumPy in the background. How do I actually build something? 
 
 We wanted to make it as simple as possible for you to do so.
 
 Heres an example of how to create an MNIST multi layer perceptron (MLP)
 
 ```python
-from froog.tensor import Tensor
-import froog.optim as optim
-from froog.utils import Linear
+from ribbit.tensor import Tensor
+import ribbit.optim as optim
+from ribbit.utils import Linear
 
 class mnistMLP:
   def __init__(self):
@@ -69,7 +69,7 @@ class SimpleConvNet:
 ```
 
 ### Tests
-Tests are located <a href="https://github.com/kevbuh/froog/tree/main/tests">here</a>.
+Tests are located <a href="https://github.com/kevbuh/ribbit/tree/main/tests">here</a>.
 
 You can run them in your terminal by going into the root folder and entering
 

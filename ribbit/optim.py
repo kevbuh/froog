@@ -7,7 +7,7 @@
 # |___|    |___|  |_||_______||_______||_______|
 
 import numpy as np
-from froog.tensor import Tensor, GPU
+from ribbit.tensor import Tensor, GPU
 
 class Optimizer:
   def __init__(self, params):

@@ -12,7 +12,7 @@ def count_lines_of_code(folder_path, file_extension='.py'):
   return total_lines
 
 if __name__ == "__main__":
-  folder_path = "./froog"
+  folder_path = "./ribbit"
   lines_of_code = count_lines_of_code(folder_path)
 
   print(f"Total lines of code in the folder: {lines_of_code}")

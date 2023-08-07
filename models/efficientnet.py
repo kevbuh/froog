@@ -62,9 +62,9 @@ import os
 import sys
 import json
 import numpy as np
-from froog.tensor import Tensor
-from froog.utils import fetch
-from froog.nn import swish, BatchNorm2D
+from ribbit.tensor import Tensor
+from ribbit.utils import fetch
+from ribbit.nn import swish, BatchNorm2D
 
 GPU = os.getenv("GPU", None) is not None
 
@@ -233,7 +233,7 @@ if __name__ == "__main__":
     plt.show()
 
   # get imagenet labels into dictionary
-  with open('datasets/imagenet_classes.txt', 'r') as f:
+  with open('assets/imagenet_classes.txt', 'r') as f:
     lbls = json.load(f)
 
   # inference

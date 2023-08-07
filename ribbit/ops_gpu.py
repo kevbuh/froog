@@ -19,6 +19,12 @@ def buffer_new(ctx, shape):
   res_g.dtype = np.float32
   return res_g
 
+def buffer_zeros(ctx, shape):
+  res_g = cl.Buffer(ctx.cl_ctx, cl.mem_flags.WRITE_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=np.zeros(shape))
+  res_g.shape = shape
+  res_g.dtype = np.float32
+  return res_g
+
 def buffer_like(ctx, x):
   return buffer_new(ctx, x.shape)
 
@@ -27,35 +33,40 @@ def clbuild(cl_ctx, prg):
   return cl.Program(cl_ctx, prg).build()
 
 def binary_op(ctx, code, x, y): 
+  if x.shape != y.shape:
+    raise Exception(f"binary op shape mismatch: {x.shape} != {y.shape}")
   ret = buffer_like(ctx, x)
   prg = clbuild(ctx.cl_ctx, """
-  __kernel void add(
+  __kernel void binop(
       __global const float *a_g, __global const float *b_g, __global float *res_g)
   {
     int gid = get_global_id(0);
-    """+code+"""
+    float a = a_g[gid];
+    float b = b_g[gid];
+    res_g[gid] = """+code+""";
   }
   """)
-  prg.add(ctx.cl_queue, [np.prod(ret.shape)], None, x, y, ret) # (queue, size, ???, arg1, arg2, dest)
+  prg.binop(ctx.cl_queue, [np.prod(ret.shape)], None, x, y, ret) # (queue, size, ???, arg1, arg2, dest)
   return ret
 
 def unary_op(ctx, code, x):
   ret = buffer_like(ctx, x)
   prg = clbuild(ctx.cl_ctx, """
-  __kernel void relu(
+  __kernel void unop(
       __global const float *a_g, __global float *res_g)
   {
     int gid = get_global_id(0);
-    """+code+"""
+    float a = a_g[gid];
+    res_g[gid] = """+code+"""
   }
   """)
-  prg.relu(ctx.cl_queue, [np.prod(ret.shape)], None, x, ret)
+  prg.unop(ctx.cl_queue, [np.prod(ret.shape)], None, x, ret)
   return ret
 
 class Add(Function):
   @staticmethod
   def forward(ctx, x, y):
-    return binary_op(ctx, 'res_g[gid] = a_g[gid] + b_g[gid];', x, y)
+    return binary_op(ctx, 'a+b', x, y)
 
   @staticmethod
   def backward(ctx, grad_output):
@@ -65,11 +76,11 @@ register('add', Add, gpu=True)
 class Sub(Function):
   @staticmethod
   def forward(ctx, x, y):
-    return binary_op(ctx, 'res_g[gid] = a_g[gid] - b_g[gid];', x, y)
+    return binary_op(ctx, 'a-b', x, y)
 
   @staticmethod
   def backward(ctx, grad_output):
-    not_grad_output = unary_op(ctx, 'res_g[gid] = -a_g[gid];', grad_output)
+    not_grad_output = unary_op(ctx, '-a', grad_output)
     return grad_output, not_grad_output
 register('sub', Sub, gpu=True)
 
@@ -78,36 +89,27 @@ class Mul(Function):
   def forward(ctx, x, y):
     ctx.save_for_backward(x, y)
 
-    # HACK
-    if y.shape == (1,):
-      return binary_op(ctx, 'res_g[gid] = a_g[gid] * b_g[0];', x, y)
-    elif x.shape == y.shape:
-      return binary_op(ctx, 'res_g[gid] = a_g[gid] * b_g[gid];', x, y)
-    else:
-      raise Exception("mismatched shapes %r %r" % (x.shape, y.shape))
-
-    return ret
+    return binary_op(ctx, 'a*b', x, y)
 
   @staticmethod
   def backward(ctx, grad_output):
     x,y = ctx.saved_tensors
-    return binary_op(ctx, 'res_g[gid] = a_g[gid] * b_g[gid];', y, grad_output),\
-           binary_op(ctx, 'res_g[gid] = a_g[gid] * b_g[gid];', x, grad_output)
+    return binary_op(ctx, 'a*b', y, grad_output), binary_op(ctx, 'a*b', x, grad_output)
 register('mul', Mul, gpu=True)
 
 class Pow(Function):
   @staticmethod
   def forward(ctx, x, y):
     ctx.save_for_backward(x, y)
-    return binary_op(ctx, 'res_g[gid] = pow(a_g[gid], b_g[gid]);', x, y)
+    return binary_op(ctx, 'pow(a,b)', x, y)
 
   @staticmethod
   def backward(ctx, grad_output):
     x,y = ctx.saved_tensors
-    gradx = binary_op(ctx, 'res_g[gid] = a_g[gid] * b_g[gid];', grad_output,
-                      binary_op(ctx, 'res_g[gid] = b_g[gid] * (pow((float)a_g[gid], (float)(b_g[gid]-1.0)));', x, y))
-    grady = binary_op(ctx, 'res_g[gid] = a_g[gid] * b_g[gid];', grad_output,
-                      binary_op(ctx, 'res_g[gid] = pow((float)a_g[gid], (float)b_g[gid]) * log(a_g[gid]);', x, y))
+    gradx = binary_op(ctx, 'a*b', grad_output,
+                      binary_op(ctx, 'b * (pow((float)a, (float)(b-1.0)));', x, y))
+    grady = binary_op(ctx, 'a*b', grad_output,
+                      binary_op(ctx, 'pow((float)a, (float)b) * log(a);', x, y))
     return gradx, grady
 register('pow', Pow, gpu=True)
 
@@ -133,7 +135,17 @@ class Sum(Function):
   @staticmethod
   def backward(ctx, grad_output):
     input, = ctx.saved_tensors
-    return binary_op(ctx, 'res_g[gid] = b_g[0];', input, grad_output)  # Quick hack for fill
+    ret = buffer_like(ctx, input)
+    prg = clbuild(ctx.cl_ctx, """
+    __kernel void fill(
+        __global const float *a_g, __global float *res_g)
+    {
+      int gid = get_global_id(0);
+      res_g[gid] = a_g[0];
+    }
+    """)
+    prg.fill(ctx.cl_queue, [np.prod(ret.shape)], None, grad_output, ret)
+    return ret
 register('sum', Sum, gpu=True)
 
 class Dot(Function):
@@ -210,7 +222,18 @@ class Reshape(Function):
   @staticmethod
   def forward(ctx, x, shape):
     ctx.save_for_backward(x.shape)
-    x.shape = shape
+    ss = list(shape)
+
+    # ???
+    tsum = 1
+    for s in ss:
+      if s != -1:
+        tsum *= s
+    for i,s in enumerate(ss):
+      if s == -1:
+        ss[i] = np.prod(x.shape) // tsum
+    assert np.prod(x.shape) == np.prod(ss)
+    x.shape = tuple(ss)
     return x
 
   @staticmethod
@@ -226,12 +249,12 @@ class ReLU(Function):
   @staticmethod
   def forward(ctx, input):
     ctx.save_for_backward(input)
-    return unary_op(ctx, 'res_g[gid] = max(a_g[gid], (float)0.);', input)
+    return unary_op(ctx, 'max(a, (float)0.);', input)
 
   @staticmethod
   def backward(ctx, grad_output):
     input, = ctx.saved_tensors
-    return binary_op(ctx, 'res_g[gid] = a_g[gid] * (b_g[gid] >= 0);', grad_output, input)
+    return binary_op(ctx, 'a * (b >= 0);', grad_output, input)
 register('relu', ReLU, gpu=True)
 
 class LogSoftmax(Function):
@@ -299,7 +322,7 @@ register('logsoftmax', LogSoftmax, gpu=True)
 class Conv2D(Function):
   @staticmethod
   def forward(ctx, x, w, stride=1, groups=1):
-    if type(ctx.stride) == int:                                                                           # ctx stores function params
+    if type(ctx.stride) == int:     # ctx stores function params
       ctx.stride = (ctx.stride, ctx.stride)
 
     cout, cin, H, W = w.shape
@@ -316,24 +339,26 @@ class Conv2D(Function):
     ret = buffer_new(ctx, (bs, cout, oy, ox))
     prg = clbuild(ctx.cl_ctx, """
 
-    __kernel void conv(__global const float *input, __global const float *weight, __global const *output, int H, int W, int groups, int rcout, int cin, int oy, int ox, int iy, int ix) {
-                  
-      int B = get_global_id(0); // range(0, bs)
-      int Y = get_global_id(1); // range(0, oy)
-      int X = get_global_id(2); // range(0, ox)
+    __kernel void conv(__global const float *input, __global const float *weight, __global float *output,
+      int H, int W, int groups, int rcout, int cin, int oy, int ox, int iy, int ix, int ys, int xs) {
+
+      int B = get_global_id(0);  // range 0-bs
+      int Y = get_global_id(1);  // range 0-oy
+      int X = get_global_id(2);  // range 0-ox
+      int IY = Y*ys;
+      int IX = X*xs;
       
       // input  = (bs, groups, cin, iy, ix)
       // weight = (groups, rcout, cin, H, W)
       // output = (bs, groups, rcout, oy, ox)
-                  
       for (int g = 0; g < groups; g++) {
         for (int c = 0; c < rcout; c++) {
-          float acc = 0;
-                  
+          float acc = 0.0;
           for (int ci = 0; ci < cin; ci++) {
-            for (int y = Y; y < Y+H; y++) {
-              for (int x = X; x < X+W; x++) {
-                acc += input[B*groups*cin*iy*ix + g*cin*iy*ix + ci*iy*ix + y*ix + x] * weight[g*rcout*cin*H*W + c*cin*H*W + ci*H*W + (y-Y)*W + (x-X)];
+            for (int y = IY; y < IY+H; y++) {
+              for (int x = IX; x < IX+W; x++) {
+                acc += input[B*groups*cin*iy*ix + g*cin*iy*ix + ci*iy*ix + y*ix + x] * \
+                  weight[g*rcout*cin*H*W + c*cin*H*W + ci*H*W + (y-IY)*W + (x-IX)];
               }
             }
           }
@@ -348,7 +373,8 @@ class Conv2D(Function):
       np.int32(H), np.int32(W),
       np.int32(groups), np.int32(rcout), np.int32(cin),
       np.int32(oy), np.int32(ox), 
-      np.int32(iy), np.int32(ix)
+      np.int32(iy), np.int32(ix),
+      np.int32(y_stride), np.int32(x_stride)
     )
     return ret
 
@@ -357,3 +383,51 @@ class Conv2D(Function):
     raise Exception("not implemented")
 
 register('conv2d', Conv2D, gpu=True)
+
+class Pad2D(Function):
+  @staticmethod
+  def forward(ctx, x, padding=None):
+    bs,cin,iy,ix = x.shape
+    oy,ox = iy+padding[0]+padding[1], ix+padding[2]+padding[3] # top, bottom, left, right
+    ret = buffer_zeros(ctx, (bs, cin, oy, ox))
+
+    prg = clbuild(ctx.cl_ctx, """
+    __kernel void pad2d(
+        __global const float *input, __global float *output,
+        int cin, int py, int px, int oy, int ox, int iy, int ix
+      )
+    {
+      int B = get_global_id(0);
+      int C = get_global_id(1);
+      int Y = get_global_id(2);
+      int iptr = B*cin*iy*ix + C*iy*ix + Y*ix;
+      int optr = B*cin*oy*ox + C*oy*ox + (Y+py)*ox + px;
+      for (int x = 0; x < ix; x++) {
+        output[optr+x] = input[iptr+x];
+      }
+    }
+    """)
+    prg.pad2d(ctx.cl_queue, [bs, cin, iy], None,
+        x, ret,
+        np.int32(cin), np.int32(padding[0]), np.int32(padding[2]),
+        np.int32(oy), np.int32(ox), np.int32(iy), np.int32(ix)
+      )
+    return ret
+
+  @staticmethod
+  def backward(ctx, grad_output):
+    raise Exception("write this")
+register('pad2d', Pad2D, gpu=True)
+
+class Sigmoid(Function):
+  @staticmethod
+  def forward(ctx, input):
+    ret = unary_op(ctx, '1./(1+exp(-a))', input)
+    ctx.save_for_backward(ret)
+    return ret
+
+  @staticmethod
+  def backward(ctx, grad_output):
+    ret, = ctx.saved_tensors
+    return binary_op(ctx, 'a * (b * (1 - b));', grad_output, ret)
+register('sigmoid', Sigmoid, gpu=True)

@@ -145,7 +145,7 @@ class Tensor:
       init_gpu()
       assert self.data.dtype == np.float32 # GPU only allows float32
       # hostbuf is the data buffer on host machine with the data to be copied to the OpenCL buffer
-      data = cl.Buffer(cl_ctx, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=self.data) # from pyopencl docs
+      data = cl.Buffer(cl_ctx, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=self.data.ravel()) # from pyopencl docs
       data.shape = self.shape
       data.dtype = self.data.dtype
       ret = Tensor(data)
@@ -232,6 +232,6 @@ def register(name, fxn, gpu=False):
     setattr(Tensor, "__%s__" % name, dispatch)
     setattr(Tensor, "__i%s__" % name, lambda self,x: self.assign(dispatch(self,x)))
 
-import froog.ops # this registers all the operations
+import ribbit.ops # this registers all the operations
 if GPU:
-  import froog.ops_gpu
+  import ribbit.ops_gpu

@@ -1,8 +1,8 @@
 import numpy as np
 from tqdm import trange
-from froog.tensor import Tensor, GPU
-from froog.utils import fetch_mnist, Linear
-import froog.optim as optim
+from ribbit.tensor import Tensor, GPU
+from ribbit.utils import fetch_mnist, Linear
+import ribbit.optim as optim
 import unittest
 import os
 

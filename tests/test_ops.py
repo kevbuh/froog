@@ -1,19 +1,20 @@
 import numpy as np
-from froog.tensor import Tensor, GPU
+from ribbit.tensor import Tensor, GPU
 import torch
 import unittest
 import timeit
 import functools
 
-def helper_test_op(shape, torch_func, froog_func, atol=1e-7, grad_atol=1e-7, gpu=False, forward_only=False):
+
+def helper_test_op(shape, torch_func, ribbit_func, atol=1e-7, grad_atol=1e-7, gpu=False, forward_only=False):
   torch_tensors = [torch.rand(x, requires_grad=True) for x in shape]
-  froog_tensors = [Tensor(x.detach().numpy()) for x in torch_tensors]
+  ribbit_tensors = [Tensor(x.detach().numpy()) for x in torch_tensors]
 
   if gpu:
-    froog_tensors = [x.to_gpu() for x in froog_tensors]
+    ribbit_tensors = [x.to_gpu() for x in ribbit_tensors]
 
   out = torch_func(*torch_tensors)
-  ret = froog_func(*froog_tensors)
+  ret = ribbit_func(*ribbit_tensors)
   
   np.testing.assert_allclose(ret.to_cpu().data, out.detach().numpy(), atol=atol)
 
@@ -21,22 +22,22 @@ def helper_test_op(shape, torch_func, froog_func, atol=1e-7, grad_atol=1e-7, gpu
     out.mean().backward()
     ret.mean().backward()
 
-    for t, tt in zip(torch_tensors, froog_tensors):
+    for t, tt in zip(torch_tensors, ribbit_tensors):
       np.testing.assert_allclose(t.grad, tt.grad.to_cpu().data, atol=grad_atol)
 
   # test for speed
   # forward passes
   torch_fwd = timeit.Timer(functools.partial(torch_func, *torch_tensors)).timeit(5) * 1000/5
-  froog_fwd = timeit.Timer(functools.partial(froog_func, *froog_tensors)).timeit(5) * 1000/5
+  ribbit_fwd = timeit.Timer(functools.partial(ribbit_func, *ribbit_tensors)).timeit(5) * 1000/5
 
   # backward passes
   if not forward_only:
     torch_fbp = timeit.Timer(functools.partial(lambda f,x: f(*x).mean().backward(), torch_func, torch_tensors)).timeit(5) * 1000/5
-    froog_fbp = timeit.Timer(functools.partial(lambda f,x: f(*x).mean().backward(), froog_func, froog_tensors)).timeit(5) * 1000/5
+    ribbit_fbp = timeit.Timer(functools.partial(lambda f,x: f(*x).mean().backward(), ribbit_func, ribbit_tensors)).timeit(5) * 1000/5
   else:
-    torch_fbp, froog_fbp = np.nan, np.nan
+    torch_fbp, ribbit_fbp = np.nan, np.nan
 
-  print(f"shape: {repr(shape) : >32} torch/froog fwd: {torch_fwd:.2f}/{froog_fwd:.2f} ms ({float(froog_fwd/torch_fwd):.2f}x slower) bp: {torch_fbp - torch_fwd:.2f}/{froog_fbp - froog_fwd:.2f} ms ({float((froog_fbp - froog_fwd)/(torch_fbp - torch_fwd)):.2f}x slower)")
+  print(f"shape: {repr(shape) : >32} torch/ribbit fwd: {torch_fwd:.2f}/{ribbit_fwd:.2f} ms ({float(ribbit_fwd/torch_fwd):.2f}x slower) bp: {torch_fbp - torch_fwd:.2f}/{ribbit_fbp - ribbit_fwd:.2f} ms ({float((ribbit_fbp - ribbit_fwd)/(torch_fbp - torch_fwd)):.2f}x slower)")
 
 
 class TestOps(unittest.TestCase):
@@ -81,11 +82,11 @@ class TestOps(unittest.TestCase):
     helper_test_op([(bs,cin,11,28), (4,cin,H,W)],
                     lambda x,w: torch.nn.functional.conv2d(x,w,stride=2).relu(),
                     lambda x,w: Tensor.conv2d(x,w,stride=2).relu(), 
-                    atol=2e-5, grad_atol=2e-6)
+                    atol=2e-5, grad_atol=2e-6, forward_only=self.gpu)
     helper_test_op([(bs,cin,11,28), (4,cin,H,W)],
                     lambda x,w: torch.nn.functional.conv2d(x,w,stride=(2,1)).relu(),
                     lambda x,w: Tensor.conv2d(x,w,stride=(2,1)).relu(),
-                    atol=2e-5, grad_atol=2e-6)
+                    atol=2e-5, grad_atol=2e-6, forward_only=self.gpu)
 
   # **************** Max Pool ****************
   def test_maxpool_sizes(self):
@@ -101,6 +102,9 @@ class TestOps(unittest.TestCase):
   # **************** Activations ****************
   def test_relu(self):
     helper_test_op([(45,65)], lambda x: x.relu(), Tensor.relu, gpu=self.gpu)
+  # **************** Padding ****************
+  def test_pad2d(self):
+    helper_test_op([(3,3,3,3)], lambda x: torch.nn.functional.pad(x, (1,1,1,1)), lambda x: x.pad2d(padding=(1,1,1,1)), gpu=self.gpu, forward_only=True)
 
 if GPU:
   class TestOpsGPU(TestOps):
