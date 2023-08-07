@@ -6,7 +6,7 @@
   <br/>
   a beautifully compact machine-learning library
   <br/>
-  <a href="https://github.com/kevbuh/ribbit">homepage</a> | <a href="https://github.com/kevbuh/ribbit/tree/main/docs">documentation</a> | <a href="https://pypi.org/project/ribbit/">pip</a>
+  <a href="https://github.com/kevbuh/ribbit">homepage</a> | <a href="https://github.com/kevbuh/ribbit/tree/main/docs">documentation</a> | <a href="https://pypi.org/project/froog/">pip</a>
   <br/>
   <br/>
 </div>
@@ -17,7 +17,7 @@ It's an end-to-end framework, encapsulating everything from ensemble trees to de
 
 # Installation
 ```bash
-pip install ribbit
+pip install froog
 ```
 
 ### Overview of Features
