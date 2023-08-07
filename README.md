@@ -1,6 +1,6 @@
 # ribbit <img src="https://github.com/kevbuh/ribbit/actions/workflows/test.yml/badge.svg" alt="unit test badge" >
 <div align="center" >
-  <img src="https://raw.githubusercontent.com/kevbuh/ribbit/main/assets/ribbit.png" alt="ribbit the frog" height="200">
+  <img src="https://raw.githubusercontent.com/kevbuh/ribbit/main/assets/froog.png" alt="froog the frog" height="200">
   <br/>
   ribbit: fast real-time optimization of gradients 
   <br/>

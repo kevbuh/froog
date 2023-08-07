@@ -9,9 +9,9 @@ directory = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(directory, 'README.md'), encoding='utf-8') as f:
   long_description = f.read()
 
-setup(name='ribbit',
-      version='0.2.3',
-      description='INSANELY SIMPLE AI/ML FRAMEWORK',
+setup(name='froog',
+      version='0.2.4',
+      description='a beautifully simplistic ml framework',
       author='Kevin Buhler',
       license='MIT',
       long_description=long_description,
@@ -21,6 +21,6 @@ setup(name='ribbit',
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License"
       ],
-      install_requires=['numpy', 'requests'],
+      install_requires=['numpy', 'requests', 'matplotlib'],
       python_requires='>=3.8',
       include_package_data=True)
