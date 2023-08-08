@@ -14,14 +14,12 @@ def start_profile():
   pr.enable()
   return pr
 
-
 def stop_profile(pr, sort='cumtime'):
   pr.disable()
   ps = pstats.Stats(pr)
   ps.strip_dirs()
   ps.sort_stats(sort)
-  ps.print_stats(0.2) # print only top 20% of time consuming fn calls
-
+  ps.print_stats(0.2) # print only top 20% of time consuming function calls
 
 class TestConvSpeed(unittest.TestCase):
   def test_mnist(self):

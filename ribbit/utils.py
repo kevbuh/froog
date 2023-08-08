@@ -7,7 +7,6 @@
 # |___|    |___|  |_||_______||_______||_______|
 
 import numpy as np
-import os
 from functools import lru_cache
 
 def fetch(url):

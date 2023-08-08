@@ -31,9 +31,9 @@ class SimpleConvNet:
     # from https://keras.io/examples/vision/mnist_convnet/
     conv = 3
     inter_chan, out_chan = 8, 16 # for speed
-    self.c1 = Tensor(Linear(inter_chan,1,conv,conv))               # (num_filters, color_channels, kernel_h, kernel_w)
-    self.c2 = Tensor(Linear(out_chan,inter_chan,conv,conv))        # (28-conv+1)(28-conv+1) since kernel isn't padded
-    self.l1 = Tensor(Linear(out_chan*5*5, 10))                     # MNIST output is 10 classes
+    self.c1 = Tensor(Linear(inter_chan,1,conv,conv))                # (num_filters, color_channels, kernel_h, kernel_w)
+    self.c2 = Tensor(Linear(out_chan,inter_chan,conv,conv))         # (28-conv+1)(28-conv+1) since kernel isn't padded
+    self.l1 = Tensor(Linear(out_chan*5*5, 10))                      # MNIST output is 10 classes
 
   def forward(self, x):
     x = x.reshape(shape=(-1, 1, 28, 28))                            # get however many number of imgs in batch
@@ -96,6 +96,7 @@ def evaluate(model, gpu=False):
   assert accuracy > 0.95
 
 class TestMNIST(unittest.TestCase):
+  # TODO: why are these shapes misaligned?
   # @unittest.skipUnless(GPU, "Requires GPU")
   # def test_conv_gpu(self):
   #   np.random.seed(1337)

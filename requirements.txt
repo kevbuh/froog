@@ -5,4 +5,3 @@ torch
 pytest
 pillow
 matplotlib
-# pyopencl
