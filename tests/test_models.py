@@ -1,7 +1,8 @@
 import numpy as np
 from tqdm import trange
 from ribbit.tensor import Tensor, GPU
-from ribbit.utils import fetch_mnist, Linear
+from ribbit.utils import fetch_mnist
+from ribbit.nn import Linear
 import ribbit.optim as optim
 import unittest
 import os
@@ -36,10 +37,10 @@ class SimpleConvNet:
 
   def forward(self, x):
     x = x.reshape(shape=(-1, 1, 28, 28))                            # get however many number of imgs in batch
-    x = x.conv2d(self.c1).relu().max_pool2d()                           # pass through layer 1 first
-    x = x.conv2d(self.c2).relu().max_pool2d()                           # pass through layer 2
-    x = x.reshape(shape=[x.shape[0], -1])                               # then go down to mlp
-    return x.dot(self.l1).logsoftmax()                                  # softmax to get probs   
+    x = x.conv2d(self.c1).relu().max_pool2d()                       # pass through layer 1 first
+    x = x.conv2d(self.c2).relu().max_pool2d()                       # pass through layer 2
+    x = x.reshape(shape=[x.shape[0], -1])                           # then go down to mlp
+    return x.dot(self.l1).logsoftmax()                              # softmax to get probs   
 
   def parameters(self):
     return [self.l1, self.c1, self.c2]  
