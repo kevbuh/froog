@@ -7,6 +7,12 @@
 # |___|    |___|  |_||_______||_______||_______|
 
 from ribbit.tensor import Tensor
+import numpy as np
+
+def Linear(*x):
+  # TODO: why dividing by sqrt?
+  ret = np.random.uniform(-1., 1., size=x)/np.sqrt(np.prod(x)) # random init weights
+  return ret.astype(np.float32)
 
 def swish(x):
   return x.mul(x.sigmoid())
@@ -49,6 +55,6 @@ class BatchNorm2D:
   def __call__(self, x):
     x = x.sub(self.running_mean.reshape(shape=[1, -1, 1, 1]))
     x = x.mul(self.weight.reshape(shape=[1, -1, 1, 1]))
-    x = x.div(self.running_var.add(Tensor([self.eps])).reshape(shape=[1, -1, 1, 1]).sqrt()) # TODO: shouldn't div go first?
+    x = x.div(self.running_var.add(Tensor([self.eps], gpu=x.gpu)).reshape(shape=[1, -1, 1, 1]).sqrt()) # TODO: shouldn't div go first?
     x = x.add(self.bias.reshape(shape=[1, -1, 1, 1]))
     return x

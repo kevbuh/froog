@@ -7,11 +7,9 @@
 # |___|    |___|  |_||_______||_______||_______|
 
 import numpy as np
-from .tensor import Function, register, Tensor
+from .tensor import Function, register
 import pyopencl as cl
 import functools
-import pyopencl.array as pycl_array
-from pyopencl.reduction import ReductionKernel
 
 def buffer_new(ctx, shape):
   res_g = cl.Buffer(ctx.cl_ctx, cl.mem_flags.WRITE_ONLY, 4*np.prod(shape))
@@ -32,21 +30,31 @@ def buffer_like(ctx, x):
 def clbuild(cl_ctx, prg):
   return cl.Program(cl_ctx, prg).build()
 
-def binary_op(ctx, code, x, y): 
+def binary_op(ctx, code, x, y):
+  # if len(x.shape) != len(y.shape):
+  #   raise Exception(f"shape mismatch in binop {code}: {x.shape} {y.shape}")
+  xdiv = 1
+  ydiv = 1
   if x.shape != y.shape:
-    raise Exception(f"binary op shape mismatch: {x.shape} != {y.shape}")
-  ret = buffer_like(ctx, x)
+    # special case broadcasting
+    if len(y.shape) == 4 and x.shape[0:2] == y.shape[0:2] and y.shape[2] == 1 and y.shape[3] == 1:
+      ydiv = x.shape[2] * x.shape[3]
+    elif len(y.shape) == 4 and x.shape[0:2] == y.shape[0:2] and x.shape[2] == 1 and x.shape[3] == 1:
+      xdiv = y.shape[2] * y.shape[3]
+    elif np.prod(y.shape) == 1:
+      ydiv = np.prod(x.shape)
+    else:
+      raise Exception(f"binary op shape mismatch: {x.shape} != {y.shape}")
+  ret = buffer_like(ctx, x if np.prod(x.shape) >= np.prod(y.shape) else y)
   prg = clbuild(ctx.cl_ctx, """
-  __kernel void binop(
-      __global const float *a_g, __global const float *b_g, __global float *res_g)
-  {
+  __kernel void binop(  __global const float *a_g, __global const float *b_g, __global float *res_g, int xdiv, int ydiv) {
     int gid = get_global_id(0);
-    float a = a_g[gid];
-    float b = b_g[gid];
+    float a = a_g[gid/xdiv];
+    float b = b_g[gid/ydiv];
     res_g[gid] = """+code+""";
   }
   """)
-  prg.binop(ctx.cl_queue, [np.prod(ret.shape)], None, x, y, ret) # (queue, size, ???, arg1, arg2, dest)
+  prg.binop(ctx.cl_queue, [np.prod(ret.shape)], None, x, y, ret, np.int32(xdiv), np.int32(ydiv))
   return ret
 
 def unary_op(ctx, code, x):
@@ -57,10 +65,44 @@ def unary_op(ctx, code, x):
   {
     int gid = get_global_id(0);
     float a = a_g[gid];
-    res_g[gid] = """+code+"""
+    res_g[gid] = """+code+""";
   }
   """)
   prg.unop(ctx.cl_queue, [np.prod(ret.shape)], None, x, ret)
+  return ret
+
+# ???
+@functools.lru_cache
+def cl_pooling_krnl_build(cl_ctx, iter_op, result_op, init_val=0):
+  prg = """
+  __kernel void subsample(
+    __global float *output, __global const float *input, uint2 osize, uint2 isize, uint2 kernel_size, int nelem
+  ) {
+    int3 gid = (int3)(get_global_id(2), get_global_id(1), get_global_id(0));
+    int oid = gid.x + osize.x*(gid.y + osize.y*gid.z);
+    float group_res = """+str(init_val)+""";
+    for (uint j=0; j<kernel_size.y; ++j) {
+      for (uint i=0; i<kernel_size.x; ++i) {
+        int iid  = (gid.x*kernel_size.x+i) + isize.x*((gid.y*kernel_size.y+j) + isize.y*gid.z);
+        if (iid < nelem)
+          """+iter_op+""";
+      }
+    }
+    output[oid] = """+result_op+""";
+  }
+  """
+  return clbuild(cl_ctx, prg)
+
+def pooling_op(ctx, input, kernel_size, iter_op, result_op, init_val=0):
+  N, C, Y, X = input.shape
+  py,px = kernel_size
+  ret = buffer_new(ctx, (N, C, Y//py, X//px))
+  osize = np.array((X//px, Y//py), dtype=cl.cltypes.uint2)
+  isize = np.array((X, Y), dtype=cl.cltypes.uint2)
+  ksize = np.array((px,py), dtype=cl.cltypes.uint2)
+  prg = cl_pooling_krnl_build(ctx.cl_ctx, iter_op, result_op, init_val=init_val)
+  prg.subsample(ctx.cl_queue, (N*C, Y//py, X//px), None, ret, input, osize, isize, ksize, np.int32(input.size))
+  ctx.data = np.empty((N, C, Y, X)) # set shape expectation on tensor instance
   return ret
 
 class Add(Function):
@@ -317,32 +359,41 @@ class LogSoftmax(Function):
     return grad_input
 register('logsoftmax', LogSoftmax, gpu=True)
 
+class Sigmoid(Function):
+  @staticmethod
+  def forward(ctx, input):
+    ret = unary_op(ctx, '1./(1+exp(-a))', input)
+    ctx.save_for_backward(ret)
+    return ret
+
+  @staticmethod
+  def backward(ctx, grad_output):
+    ret, = ctx.saved_tensors
+    return binary_op(ctx, 'a * (b * (1 - b));', grad_output, ret)
+register('sigmoid', Sigmoid, gpu=True)
+
 # ***** CONV OPS ********
 
 class Conv2D(Function):
   @staticmethod
   def forward(ctx, x, w, stride=1, groups=1):
-    if type(ctx.stride) == int:     # ctx stores function params
+    if type(ctx.stride) == int: # ctx stores function params
       ctx.stride = (ctx.stride, ctx.stride)
-
-    cout, cin, H, W = w.shape
-    y_stride, x_stride = ctx.stride
+    cout,cin,H,W = w.shape
+    ys,xs = ctx.stride
     bs,cin_,iy,ix = x.shape
-    oy,ox = (iy-(H-y_stride))//y_stride, (ix-(W-x_stride))//x_stride
-    
+    oy,ox = (iy-(H-ys))//ys, (ix-(W-xs))//xs
     assert cin*ctx.groups == cin_
     assert cout % ctx.groups == 0
-
     rcout = cout//ctx.groups
-
     # output buffer
     ret = buffer_new(ctx, (bs, cout, oy, ox))
     prg = clbuild(ctx.cl_ctx, """
-
     __kernel void conv(__global const float *input, __global const float *weight, __global float *output,
       int H, int W, int groups, int rcout, int cin, int oy, int ox, int iy, int ix, int ys, int xs) {
-
-      int B = get_global_id(0);  // range 0-bs
+      int B = get_global_id(0)/(groups*rcout);  // range 0-bs
+      int g = (get_global_id(0)/rcout)%groups;
+      int c = get_global_id(0) % rcout;
       int Y = get_global_id(1);  // range 0-oy
       int X = get_global_id(2);  // range 0-ox
       int IY = Y*ys;
@@ -351,33 +402,28 @@ class Conv2D(Function):
       // input  = (bs, groups, cin, iy, ix)
       // weight = (groups, rcout, cin, H, W)
       // output = (bs, groups, rcout, oy, ox)
-      for (int g = 0; g < groups; g++) {
-        for (int c = 0; c < rcout; c++) {
-          float acc = 0.0;
-          for (int ci = 0; ci < cin; ci++) {
-            for (int y = IY; y < IY+H; y++) {
-              for (int x = IX; x < IX+W; x++) {
-                acc += input[B*groups*cin*iy*ix + g*cin*iy*ix + ci*iy*ix + y*ix + x] * \
-                  weight[g*rcout*cin*H*W + c*cin*H*W + ci*H*W + (y-IY)*W + (x-IX)];
-              }
-            }
+      float acc = 0.0;
+      for (int ci = 0; ci < cin; ci++) {
+        for (int y = IY; y < IY+H; y++) {
+          for (int x = IX; x < IX+W; x++) {
+            acc += input[B*groups*cin*iy*ix + g*cin*iy*ix + ci*iy*ix + y*ix + x] * \
+              weight[g*rcout*cin*H*W + c*cin*H*W + ci*H*W + (y-IY)*W + (x-IX)];
           }
-          output[B*groups*rcout*oy*ox + g*rcout*oy*ox + c*oy*ox + Y*ox + X] = acc;
         }
       }
+      output[B*groups*rcout*oy*ox + g*rcout*oy*ox + c*oy*ox + Y*ox + X] = acc;
     }
     """)
 
-    prg.conv(ctx.cl_queue, [bs, oy, ox], None,
+    prg.conv(ctx.cl_queue, [bs*groups*rcout, oy, ox], None,
       x, w, ret,
       np.int32(H), np.int32(W),
       np.int32(groups), np.int32(rcout), np.int32(cin),
       np.int32(oy), np.int32(ox), 
       np.int32(iy), np.int32(ix),
-      np.int32(y_stride), np.int32(x_stride)
+      np.int32(ys), np.int32(xs)
     )
     return ret
-
   @staticmethod
   def backward(ctx, grad_output):
     raise Exception("not implemented")
@@ -419,15 +465,29 @@ class Pad2D(Function):
     raise Exception("write this")
 register('pad2d', Pad2D, gpu=True)
 
-class Sigmoid(Function):
+class AvgPool2D(Function):
   @staticmethod
-  def forward(ctx, input):
-    ret = unary_op(ctx, '1./(1+exp(-a))', input)
-    ctx.save_for_backward(ret)
-    return ret
+  def forward(ctx, input, kernel_size=(2, 2)):
+    iter_op = "group_res += input[iid]"
+    result_op = "group_res / (kernel_size.x * kernel_size.y)"
+    return pooling_op(ctx, input, kernel_size, iter_op, result_op)
 
   @staticmethod
   def backward(ctx, grad_output):
-    ret, = ctx.saved_tensors
-    return binary_op(ctx, 'a * (b * (1 - b));', grad_output, ret)
-register('sigmoid', Sigmoid, gpu=True)
+    # TODO Finish this
+    pass
+register('avg_pool2d', AvgPool2D, gpu=True)
+
+class MaxPool2D(Function):
+  @staticmethod
+  def forward(ctx, input, kernel_size=(2, 2)):
+    init_val = "FLT_MIN"
+    iter_op = "group_res = max(group_res, input[iid])"
+    result_op = "group_res"
+    return pooling_op(ctx, input, kernel_size, iter_op, result_op, init_val=init_val)
+
+  @staticmethod
+  def backward(ctx, grad_output):
+    # TODO Finish this
+    pass
+register('max_pool2d', MaxPool2D, gpu=True)

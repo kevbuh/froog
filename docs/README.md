@@ -36,7 +36,7 @@ Heres an example of how to create an MNIST multi layer perceptron (MLP)
 ```python
 from ribbit.tensor import Tensor
 import ribbit.optim as optim
-from ribbit.utils import Linear
+from ribbit.nn import Linear
 
 class mnistMLP:
   def __init__(self):

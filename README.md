@@ -37,7 +37,7 @@ pip install froog
 ### Sneak Peek
 ```python
 from ribbit.tensor import Tensor
-from ribbit.utils import Linear
+from ribbit.nn import Linear
 import ribbit.optim as optim
 
 class mnistMLP:

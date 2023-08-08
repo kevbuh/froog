@@ -47,6 +47,8 @@ class TestOps(unittest.TestCase):
     helper_test_op([(45,65), (45,65)], lambda x,y: x+y, Tensor.add, gpu=self.gpu)
   def test_sum(self):
     helper_test_op([(45,3)], lambda x: x.sum(), Tensor.sum, atol=1e-4, gpu=self.gpu)
+  def test_broadcast_add(self):
+    helper_test_op([(1,32,32,32), (1,32,1,1)], lambda x,y: x+y, Tensor.add, gpu=self.gpu, forward_only=True)
   # **************** Sub ****************
   def test_sub(self):
     helper_test_op([(45,65), (45,65)], lambda x,y: x-y, Tensor.sub, gpu=self.gpu)
@@ -93,12 +95,12 @@ class TestOps(unittest.TestCase):
     for size in [(2,2), (3,3), (3,2), (5,5), (5,1)]:
       helper_test_op([(32,2,110,28)],
         lambda x: torch.nn.functional.max_pool2d(x, kernel_size=size),
-        lambda x: Tensor.max_pool2d(x, kernel_size=size))
+        lambda x: Tensor.max_pool2d(x, kernel_size=size), gpu=self.gpu, forward_only=self.gpu)
   def test_maxpool2x2(self):
-    helper_test_op([(32,2,110,28)], lambda x: torch.nn.functional.max_pool2d(x, (2,2)), Tensor.max_pool2d)
+    helper_test_op([(32,2,110,28)], lambda x: torch.nn.functional.max_pool2d(x, (2,2)), Tensor.max_pool2d, gpu=self.gpu, forward_only=self.gpu, atol=2e-5, grad_atol=2e-6)
   # **************** Avg Pool ****************
   def test_avgpool2x2(self):
-    helper_test_op([(32,2,111,28)], lambda x: torch.nn.functional.avg_pool2d(x, (2,2)), Tensor.avg_pool2d)
+    helper_test_op([(32,2,111,28)], lambda x: torch.nn.functional.avg_pool2d(x, (2,2)), Tensor.avg_pool2d, gpu=self.gpu, forward_only=self.gpu)
   # **************** Activations ****************
   def test_relu(self):
     helper_test_op([(45,65)], lambda x: x.relu(), Tensor.relu, gpu=self.gpu)

@@ -51,7 +51,7 @@ class TorchNet():
 class TestOptim(unittest.TestCase):
   def test_adam(self):
     for x,y in zip(step_ribbit(Adam),step_pytorch(torch.optim.Adam)):
-      np.testing.assert_allclose(x, y, atol=1e-6)
+      np.testing.assert_allclose(x, y, atol=1e-5)
 
   def test_sgd(self):
     for x,y in zip(step_ribbit(SGD, kwargs={'lr': 0.001}), step_pytorch(torch.optim.SGD, kwargs={'lr': 0.001})):

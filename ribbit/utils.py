@@ -10,11 +10,6 @@ import numpy as np
 import os
 from functools import lru_cache
 
-def Linear(*tensor_size):
-  # TODO: why dividing by sqrt?
-  ret = np.random.uniform(-1., 1., size=tensor_size)/np.sqrt(np.prod(tensor_size)) # random init weights
-  return ret.astype(np.float32)
-
 def fetch(url):
   import requests, os, hashlib, tempfile
   fp = os.path.join(tempfile.gettempdir(), hashlib.md5(url.encode('utf-8')).hexdigest())
