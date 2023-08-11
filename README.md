@@ -13,7 +13,7 @@
 
 RIBBIT is a SUPER SIMPLE machine learning framework with the goal of creating tools with AI --> easily and efficiently.
 
-It's an end-to-end framework, encapsulating everything from ensemble trees to deep neural networks (still working on all that lol)
+RIBBIT encapsulates everything from <a href="https://github.com/kevbuh/ribbit/blob/main/models/linear_regression.py">linear regression</a> to <a href="https://github.com/kevbuh/ribbit/blob/main/models/efficientnet.py">convolutional neural networks </a>
 
 # Installation
 ```bash

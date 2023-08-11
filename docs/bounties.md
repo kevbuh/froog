@@ -18,6 +18,6 @@
 - stable diffusion
 - winograd convs
 - GPU Support
-  - MPS
-  - CUDA
   - OpenCL
+  - Metal
+  - CUDA
