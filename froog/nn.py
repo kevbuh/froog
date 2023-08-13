@@ -6,7 +6,7 @@
 # |   |    |   |  | ||       ||       ||   |_| |
 # |___|    |___|  |_||_______||_______||_______|
 
-from ribbit.tensor import Tensor
+from froog.tensor import Tensor
 import numpy as np
 
 def Linear(*x):

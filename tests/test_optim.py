@@ -1,14 +1,14 @@
 import numpy as np
 import torch
 import unittest
-from ribbit.tensor import Tensor
-from ribbit.optim import Adam, SGD, RMSprop
+from froog.tensor import Tensor
+from froog.optim import Adam, SGD, RMSprop
 
 x_init = np.random.randn(1,3).astype(np.float32)
 W_init = np.random.randn(3,3).astype(np.float32)
 m_init = np.random.randn(1,3).astype(np.float32)
 
-def step_ribbit(optim, kwargs={}):
+def step_froog(optim, kwargs={}):
   model = FrogNet()
   optim = optim([model.x, model.W], **kwargs)
   out = model.forward()
@@ -50,15 +50,15 @@ class TorchNet():
 
 class TestOptim(unittest.TestCase):
   def test_adam(self):
-    for x,y in zip(step_ribbit(Adam),step_pytorch(torch.optim.Adam)):
+    for x,y in zip(step_froog(Adam),step_pytorch(torch.optim.Adam)):
       np.testing.assert_allclose(x, y, atol=1e-5)
 
   def test_sgd(self):
-    for x,y in zip(step_ribbit(SGD, kwargs={'lr': 0.001}), step_pytorch(torch.optim.SGD, kwargs={'lr': 0.001})):
+    for x,y in zip(step_froog(SGD, kwargs={'lr': 0.001}), step_pytorch(torch.optim.SGD, kwargs={'lr': 0.001})):
       np.testing.assert_allclose(x, y, atol=1e-6)
 
   def test_rmsprop(self):
-    for x,y in zip(step_ribbit(RMSprop, kwargs={'lr': 0.001, 'decay': 0.99}), step_pytorch(torch.optim.RMSprop, kwargs={'lr': 0.001, 'alpha': 0.99})):
+    for x,y in zip(step_froog(RMSprop, kwargs={'lr': 0.001, 'decay': 0.99}), step_pytorch(torch.optim.RMSprop, kwargs={'lr': 0.001, 'alpha': 0.99})):
       np.testing.assert_allclose(x, y, atol=1e-6)
 
 if __name__ == '__main__':

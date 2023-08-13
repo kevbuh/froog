@@ -7,8 +7,8 @@
 # |___|    |___|  |_||_______||_______||_______|
 
 import numpy as np
-from ribbit.tensor import Function, register
-from ribbit.utils import im2col, col2im
+from froog.tensor import Function, register
+from froog.utils import im2col, col2im
 
 # *****************************************************
 #     ____  ___   _____ __________   ____  ____  _____

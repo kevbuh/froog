@@ -1,21 +1,21 @@
 # Installation 
 
-simply install ribbit onto your local computer by entering the following into your terminal 
+simply install froog onto your local computer by entering the following into your terminal 
 
 ```bash
-git clone https://github.com/kevbuh/ribbit.git
+git clone https://github.com/kevbuh/froog.git
 ```
 
 once that has been completed, go into the folder
 
 ```bash
-cd ribbit
+cd froog
 ```
 
-one more step! ribbit is built with NumPy, which allows for general matrix operations. Make sure to install numpy by doing
+one more step! froog is built with NumPy, which allows for general matrix operations. Make sure to install numpy by doing
 
 ```bash
 pip3 install -r requirements.txt
 ```
 
-once done, you're all ready to go! you can now resume the <a href="https://github.com/kevbuh/ribbit/blob/main/docs/README.md">tutorial</a> 
+once done, you're all ready to go! you can now resume the <a href="https://github.com/kevbuh/froog/blob/main/docs/README.md">tutorial</a> 

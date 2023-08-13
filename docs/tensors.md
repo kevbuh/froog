@@ -1,10 +1,10 @@
 # Tensors
 
-Tensors are the fundamental datatype in ribbit, and one of the two main classes.
+Tensors are the fundamental datatype in froog, and one of the two main classes.
 
 ```def __init__(self, data)```:
 
-Tensor takes in one param, which is the data. Since ribbit has a numpy backend, the input data into tensors has to be a numpy array.
+Tensor takes in one param, which is the data. Since froog has a numpy backend, the input data into tensors has to be a numpy array.
 
 Tensor has a ```self.data``` state that it holds. this contains the data inside of the tensor.
 
@@ -27,11 +27,11 @@ Lastly, it has ```self._ctx```. theser are the internal vairables used for autog
 ### Backward pass
 Backpropogation is the way in which neural networks learn. By using the chain rule from calculus, you can go backwards per operation and compute how much that weight affected the models output.
 
-ribbit computes gradients automatically through a process called automatic differentiation. it has a variable ```_ctx```, which stores the chain of operations. it will take the current operation, lets say a dot product, and go to the dot product definition in ```ribbit/ops.py```, which contains a backward pass specfically for dot products. all methods, from add to 2x2 maxpools, have this backward pass implemented.
+froog computes gradients automatically through a process called automatic differentiation. it has a variable ```_ctx```, which stores the chain of operations. it will take the current operation, lets say a dot product, and go to the dot product definition in ```froog/ops.py```, which contains a backward pass specfically for dot products. all methods, from add to 2x2 maxpools, have this backward pass implemented.
 
 # Functions
 
-The other base class in ribbit is the class Function. It keeps track of input tensors and tensors that need to be saved for backward passes
+The other base class in froog is the class Function. It keeps track of input tensors and tensors that need to be saved for backward passes
 
 ```def __init__(self, *tensors)```: takes in an argument of tensors, which are then saved. 
 

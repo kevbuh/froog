@@ -62,9 +62,9 @@ import os
 import sys
 import json
 import numpy as np
-from ribbit.tensor import Tensor
-from ribbit.utils import fetch
-from ribbit.nn import swish, BatchNorm2D
+from froog.tensor import Tensor
+from froog.utils import fetch
+from froog.nn import swish, BatchNorm2D
 
 GPU = os.getenv("GPU", None) is not None
 

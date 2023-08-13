@@ -232,6 +232,6 @@ def register(name, fxn, gpu=False):
     setattr(Tensor, "__%s__" % name, dispatch)
     setattr(Tensor, "__i%s__" % name, lambda self,x: self.assign(dispatch(self,x)))
 
-import ribbit.ops # this registers all the operations
+import froog.ops # this registers all the operations
 if GPU:
-  import ribbit.ops_gpu
+  import froog.ops_gpu

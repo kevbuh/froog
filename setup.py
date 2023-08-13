@@ -1,6 +1,6 @@
 
 #!/usr/bin/env python3
-# this file specifies how the ribbit package is installed, including any necessary dependencies required to run
+# this file specifies how the froog package is installed, including any necessary dependencies required to run
 
 import os
 from setuptools import setup
@@ -16,7 +16,7 @@ setup(name='froog',
       license='MIT',
       long_description=long_description,
       long_description_content_type='text/markdown',
-      packages = ['ribbit'],
+      packages = ['froog'],
       classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License"
