@@ -15,6 +15,8 @@ froog is a SUPER SIMPLE machine learning framework with the goal of creating too
 
 froog encapsulates everything from <a href="https://github.com/kevbuh/froog/blob/main/models/linear_regression.py">linear regression</a> to <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">convolutional neural networks </a>
 
+all of this in under 1000 lines
+
 # Installation
 ```bash
 pip install froog
