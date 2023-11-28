@@ -10,7 +10,7 @@ with open(os.path.join(directory, 'README.md'), encoding='utf-8') as f:
   long_description = f.read()
 
 setup(name='froog',
-      version='0.2.6',
+      version='0.2.7',
       description='a beautifully simplistic ml framework',
       author='Kevin Buhler',
       license='MIT',
