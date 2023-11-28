@@ -1,5 +1,6 @@
 # implement a gpt in under 200 lines
 # use karpathy's libaries as a starting point
+# WORK IN PROGRESS
 
 import math
 import inspect
