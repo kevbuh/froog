@@ -1,8 +1,8 @@
 # What is froog?
 
-froog is an easy to read machine learning library. froog's driving philosophy is demanding simplicity in a world of complexity. Tensorflow and PyTorch are insanely complex with enormous codebases and meant for expert development.
+froog is an easy to read machine learning library. froog's driving philosophy is demanding simplicity in a world of complexity. 
 
-Instead, froog is meant for those who are looking to get into machine learning, and want to actually understand how machine learning works before it is ultra optimized (which all modern ml libraries are).
+Tensorflow and PyTorch are insanely complex with enormous codebases and meant for expert development. Instead, froog is meant for those who are looking to get into machine learning, and want to actually understand how machine learning works before it is ultra-optimized (which all modern ml libraries are).
 
 ### Where to start?
 
@@ -10,9 +10,11 @@ First, download froog using the <a href="https://github.com/kevbuh/froog/blob/ma
 
 # How to build
 
-The most fundamental item in all of froog and machine learning is the Tensor. A tensor is simply a matrix of matrices (more accurately a multi-dimensional array). 
+The most fundamental concept in all of froog and machine learning is the Tensor. A <a href="https://en.wikipedia.org/wiki/Tensor_(machine_learning)">tensor</a> is simply a matrix of matrices (more accurately a multi-dimensional array). 
 
-You can create a Tensor in froog by
+
+
+You can create a Tensor in froog by:
 ```python
 import numpy as np
 from froog.tensor import Tensor
@@ -22,16 +24,15 @@ my_tensor = Tensor([1,2,3])
 
 Notice how we had to import numpy. If you want to create a Tensor manually make sure that it is a Numpy array!
 
-learn more about Tensors <a href="https://github.com/kevbuh/froog/blob/main/docs/tensors.md">here</a> 
-
+Learn more about froog's Tensors <a href="https://github.com/kevbuh/froog/blob/main/docs/tensors.md">here</a>.
 
 ### Actually creating something
 
-Okay cool, so now you know that froog's main datatype is a Tensor and uses NumPy in the background. How do I actually build something? 
+Okay cool, so now you know that froog's main datatype is a Tensor and uses NumPy in the background. How do I actually build a model? 
 
 We wanted to make it as simple as possible for you to do so.
 
-Heres an example of how to create an MNIST multi layer perceptron (MLP)
+Here's an example of how to create an MNIST multi-layer perceptron (MLP)
 
 ```python
 from froog.tensor import Tensor
@@ -71,7 +72,7 @@ class SimpleConvNet:
 ### Tests
 Tests are located <a href="https://github.com/kevbuh/froog/tree/main/tests">here</a>.
 
-You can run them in your terminal by going into the root folder and entering
+You can run them in your terminal by going into the root folder and entering:
 
 ```bash
 python -m pytest
