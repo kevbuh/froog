@@ -18,7 +18,7 @@ Environment Variables:
   VIZ=1 --> plots processed image and output probabilities
 
 How to Run:
-  <VIZ=1> python models/efficientnet.py <https://image_url>
+  'VIZ=1 python models/efficientnet.py https://your_image_url'
 
 EfficientNet Hyper-Parameters and Weights:
 url_map = {
