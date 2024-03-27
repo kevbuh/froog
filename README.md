@@ -19,7 +19,7 @@
 
 <!--  Tensorflow and PyTorch are insanely complex with enormous codebases and are meant for expert development. -->
 
-```froog``` is meant for those looking to get into machine learning, who want to understand how the underlying machine learning framework's code works before they are ultra-optimized (which all modern ml libraries are).
+```froog``` is meant for those looking to get into machine learning and who want to understand how the underlying machine learning framework's code works before they are ultra-optimized (which all modern ml libraries are).
 
 ```froog``` encapsulates everything from <a href="https://github.com/kevbuh/froog/blob/main/models/linear_regression.py">linear regression</a> to <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">convolutional neural networks </a>
 
@@ -118,8 +118,8 @@ class SimpleConvNet:
     self.l2 = Tensor(Linear(128, 10))                            # MNIST output is 10 classes
 
   def forward(self, x):
-    x.data = x.data.reshape((-1, 1, 28, 28))                          # get however many number of imgs in batch
-    x = x.conv2d(self.c1).relu()                                      # pass through conv first
+    x.data = x.data.reshape((-1, 1, 28, 28))                     # get however many number of imgs in batch
+    x = x.conv2d(self.c1).relu()                                 # pass through conv first
     x = x.reshape(shape=(x.shape[0], -1))
     return x.dot(self.l1).relu().dot(self.l2).logsoftmax()
 ```
