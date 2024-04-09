@@ -11,7 +11,10 @@
   <br/>
 </div>
 
-```froog``` is an easy-to-read machine-learning library (with 10k pip installs!) meant for those looking to get into machine learning and who want to understand how the underlying machine learning framework's code works before they are ultra-optimized (which all modern ml libraries are).
+
+
+
+```froog``` is an easy-to-read machine-learning library (<a href="https://www.pepy.tech/projects/froog">10k pip installs!</a>) meant for those looking to get into machine learning and who want to understand how the underlying machine learning framework's code works before they are ultra-optimized (which all modern ml libraries are).
 
 ```froog``` encapsulates everything from <a href="https://github.com/kevbuh/froog/blob/main/models/linear_regression.py">linear regression</a> to <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">convolutional neural networks </a> in under 1000 lines.
 
@@ -291,3 +294,7 @@ More info on <a href="https://github.com/kevbuh/froog/blob/main/docs/contributin
 # Documentation
 
 Need more information about how ```froog``` works? Visit the <a href="https://github.com/kevbuh/froog/tree/main/docs">documentation</a>.
+
+# Interested in more?
+
+If you thought ```froog``` was cool, check out the inspirations for this project: pytorch, tinygrad, and https://github.com/karpathy/micrograd/blob/master/micrograd/engine.py
