@@ -11,11 +11,14 @@
   <br/>
 </div>
 
+```froog``` is an easy-to-read machine-learning library (with 10k pip installs!) meant for those looking to get into machine learning and who want to understand how the underlying machine learning framework's code works before they are ultra-optimized (which all modern ml libraries are).
+
+```froog``` encapsulates everything from <a href="https://github.com/kevbuh/froog/blob/main/models/linear_regression.py">linear regression</a> to <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">convolutional neural networks </a> in under 1000 lines.
+
 <!--  froog is a SUPER SIMPLE machine learning framework with the goal of creating tools with AI, easily and efficiently. -->
 
 <!-- ```froog``` is an easy-to-read machine-learning library. -->
 
-```froog``` is an easy-to-read machine-learning library meant for those looking to get into machine learning and who want to understand how the underlying machine learning framework's code works before they are ultra-optimized (which all modern ml libraries are).
 
 <!--  froog's driving philosophy is demanding simplicity in a world of complexity. -->
 
@@ -23,7 +26,6 @@
 
 <!-- ```froog``` is meant for those looking to get into machine learning and who want to understand how the underlying machine learning framework's code works before they are ultra-optimized (which all modern ml libraries are). -->
 
-```froog``` encapsulates everything from <a href="https://github.com/kevbuh/froog/blob/main/models/linear_regression.py">linear regression</a> to <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">convolutional neural networks </a> in under 1000 lines.
 
 # Installation
 ```bash
@@ -31,7 +33,6 @@ pip install froog
 ```
 
 More information on downloading ```froog``` in the <a href="https://github.com/kevbuh/froog/blob/main/docs/install.md">installation</a> docs. 
-
 
 # Features
 - <a href="https://github.com/kevbuh/froog/blob/main/froog/tensor.py">Custom Tensors</a> 
