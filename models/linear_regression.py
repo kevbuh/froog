@@ -3,7 +3,7 @@ linear regression model
 
 the environment variable VIZ shows prediction graph
 
-'VIZ=1 python3 linear_regression.py'
+How to run: 'VIZ=1 python3 linear_regression.py'
 """
 import os
 import numpy as np

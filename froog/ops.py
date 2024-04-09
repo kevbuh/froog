@@ -52,7 +52,7 @@ class Mul(Function): # x.mul(y)
     return y * grad_output, x * grad_output
 register("mul", Mul)
 
-class Sum(Function):
+class Sum(Function): # x.sum()
   """
   reduce op
   reduces its input tensor to a single value by summing all the elements
