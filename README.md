@@ -11,24 +11,9 @@
   <br/>
 </div>
 
-
-
-
 ```froog``` is an easy-to-read tensor library (<a href="https://www.pepy.tech/projects/froog">11k pip installs!</a>) meant for those looking to get into machine learning and who want to understand how the underlying machine learning framework's code works before they are ultra-optimized (which all modern ml libraries are).
 
 ```froog``` encapsulates everything from <a href="https://github.com/kevbuh/froog/blob/main/models/linear_regression.py">linear regression</a> to <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">convolutional neural networks </a> in under 1000 lines.
-
-<!--  froog is a SUPER SIMPLE machine learning framework with the goal of creating tools with AI, easily and efficiently. -->
-
-<!-- ```froog``` is an easy-to-read machine-learning library. -->
-
-
-<!--  froog's driving philosophy is demanding simplicity in a world of complexity. -->
-
-<!--  Tensorflow and PyTorch are insanely complex with enormous codebases and are meant for expert development. -->
-
-<!-- ```froog``` is meant for those looking to get into machine learning and who want to understand how the underlying machine learning framework's code works before they are ultra-optimized (which all modern ml libraries are). -->
-
 
 # Installation
 ```bash

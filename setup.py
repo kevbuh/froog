@@ -10,8 +10,8 @@ with open(os.path.join(directory, 'README.md'), encoding='utf-8') as f:
   long_description = f.read()
 
 setup(name='froog',
-      version='0.2.8',
-      description='a beautifully simplistic ml framework',
+      version='0.3.0',
+      description='a beautifully simplistic tensor library',
       author='Kevin Buhler',
       license='MIT',
       long_description=long_description,
@@ -21,6 +21,6 @@ setup(name='froog',
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License"
       ],
-      install_requires=['numpy', 'requests', 'matplotlib'],
+      install_requires=['numpy', 'requests', 'matplotlib', 'urllib'],
       python_requires='>=3.8',
       include_package_data=True)

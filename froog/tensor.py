@@ -10,10 +10,9 @@
 # inspired by tinygrad
 # inspired by https://github.com/karpathy/micrograd/blob/master/micrograd/engine.py
 
-from functools import partialmethod
-from inspect import signature
-import numpy as np
 import os
+import numpy as np
+from inspect import signature
 
 try:
   import pyopencl as cl

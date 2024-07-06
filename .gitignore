@@ -9,3 +9,4 @@ dist
 playground
 .conda
 bob.py
+_cache_dir

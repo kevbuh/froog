@@ -8,29 +8,31 @@
 
 import numpy as np
 from functools import lru_cache
+import pathlib, hashlib, os, tempfile, urllib
 
 def fetch(url):
-  import requests, os, hashlib, tempfile
-  fp = os.path.join(tempfile.gettempdir(), hashlib.md5(url.encode('utf-8')).hexdigest())
-  if os.path.isfile(fp) and os.stat(fp).st_size > 0:
-    print(f"opening cache from {url}...")
-    with open(fp, "rb") as f:
-      dat = f.read()
-  else:
-    print(f"fetching {url}")
-    dat = requests.get(url).content
-    with open(fp+".tmp", "wb") as f:
-      f.write(dat)
-    os.rename(fp+".tmp", fp)
-  return dat
+  if url.startswith(("/", ".")): return pathlib.Path(url)
+  else: fp = pathlib.Path("_cache_dir") / "froog" / "downloads" / (hashlib.md5(url.encode('utf-8')).hexdigest())
+  if not fp.is_file():
+    with urllib.request.urlopen(url, timeout=10) as r:
+      assert r.status == 200
+      total_length = int(r.headers.get('content-length', 0))
+      (path := fp.parent).mkdir(parents=True, exist_ok=True)
+      with tempfile.NamedTemporaryFile(dir=path, delete=False) as f:
+        while chunk := r.read(16384): f.write(chunk)
+        f.close()
+        if (file_size:=os.stat(f.name).st_size) < total_length: raise RuntimeError(f"fetch size incomplete, {file_size} < {total_length}")
+        pathlib.Path(f.name).rename(fp)
+  return fp
 
 def fetch_mnist():
   import gzip
-  parse = lambda dat: np.frombuffer(gzip.decompress(dat), dtype=np.uint8).copy()
-  X_train = parse(fetch("http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz"))[0x10:].reshape((-1, 28, 28))
-  Y_train = parse(fetch("http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz"))[8:]
-  X_test = parse(fetch("http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz"))[0x10:].reshape((-1, 28, 28))
-  Y_test = parse(fetch("http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz"))[8:]
+  parse = lambda file: np.frombuffer(gzip.open(file).read(), dtype=np.uint8).copy()
+  BASE_URL = "https://storage.googleapis.com/cvdf-datasets/mnist/"
+  X_train = parse(fetch(f"{BASE_URL}train-images-idx3-ubyte.gz"))[0x10:].reshape((-1, 28*28)).astype(np.float32)
+  Y_train = parse(fetch(f"{BASE_URL}train-labels-idx1-ubyte.gz"))[8:].astype(np.int8)
+  X_test = parse(fetch(f"{BASE_URL}t10k-images-idx3-ubyte.gz"))[0x10:].reshape((-1, 28*28)).astype(np.float32)
+  Y_test = parse(fetch(f"{BASE_URL}t10k-labels-idx1-ubyte.gz"))[8:].astype(np.int8)
   return X_train, Y_train, X_test, Y_test
 
 def mask_like(like, mask_inx, mask_value=1.0):
