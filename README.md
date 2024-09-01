@@ -11,7 +11,7 @@
   <br/>
 </div>
 
-```froog``` is an easy-to-read tensor library (<a href="https://www.pepy.tech/projects/froog">11k pip installs!</a>) meant for those looking to get into machine learning and who want to understand how the underlying machine learning framework's code works before they are ultra-optimized (which all modern ml libraries are).
+```froog``` is an easy-to-read tensor library (<a href="https://www.pepy.tech/projects/froog">13k pip installs!</a>) meant for those looking to get into machine learning and who want to understand how the underlying machine learning framework's code works before they are ultra-optimized (which all modern ml libraries are).
 
 ```froog``` encapsulates everything from <a href="https://github.com/kevbuh/froog/blob/main/models/linear_regression.py">linear regression</a> to <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">convolutional neural networks </a> in under 1000 lines.
 
@@ -98,7 +98,7 @@ Tensors are the fundamental datatype in froog, and one of the two main classes.
 
 - ```def randn(*shape):```: this returns a randomly initialized Tensor of *shape
 
-*Froog gradient calculations*
+*Gradient calculations*
 
 - ```froog``` computes gradients automatically through a process called automatic differentiation. it has a variable ```_ctx```, which stores the chain of operations. it will take the current operation, lets say a dot product, and go to the dot product definition in ```froog/ops.py```, which contains a backward pass specfically for dot products. all methods, from add to 2x2 maxpools, have this backward pass implemented.
 
