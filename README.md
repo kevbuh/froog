@@ -260,7 +260,7 @@ blocks_args = [
 
 ## Linear regression 
 
-Doing linear regression in froog is pretty easy, check out the entire <a href="https://github.com/kevbuh/froog/blob/main/models/linear_regression.py">code</a>.
+Doing linear regression in ```froog``` is pretty easy, check out the entire <a href="https://github.com/kevbuh/froog/blob/main/models/linear_regression.py">code</a>.
 
 ```bash
 VIZ=1 python3 linear_regression.py
