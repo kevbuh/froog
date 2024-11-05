@@ -340,7 +340,6 @@ class MaxPool2D(Function):
                             *ctx.kernel_size)
 register('max_pool2d', MaxPool2D)
 
-
 class AvgPool2D(Function):
   @staticmethod
   def forward(ctx, x, kernel_size=(2,2)):
@@ -351,7 +350,7 @@ class AvgPool2D(Function):
   @staticmethod
   def backward(ctx, grad_output):
     s, = ctx.saved_tensors
-    py, px = ctx.kernel_size                                  # TODO: where does kernel_size come from?
+    py, px = ctx.kernel_size                                  # kernel_size passed from forward context
     my, mx = (s[2]//py)*py, (s[3]//px)*px
     ret = np.zeros(s, dtype=grad_output.dtype)
     for Y in range(py):

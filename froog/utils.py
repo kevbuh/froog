@@ -67,7 +67,8 @@ def im2col(x, H, W):
   tx = x.reshape(bs, -1)[:, idx]
 
   # all the time is spent here
-  tx = tx.ravel() # TODO: whats the purpose of ravel ???
+  # np.ravel() flattens the array into a 1-dimensional shape
+  tx = tx.ravel()
   return tx.reshape(-1, cin*W*H)
 
 def col2im(tx, H, W, OY, OX):

@@ -16,7 +16,6 @@ X_train, Y_train, X_test, Y_test = fetch_mnist()
 class SimpleMLP:
   def __init__(self):
     # 784 pixel inputs -> 128 -> 10 output
-    # TODO: why down to 128?
     self.l1 = Tensor(Linear(784, 128))
     self.l2 = Tensor(Linear(128, 10))
 
@@ -73,7 +72,7 @@ def train(model, optimizer, steps, BS=128, gpu=False):
     model_outputs = model.forward(x)
 
     # ********* backward pass *********
-    loss = model_outputs.mul(y).mean() # TODO: what exactly is NLL loss function?
+    loss = model_outputs.mul(y).mean()
     loss.backward()
     optimizer.step()
 

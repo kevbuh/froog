@@ -5,6 +5,8 @@
 # |    ___||    __  ||  |_|  ||  |_|  ||   ||  |
 # |   |    |   |  | ||       ||       ||   |_| |
 # |___|    |___|  |_||_______||_______||_______|
+#
+# OpenCL kernels
 
 import numpy as np
 from .tensor import Function, register
@@ -71,7 +73,6 @@ def unary_op(ctx, code, x):
   prg.unop(ctx.cl_queue, [np.prod(ret.shape)], None, x, ret)
   return ret
 
-# ???
 @functools.lru_cache
 def cl_pooling_krnl_build(cl_ctx, iter_op, result_op, init_val=0):
   prg = """

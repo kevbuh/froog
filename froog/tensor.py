@@ -62,7 +62,7 @@ class Tensor:
       self.gpu = False
 
     self.data = data
-    self.grad = None # TODO: why self.grad.data instead of self.grad?
+    self.grad = None
 
     if gpu:
       self.gpu_()

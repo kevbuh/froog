@@ -168,12 +168,11 @@ class EfficientNet:
     x = swish(self._bn1(x.conv2d(self._conv_head)))
     x = x.avg_pool2d(kernel_size=x.shape[2:4])
     x = x.reshape(shape=(-1, 1280))
-    #x = x.dropout(0.2) # TODO: make dropout layers
+    #x = x.dropout(0.2)
     return x.dot(self._fc).add(self._fc_bias.reshape(shape=[1,-1]))
 
   
-  def load_weights_from_torch(self): # TODO: what does eval do 
-    # load b0
+  def load_weights_from_torch(self):
     import torch
     b0 = fetch("https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b0-355c32eb.pth")
     b0 = torch.load(io.BytesIO(b0))
