@@ -10,7 +10,7 @@ with open(os.path.join(directory, 'README.md'), encoding='utf-8') as f:
   long_description = f.read()
 
 setup(name='froog',
-      version='0.3.1',
+      version='0.3.2',
       description='a beautifully simplistic tensor library',
       author='Kevin Buhler',
       license='MIT',
