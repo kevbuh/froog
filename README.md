@@ -185,7 +185,7 @@ So there are two quick examples to get you up and running. You might have notice
 
 ## GPU Support
 
-Have a GPU and need a speedup? You're in good luck because we have GPU support from for our operations defined in <a href="https://github.com/kevbuh/froog/blob/main/froog/ops_gpu.py">```ops_gpu.py```</a>. In order to do this we have a backend built on <a href="https://en.wikipedia.org/wiki/OpenGL">OpenGL</a> that invokes kernel functions that work on the GPU.
+Have a GPU and need a speedup? You're in good luck because we have GPU support from for our operations defined in <a href="https://github.com/kevbuh/froog/blob/main/froog/ops_gpu.py">```ops_gpu.py```</a>. In order to do this we have a backend built on <a href="https://en.wikipedia.org/wiki/OpenCL">OpenCL</a> that invokes kernel functions that work on the GPU.
 
 Here's how you can send data to the GPU during a forward pass and bring it back to the CPU.
 
