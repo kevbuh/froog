@@ -11,7 +11,7 @@
   <br/>
 </div>
 
-```froog``` is an easy-to-read tensor library (<a href="https://www.pepy.tech/projects/froog">16k pip installs!</a>) meant for those looking to get into machine learning and who want to understand how the underlying machine learning framework's code works before they are ultra-optimized (which all modern ml libraries are).
+```froog``` is an easy-to-read tensor library (<a href="https://www.pepy.tech/projects/froog">23k pip installs!</a>) meant for those looking to get into machine learning and who want to understand how the underlying machine learning framework's code works before they are ultra-optimized (which all modern ml libraries are).
 
 ```froog``` encapsulates everything from <a href="https://github.com/kevbuh/froog/blob/main/models/linear_regression.py">linear regression</a> to <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">convolutional neural networks </a> in under 1000 lines.
 
@@ -69,7 +69,7 @@ from froog.tensor import Tensor
 my_tensor = Tensor([1,2,3])
 ```
 
-Notice how we had to import numpy. If you want to create a Tensor manually, make sure that it is a Numpy array!
+Notice how we had to import NumPy. If you want to create a Tensor manually, make sure that it is a NumPy array!
 
 <!-- Learn more about ```froog``` Tensors <a href="https://github.com/kevbuh/froog/blob/main/docs/tensors.md">here</a>. -->
 
@@ -79,13 +79,10 @@ Tensors are the fundamental datatype in froog, and one of the two main classes.
 
 - ```def __init__(self, data)```:
 
-  - Tensor takes in one param, which is the data. Since froog has a numpy backend, the input data into tensors has to be a numpy array.
-
+  - Tensor takes in one param, which is the data. Since ```froog``` has a NumPy backend, the input data into tensors has to be a NumPy array.
   - Tensor has a ```self.data``` state that it holds. this contains the data inside of the tensor.
-
   - In addition, it has ```self.grad```. this is to hold what the gradients of the tensor is. 
-
-  - Lastly, it has ```self._ctx```. theser are the internal vairables used for autograd graph construction. put more simply, this is where the backward gradient computations are saved. 
+  - Lastly, it has ```self._ctx```. These are the internal variables used for autograd graph construction. This is where the backward gradient computations are saved. 
 
 *Properties*
 
@@ -93,38 +90,34 @@ Tensors are the fundamental datatype in froog, and one of the two main classes.
 
 *Methods*
 - ```def zeros(*shape)```: this returns a tensor full of zeros with any shape that you pass in. Defaults to np.float32
-
 - ```def ones(*shape)```: this returns a tensor full of ones with any shape that you pass in. Defaults to np.float32
-
 - ```def randn(*shape):```: this returns a randomly initialized Tensor of *shape
 
 *Gradient calculations*
 
-- ```froog``` computes gradients automatically through a process called automatic differentiation. it has a variable ```_ctx```, which stores the chain of operations. it will take the current operation, lets say a dot product, and go to the dot product definition in ```froog/ops.py```, which contains a backward pass specfically for dot products. all methods, from add to 2x2 maxpools, have this backward pass implemented.
+- ```froog``` computes gradients automatically through a process called automatic differentiation. it has a variable ```_ctx```, which stores the chain of operations. It will take the current operation, let's say a dot product, and go to the dot product definition in ```froog/ops.py```, which contains a backward pass specifically for dot products. all methods, from add to 2x2 maxpools, have this backward pass implemented.
 
 *Functions*
 
 The other base class in froog is the class ```Function```. It keeps track of input tensors and tensors that need to be saved for backward passes
 
 - ```def __init__(self, *tensors)```: takes in an argument of tensors, which are then saved. 
-
 - ```def save_for_backward(self, *x)```: saves Tensors that are necessary to compute for the computation of gradients in the backward pass. 
-
-- ```def apply(self, arg, *x)```: This is what makes everything work. The apply() method takes care of the forward pass, applying the operation to the inputs.
+- ```def apply(self, arg, *x)```: takes care of the forward pass, applying the operation to the inputs.
 
 *Register*
 
-```def register(name, fxn)```: this function allows you to add a method to a Tensor. This allows you to chain any operations, e.g. x.dot(w).relu(), where w is a tensor
+- ```def register(name, fxn)```: allows you to add a method to a Tensor. This allows you to chain any operations, e.g. x.dot(w).relu(), where w is a tensor
 
 # Creating a model
 
 Okay cool, so now you know that ```froog```'s main datatype is a Tensor and uses NumPy in the background. How do I actually build a model? 
 
-Here's an example of how to create an MNIST multi-layer perceptron (MLP). We wanted to make it as simple as possible for you to do so so it resembles very basic python concepts like classes. There's really only two methods you need to define: 
+Here's an example of how to create an MNIST multi-layer perceptron (MLP). We wanted to make it as simple as possible for you to do so it resembles very basic Python concepts like classes. There are really only two methods you need to define: 
 1. ```__init__``` that defines layers of the model (here we use ```Linear```) 
 2. ```forward``` which defines how the input should flow through your model. We use a simple dot product with a ```Linear``` layer with a <a href="https://en.wikipedia.org/wiki/Rectifier_(neural_networks)">```ReLU```</a> activation.
 
-In order to create an instance of the ```mnistMLP``` model, do the same as you would in python: ```model = mnistMLP()``` . 
+To create an instance of the ```mnistMLP``` model, do the same as you would in Python: ```model = mnistMLP()```. 
 
 We support a few different optimizers, <a href="https://github.com/kevbuh/froog/blob/main/froog/optim.py">here</a> which include:
 - <a href="https://en.wikipedia.org/wiki/Stochastic_gradient_descent">Stochastic Gradient Descent (SGD)</a>
