@@ -303,23 +303,42 @@ register('relu', ReLU, gpu=True)
 class LogSoftmax(Function):
   @staticmethod
   def forward(ctx, input):
-    lsum = buffer_new(ctx, (input.shape[0],))
+    # first find max values for numerical stability
+    max_vals = buffer_new(ctx, (input.shape[0],))
     prg = clbuild(ctx.cl_ctx, """
-    __kernel void logsoftmax(
+    __kernel void max_vals(
         __global const float *a_g, int sz, __global float *res_g)
     {
       int gid = get_global_id(0);
       int gidsz = gid*sz;
-      // TODO: stability with max
-      float out = 0.0;
+      float max_val = -INFINITY;
       for (int x = 0; x < sz; x++) {
-        out += exp(a_g[gidsz+x]);
+        max_val = max(max_val, a_g[gidsz+x]);
       }
-      res_g[gid] = log(out);
+      res_g[gid] = max_val;
     }
     """)
-    prg.logsoftmax(ctx.cl_queue, [input.shape[0]], None, input, np.int32(input.shape[1]), lsum)
+    prg.max_vals(ctx.cl_queue, [input.shape[0]], None, input, np.int32(input.shape[1]), max_vals)
 
+    # compute exp(x - max) and sum
+    lsum = buffer_new(ctx, (input.shape[0],))
+    prg = clbuild(ctx.cl_ctx, """
+    __kernel void logsoftmax(
+        __global const float *a_g, __global const float *max_vals, int sz, __global float *res_g)
+    {
+      int gid = get_global_id(0);
+      int gidsz = gid*sz;
+      float max_val = max_vals[gid];
+      float out = 0.0;
+      for (int x = 0; x < sz; x++) {
+        out += exp(a_g[gidsz+x] - max_val);
+      }
+      res_g[gid] = log(out) + max_val;
+    }
+    """)
+    prg.logsoftmax(ctx.cl_queue, [input.shape[0]], None, input, max_vals, np.int32(input.shape[1]), lsum)
+
+    # compute final output
     output = buffer_like(ctx, input)
     prg = clbuild(ctx.cl_ctx, """
     __kernel void lsmsub(
@@ -475,8 +494,38 @@ class AvgPool2D(Function):
 
   @staticmethod
   def backward(ctx, grad_output):
-    # TODO Finish this
-    pass
+    # for average pooling, we need to distribute the gradient evenly across all elements in the pooling window
+    input_shape = ctx.data.shape
+    N, C, Y, X = input_shape
+    py, px = ctx.kernel_size
+    ret = buffer_zeros(ctx, input_shape)
+    
+    prg = clbuild(ctx.cl_ctx, """
+    __kernel void avgpool_backward(
+      __global float *grad_input, __global const float *grad_output,
+      uint2 osize, uint2 isize, uint2 kernel_size, int nelem
+    ) {
+      int3 gid = (int3)(get_global_id(2), get_global_id(1), get_global_id(0));
+      int oid = gid.x + osize.x*(gid.y + osize.y*gid.z);
+      float grad = grad_output[oid] / (kernel_size.x * kernel_size.y);
+      
+      for (uint j=0; j<kernel_size.y; ++j) {
+        for (uint i=0; i<kernel_size.x; ++i) {
+          int iid = (gid.x*kernel_size.x+i) + isize.x*((gid.y*kernel_size.y+j) + isize.y*gid.z);
+          if (iid < nelem)
+            grad_input[iid] += grad;
+        }
+      }
+    }
+    """)
+    
+    osize = np.array((X//px, Y//py), dtype=cl.cltypes.uint2)
+    isize = np.array((X, Y), dtype=cl.cltypes.uint2)
+    ksize = np.array((px,py), dtype=cl.cltypes.uint2)
+    
+    prg.avgpool_backward(ctx.cl_queue, (N*C, Y//py, X//px), None, ret, grad_output, osize, isize, ksize, np.int32(input_shape.size))
+    
+    return ret
 register('avg_pool2d', AvgPool2D, gpu=True)
 
 class MaxPool2D(Function):
@@ -485,10 +534,65 @@ class MaxPool2D(Function):
     init_val = "FLT_MIN"
     iter_op = "group_res = max(group_res, input[iid])"
     result_op = "group_res"
-    return pooling_op(ctx, input, kernel_size, iter_op, result_op, init_val=init_val)
+    ret = pooling_op(ctx, input, kernel_size, iter_op, result_op, init_val=init_val)
+    
+    # save indices of max elements for backward pass
+    indices = buffer_new(ctx, ret.shape)
+    prg = clbuild(ctx.cl_ctx, """
+    __kernel void maxpool_indices(
+      __global const float *input, __global float *output, __global int *indices,
+      uint2 osize, uint2 isize, uint2 kernel_size, int nelem
+    ) {
+      int3 gid = (int3)(get_global_id(2), get_global_id(1), get_global_id(0));
+      int oid = gid.x + osize.x*(gid.y + osize.y*gid.z);
+      float max_val = -INFINITY;
+      int max_idx = 0;
+      
+      for (uint j=0; j<kernel_size.y; ++j) {
+        for (uint i=0; i<kernel_size.x; ++i) {
+          int iid = (gid.x*kernel_size.x+i) + isize.x*((gid.y*kernel_size.y+j) + isize.y*gid.z);
+          if (iid < nelem) {
+            float val = input[iid];
+            if (val > max_val) {
+              max_val = val;
+              max_idx = iid;
+            }
+          }
+        }
+      }
+      indices[oid] = max_idx;
+    }
+    """)
+    
+    N, C, Y, X = input.shape
+    py, px = kernel_size
+    osize = np.array((X//px, Y//py), dtype=cl.cltypes.uint2)
+    isize = np.array((X, Y), dtype=cl.cltypes.uint2)
+    ksize = np.array((px,py), dtype=cl.cltypes.uint2)
+    
+    prg.maxpool_indices(ctx.cl_queue, (N*C, Y//py, X//px), None, input, ret, indices, osize, isize, ksize, np.int32(input.size))
+    
+    ctx.save_for_backward(indices)
+    return ret
 
   @staticmethod
   def backward(ctx, grad_output):
-    # TODO Finish this
-    pass
+    indices, = ctx.saved_tensors
+    input_shape = ctx.data.shape
+    ret = buffer_zeros(ctx, input_shape)
+    prg = clbuild(ctx.cl_ctx, """
+    __kernel void maxpool_backward(
+      __global float *grad_input, __global const float *grad_output,
+      __global const int *indices, int nelem
+    ) {
+      int gid = get_global_id(0);
+      if (gid < nelem) {
+        int idx = indices[gid];
+        grad_input[idx] += grad_output[gid];
+      }
+    }
+    """)
+  
+    prg.maxpool_backward(ctx.cl_queue, [np.prod(grad_output.shape)], None, ret, grad_output, indices, np.int32(grad_output.size))
+    return ret
 register('max_pool2d', MaxPool2D, gpu=True)
