@@ -13,7 +13,7 @@
 
 ```froog``` is an easy-to-read tensor library (<a href="https://www.pepy.tech/projects/froog">25k pip installs!</a>) meant for those looking to get into machine learning and who want to understand how the underlying machine learning framework's code works before they are ultra-optimized (which all modern ml libraries are).
 
-```froog``` encapsulates everything from <a href="https://github.com/kevbuh/froog/blob/main/models/linear_regression.py">linear regression</a> to <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">convolutional neural networks </a> in under 1000 lines.
+```froog``` encapsulates everything from <a href="https://github.com/kevbuh/froog/blob/main/models/linear_regression.py">linear regression</a> to <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">convolutional neural networks </a> in under 2000 lines.
 
 # Installation
 ```bash
@@ -178,7 +178,7 @@ So there are two quick examples to get you up and running. You might have notice
 
 ## GPU Support
 
-Have a GPU and need a speedup? You're in good luck because we have GPU support from for our operations defined in <a href="https://github.com/kevbuh/froog/blob/main/froog/ops_gpu.py">```ops_gpu.py```</a>. In order to do this we have a backend built on <a href="https://en.wikipedia.org/wiki/OpenCL">OpenCL</a> that invokes kernel functions that work on the GPU.
+Have a GPU and need a speedup? You're in good luck because we have GPU support via OpenCL for our operations defined in <a href="https://github.com/kevbuh/froog/blob/main/froog/ops_gpu.py">```ops_gpu.py```</a>.
 
 Here's how you can send data to the GPU during a forward pass and bring it back to the CPU.
 
