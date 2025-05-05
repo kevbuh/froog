@@ -2,7 +2,7 @@ import numpy as np
 from tqdm import trange
 from froog.tensor import Tensor, GPU
 from froog.utils import fetch_mnist
-from froog.nn import Linear
+from froog.ops import Linear
 import froog.optim as optim
 import unittest
 import os

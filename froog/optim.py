@@ -57,7 +57,7 @@ class RMSprop(Optimizer):
   RMSprop divides the learning rate by an exponentially decaying average of squared gradients.
 
   Notes: 
-  The reason RPROP doesn’t work is that it violates the central idea behind stochastic gradient descent, 
+  The reason RPROP doesn't work is that it violates the central idea behind stochastic gradient descent, 
   which is when we have small enough learning rate, it averages the gradients over successive mini-batches.
   """
   def __init__(self, params, decay=0.9, lr=0.001, eps=1e-8):

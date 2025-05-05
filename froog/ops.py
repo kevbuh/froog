@@ -9,6 +9,7 @@
 import numpy as np
 from froog.tensor import Function, register
 from froog.utils import im2col, col2im
+from froog.tensor import Tensor
 
 # *****************************************************
 #     ____  ___   _____ __________   ____  ____  _____
@@ -141,6 +142,29 @@ class Sigmoid(Function):
     grad_input = grad_output * (ret * (1 - ret))    # just take the derivative of sigmoid
     return grad_input
 register("sigmoid", Sigmoid)
+
+# class Dropout(Function):
+#   """
+#   Randomly zeroes some of the elements of the input tensor with probability p during training.
+#   The elements to zero are randomized on every forward call.
+#   During inference, dropout is disabled and the input is scaled by (1-p) to maintain the expected value.
+#   """
+#   @staticmethod
+#   def forward(ctx, input, p=0.5, training=True):
+#     if training:
+#       # Create a binary mask with probability (1-p) of being 1
+#       mask = (np.random.random(input.shape) > p).astype(np.float32)
+#       ctx.save_for_backward(mask)
+#       return input * mask
+#     else:
+#       # during inference, scale the input by (1-p)
+#       return input * (1-p)
+
+#   @staticmethod
+#   def backward(ctx, grad_output):
+#     mask, = ctx.saved_tensors
+#     return grad_output * mask
+# register("dropout", Dropout)
 
 class Reshape(Function):
   @staticmethod
@@ -358,3 +382,53 @@ class AvgPool2D(Function):
         ret[:, :, Y:my:py, X:mx:px] = grad_output / py / px   # divide by avg of pool, e.g. for 2x2 pool /= 4
     return ret
 register('avg_pool2d', AvgPool2D)
+
+# *************************************
+#     _   ___   __   ____  ____  _____
+#    / | / / | / /  / __ \/ __ \/ ___/
+#   /  |/ /  |/ /  / / / / /_/ /\__ \ 
+#  / /|  / /|  /  / /_/ / ____/___/ / 
+# /_/ |_/_/ |_/   \____/_/    /____/  
+#
+# ************* nn ops ************   
+
+def Linear(*x):
+  # random Glorot initialization
+  ret = np.random.uniform(-1., 1., size=x)/np.sqrt(np.prod(x))
+  return ret.astype(np.float32)
+
+def swish(x):
+  return x.mul(x.sigmoid())
+
+class BatchNorm2D:
+  """
+  __call__ follows the formula from the link below
+  pytorch version: https://pytorch.org/docs/stable/generated/torch.nn.BatchNorm2d.html
+
+  self.weight       = γ
+  self.bias         = β
+  self.running_mean = E[x] 
+  self.running_var  = Var[x]
+
+  the reshaping step ensures that each channel of the input has its 
+  own separate set of parameters (mean, variance, weight, and bias)
+
+  self.running_mean has shape [num_channels].
+  self.running_mean.reshape(shape=[1, -1, 1, 1]) reshapes it to [1, num_channels, 1, 1]
+  """
+  def __init__(self, sz, eps=0.001):
+    self.eps = eps
+    self.weight = Tensor.zeros(sz)
+    self.bias = Tensor.zeros(sz)
+
+    # TODO: need running_mean and running_var
+    self.running_mean = Tensor.zeros(sz)
+    self.running_var = Tensor.zeros(sz)
+    self.num_batches_tracked = Tensor.zeros(1)
+
+  def __call__(self, x):
+    x = x.sub(self.running_mean.reshape(shape=[1, -1, 1, 1]))
+    x = x.mul(self.weight.reshape(shape=[1, -1, 1, 1]))
+    x = x.div(self.running_var.add(Tensor([self.eps], gpu=x.gpu)).reshape(shape=[1, -1, 1, 1]).sqrt())
+    x = x.add(self.bias.reshape(shape=[1, -1, 1, 1]))
+    return x
