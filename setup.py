@@ -9,8 +9,8 @@ with open(os.path.join(directory, 'README.md'), encoding='utf-8') as f:
   long_description = f.read()
 
 setup(name='froog',
-      version='0.3.2',
-      description='a beautifully simplistic tensor library',
+      version='0.4.0',
+      description='a toy tensor library with opencl support',
       author='Kevin Buhler',
       license='MIT',
       long_description=long_description,
