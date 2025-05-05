@@ -30,5 +30,7 @@ jobs:
       run: pip install -r requirements.txt
     - name: Run Pytest 
       run: python -m pytest -s -v
-    - name: Run EfficientNet model with args
-      run: python3 models/efficientnet.py
+    - name: Run EfficientNet model
+      run: |
+        export PYTHONPATH=$GITHUB_WORKSPACE
+        python3 models/efficientnet.py
