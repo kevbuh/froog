@@ -11,9 +11,10 @@
   <br/>
 </div>
 
-```froog``` is an easy-to-read tensor library (<a href="https://www.pepy.tech/projects/froog">25k pip installs!</a>) meant for those looking to get into machine learning and who want to understand how the underlying machine learning framework's code works before they are ultra-optimized (which all modern ml libraries are).
+```froog``` is an easy-to-read tensor library (<a href="https://www.pepy.tech/projects/froog">25k pip installs!</a>) with OpenCL support for GPU acceleration. Inspired by pytorch, tinygrad, and micrograd.
 
-```froog``` encapsulates everything from <a href="https://github.com/kevbuh/froog/blob/main/models/linear_regression.py">linear regression</a> to <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">convolutional neural networks </a> in under 2000 lines.
+
+<!-- ```froog``` encapsulates everything from <a href="https://github.com/kevbuh/froog/blob/main/models/linear_regression.py">linear regression</a> to <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">convolutional neural networks </a> in under 2000 lines. -->
 
 # Installation
 ```bash
@@ -176,7 +177,7 @@ So there are two quick examples to get you up and running. You might have notice
 - ```.max_pool2d()```
 - ```.avg_pool2d()```
 
-## GPU Support
+# GPU Support
 
 Have a GPU and need a speedup? You're in good luck because we have GPU support via OpenCL for our operations defined in <a href="https://github.com/kevbuh/froog/blob/main/froog/ops_gpu.py">```ops_gpu.py```</a>.
 
@@ -189,7 +190,9 @@ if GPU:
   out = model.forward(Tensor(img).to_gpu()).cpu()
 ```
 
-## EfficientNet in froog!
+# EfficientNet in froog!
+
+<img src="assets/efficientnet_pug.png" alt="pug" height="300">
 
 We have a really cool finished implementation of EfficientNet built entirely in ```froog```!
 
@@ -201,14 +204,6 @@ VIZ=1 python3 models/efficientnet.py <https://put_your_image_url_here>
 
 I would recommend checking out the <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">code</a>, it's highly documented and pretty cool.
 
-## Linear regression 
-
-Doing linear regression in ```froog``` is pretty easy, check out the entire <a href="https://github.com/kevbuh/froog/blob/main/models/linear_regression.py">code</a>.
-
-```bash
-VIZ=1 python3 linear_regression.py
-```
-
 # Contributing
 <!-- THERES LOT OF STUFF TO WORK ON! VISIT THE <a href="https://github.com/kevbuh/froog/blob/main/docs/bounties.md">BOUNTY SHOP</a>  -->
 
@@ -219,10 +214,5 @@ Pull requests will be merged if they:
 
 More info on <a href="https://github.com/kevbuh/froog/blob/main/docs/contributing.md">contributing</a>. Make sure to run ```python -m pytest``` before creating a PR.
 
-# Documentation
-
-Need more information about how ```froog``` works? Visit the <a href="https://github.com/kevbuh/froog/tree/main/docs">documentation</a>.
-
-# Interested in more?
-
-If you thought ```froog``` was cool, check out the inspirations for this project: pytorch, tinygrad, and https://github.com/karpathy/micrograd/blob/master/micrograd/engine.py
+<!-- # Documentation
+Need more information about how ```froog``` works? Visit the <a href="https://github.com/kevbuh/froog/tree/main/docs">documentation</a>. -->
