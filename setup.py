@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 # this file specifies how the froog package is installed, including any necessary dependencies required to run
 
@@ -21,6 +20,6 @@ setup(name='froog',
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License"
       ],
-      install_requires=['numpy', 'requests', 'matplotlib', 'urllib'],
+      install_requires=['numpy', 'requests', 'matplotlib'],
       python_requires='>=3.8',
       include_package_data=True)

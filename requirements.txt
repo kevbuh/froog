@@ -5,3 +5,4 @@ torch
 pytest
 pillow
 matplotlib
+tabulate
