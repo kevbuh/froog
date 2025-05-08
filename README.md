@@ -13,9 +13,6 @@
 
 ```froog``` is an easy-to-read tensor library (<a href="https://www.pepy.tech/projects/froog">25k pip installs!</a>) with OpenCL support for GPU acceleration. Inspired by pytorch, tinygrad, and micrograd.
 
-
-<!-- ```froog``` encapsulates everything from <a href="https://github.com/kevbuh/froog/blob/main/models/linear_regression.py">linear regression</a> to <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">convolutional neural networks </a> in under 2000 lines. -->
-
 # Installation
 ```bash
 pip install froog
@@ -37,7 +34,7 @@ More information on downloading ```froog``` in the <a href="https://github.com/k
 - <a href="https://github.com/kevbuh/froog/blob/main/froog/ops_gpu.py">GPU Support</a> 
 - and a bunch <a href="https://github.com/kevbuh/froog/tree/main/froog">more</a> 
 
-# Sneak Peek
+# Example
 
 Here's how you set up a simple multilayer perceptron for classification on MNIST. Looks pretty similar to pytorch, right?
 
@@ -73,42 +70,6 @@ my_tensor = Tensor([1,2,3])
 Notice how we had to import NumPy. If you want to create a Tensor manually, make sure that it is a NumPy array!
 
 <!-- Learn more about ```froog``` Tensors <a href="https://github.com/kevbuh/froog/blob/main/docs/tensors.md">here</a>. -->
-
-# Tensors
-
-Tensors are the fundamental datatype in froog, and one of the two main classes.
-
-- ```def __init__(self, data)```:
-
-  - Tensor takes in one param, which is the data. Since ```froog``` has a NumPy backend, the input data into tensors has to be a NumPy array.
-  - Tensor has a ```self.data``` state that it holds. this contains the data inside of the tensor.
-  - In addition, it has ```self.grad```. this is to hold what the gradients of the tensor is. 
-  - Lastly, it has ```self._ctx```. These are the internal variables used for autograd graph construction. This is where the backward gradient computations are saved. 
-
-*Properties*
-
-- ```shape(self)```: this returns the tensor shape
-
-*Methods*
-- ```def zeros(*shape)```: this returns a tensor full of zeros with any shape that you pass in. Defaults to np.float32
-- ```def ones(*shape)```: this returns a tensor full of ones with any shape that you pass in. Defaults to np.float32
-- ```def randn(*shape):```: this returns a randomly initialized Tensor of *shape
-
-*Gradient calculations*
-
-- ```froog``` computes gradients automatically through a process called automatic differentiation. it has a variable ```_ctx```, which stores the chain of operations. It will take the current operation, let's say a dot product, and go to the dot product definition in ```froog/ops.py```, which contains a backward pass specifically for dot products. all methods, from add to 2x2 maxpools, have this backward pass implemented.
-
-*Functions*
-
-The other base class in froog is the class ```Function```. It keeps track of input tensors and tensors that need to be saved for backward passes
-
-- ```def __init__(self, *tensors)```: takes in an argument of tensors, which are then saved. 
-- ```def save_for_backward(self, *x)```: saves Tensors that are necessary to compute for the computation of gradients in the backward pass. 
-- ```def apply(self, arg, *x)```: takes care of the forward pass, applying the operation to the inputs.
-
-*Register*
-
-- ```def register(name, fxn)```: allows you to add a method to a Tensor. This allows you to chain any operations, e.g. x.dot(w).relu(), where w is a tensor
 
 # Creating a model
 
@@ -168,14 +129,15 @@ So there are two quick examples to get you up and running. You might have notice
 - ```.pow()```
 - ```.dot()```
 - ```.relu()```
+- ```.pad2d()```
+- ```.conv2d()```
+- ```.dropout()```
 - ```.sigmoid()```
 - ```.reshape()```
-- ```.pad2d()```
 - ```.logsoftmax()```
-- ```.conv2d()```
-- ```.im2col2dconv()```
 - ```.max_pool2d()```
 - ```.avg_pool2d()```
+- ```.im2col2dconv()```
 
 # GPU Support
 
@@ -203,6 +165,42 @@ VIZ=1 python3 models/efficientnet.py <https://put_your_image_url_here>
 ```
 
 I would recommend checking out the <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">code</a>, it's highly documented and pretty cool.
+
+# Tensors
+
+Tensors are the fundamental datatype in froog, and one of the two main classes.
+
+- ```def __init__(self, data)```:
+
+  - Tensor takes in one param, which is the data. Since ```froog``` has a NumPy backend, the input data into tensors has to be a NumPy array.
+  - Tensor has a ```self.data``` state that it holds. this contains the data inside of the tensor.
+  - In addition, it has ```self.grad```. this is to hold what the gradients of the tensor is. 
+  - Lastly, it has ```self._ctx```. These are the internal variables used for autograd graph construction. This is where the backward gradient computations are saved. 
+
+*Properties*
+
+- ```shape(self)```: this returns the tensor shape
+
+*Methods*
+- ```def zeros(*shape)```: this returns a tensor full of zeros with any shape that you pass in. Defaults to np.float32
+- ```def ones(*shape)```: this returns a tensor full of ones with any shape that you pass in. Defaults to np.float32
+- ```def randn(*shape):```: this returns a randomly initialized Tensor of *shape
+
+*Gradient calculations*
+
+- ```froog``` computes gradients automatically through a process called automatic differentiation. it has a variable ```_ctx```, which stores the chain of operations. It will take the current operation, let's say a dot product, and go to the dot product definition in ```froog/ops.py```, which contains a backward pass specifically for dot products. all methods, from add to 2x2 maxpools, have this backward pass implemented.
+
+*Functions*
+
+The other base class in froog is the class ```Function```. It keeps track of input tensors and tensors that need to be saved for backward passes
+
+- ```def __init__(self, *tensors)```: takes in an argument of tensors, which are then saved. 
+- ```def save_for_backward(self, *x)```: saves Tensors that are necessary to compute for the computation of gradients in the backward pass. 
+- ```def apply(self, arg, *x)```: takes care of the forward pass, applying the operation to the inputs.
+
+*Register*
+
+- ```def register(name, fxn)```: allows you to add a method to a Tensor. This allows you to chain any operations, e.g. x.dot(w).relu(), where w is a tensor
 
 # Contributing
 <!-- THERES LOT OF STUFF TO WORK ON! VISIT THE <a href="https://github.com/kevbuh/froog/blob/main/docs/bounties.md">BOUNTY SHOP</a>  -->
