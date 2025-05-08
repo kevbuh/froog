@@ -49,9 +49,13 @@ class Tensor:
   def assign(self, x):
     self.data = x.data
 
+  # ********** Properties **********
+
   @property
   def shape(self):
     return self.data.shape
+  
+  # ********** Methods **********
   
   @staticmethod
   def zeros(*shape):
@@ -68,6 +72,15 @@ class Tensor:
   @staticmethod
   def eye(dim):
     return Tensor(np.eye(dim).astype(np.float32))
+
+  @staticmethod
+  def arange(start, stop=None, step=1):
+    if stop is None:
+      stop = start
+      start = 0
+    return Tensor(np.arange(start, stop, step, dtype=np.float32))
+
+  # ********** Backward **********
 
   def backward(self, allow_fill=True): 
     if self._ctx is None:

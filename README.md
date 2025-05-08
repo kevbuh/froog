@@ -122,22 +122,45 @@ class SimpleConvNet:
 ```
 
 So there are two quick examples to get you up and running. You might have noticed some operations like ```reshape``` and were wondering what else you can do with ```froog```. We have many more operations that you can apply on tensors:
-- ```.add()```
-- ```.sub()```
-- ```.mul()```
-- ```.sum()```
-- ```.pow()```
-- ```.dot()```
-- ```.relu()```
-- ```.pad2d()```
-- ```.conv2d()```
-- ```.dropout()```
-- ```.sigmoid()```
-- ```.reshape()```
-- ```.logsoftmax()```
-- ```.max_pool2d()```
-- ```.avg_pool2d()```
-- ```.im2col2dconv()```
+
+## Basic Math Operations
+- ```.add()``` - Addition
+- ```.sub()``` - Subtraction
+- ```.mul()``` - Multiplication
+- ```.div()``` - Division
+- ```.pow()``` - Power function
+- ```.sum()``` - Sum all elements
+- ```.mean()``` - Mean of all elements
+- ```.sqrt()``` - Square root
+
+## Linear Algebra Operations
+- ```.dot()``` - Matrix multiplication
+- ```.matmul()``` - Alias for dot
+
+## Neural Network Operations
+- ```.relu()``` - Rectified Linear Unit
+- ```.sigmoid()``` - Sigmoid activation
+- ```.dropout()``` - Dropout regularization
+- ```.logsoftmax()``` - Log softmax function
+
+## Tensor Manipulation
+- ```.reshape()``` - Change tensor shape
+- ```.pad2d()``` - Pad 2D tensors
+
+## Convolution Operations
+- ```.conv2d()``` - 2D convolution
+- ```.im2col2dconv()``` - Image to column for convolution
+
+## Pooling Operations
+- ```.max_pool2d()``` - 2D max pooling
+- ```.avg_pool2d()``` - 2D average pooling
+
+## Tensor Creation Methods
+- ```.zeros(*shape)``` - Create tensor of zeros
+- ```.ones(*shape)``` - Create tensor of ones
+- ```.randn(*shape)``` - Create tensor with random normal values
+- ```.eye(dim)``` - Create identity matrix
+- ```.arange(start, stop, step)``` - Create tensor with evenly spaced values
 
 # GPU Support
 

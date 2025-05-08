@@ -12,11 +12,9 @@ from froog.utils import mask_like
 
 def jacobian(model, input):
   output = model(input)
-
   ji = input.data.reshape(-1).shape[-1]  # jacobian of input
   jo = output.data.reshape(-1).shape[-1] # jacobian of output
   J = np.zeros((jo, ji), dtype=np.float32)
-
   for o in range(jo):
     o_scalar = Tensor(mask_like(output.data, o, 1.)).mul(output).sum()
     o_scalar.backward()
