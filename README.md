@@ -123,6 +123,8 @@ class SimpleConvNet:
 
 So there are two quick examples to get you up and running. You might have noticed some operations like ```reshape``` and were wondering what else you can do with ```froog```. We have many more operations that you can apply on tensors:
 
+# Methods
+
 ## Basic Math Operations
 - ```.add()``` - Addition
 - ```.sub()``` - Subtraction
@@ -146,6 +148,30 @@ So there are two quick examples to get you up and running. You might have notice
 ## Tensor Manipulation
 - ```.reshape()``` - Change tensor shape
 - ```.pad2d()``` - Pad 2D tensors
+- ```.flatten()``` - Returns a flattened 1D copy of the tensor
+- ```.view()``` - Reshapes tensor (alternative to reshape)
+- ```.unsqueeze()``` - Adds dimension of size 1 at specified position
+- ```.squeeze()``` - Removes dimensions of size 1
+
+## Tensor Properties
+- ```.shape``` - The shape of the tensor as a tuple
+- ```.size``` - Total number of elements in the tensor
+- ```.ndim``` - Number of dimensions (rank) of the tensor
+- ```.transpose``` - Transpose of the tensor
+- ```.dtype``` - Data type of the tensor
+- ```.is_gpu``` - Whether tensor is on GPU
+
+## Device Management
+- ```.to_cpu()``` - Moves tensor to CPU
+- ```.to_gpu()``` - Moves tensor to GPU
+- ```.gpu_()``` - In-place GPU conversion
+
+## Tensor Utilities
+- ```.detach()``` - Returns a tensor detached from computation graph
+- ```.backward()``` - Performs backpropagation
+- ```.to_float()``` - Converts tensor to float32 data type
+- ```.to_int()``` - Converts tensor to int32 data type
+- ```.to_bool()``` - Converts tensor to boolean data type
 
 ## Convolution Operations
 - ```.conv2d()``` - 2D convolution

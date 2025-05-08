@@ -12,8 +12,7 @@ from inspect import signature
 from typing import Tuple, List, Union, Optional, Any, TypeVar, cast
 from froog.gpu.gpu_utils import GPU, tensor_to_cpu, tensor_to_gpu, cl_ctx, cl_queue, init_gpu, is_buffer, cl
 
-# Type variable for Tensor
-T = TypeVar('T', bound='Tensor')  # For self-referential types
+T = TypeVar('T', bound='Tensor') # For self-referential types
 
 # ************ Main Classes ************
 # ********** Tensor, Function **********
@@ -136,7 +135,6 @@ class Tensor:
   def arange(start: Union[int, float], stop: Optional[Union[int, float]] = None, step: Union[int, float] = 1) -> T:
     """
     Creates a 1D tensor with evenly spaced values.
-    
     If stop is None, start is interpreted as 0 and start becomes the stop value.
     """
     if stop is None:
@@ -175,7 +173,6 @@ class Tensor:
   def squeeze(self, dim: Optional[int] = None) -> T:
     """
     Removes dimensions of size 1.
-    
     If dim is specified, only removes the dimension at that position if it's 1.
     """
     if dim is None:
@@ -209,16 +206,12 @@ class Tensor:
   # ********** Backward **********
 
   def backward(self, allow_fill: bool = True) -> None: 
-    if self._ctx is None:
-      return
-
+    if self._ctx is None: return
     if self.grad is None and allow_fill:
       # allow_fill gives backprop a starting point, fills in the first grad with one is its None
       assert self.data.shape == (1,) # numpy returns tuples as shapes
       self.grad = Tensor(np.ones(self.data.shape, dtype=self.data.dtype), gpu=self.gpu)
-
     assert self.grad is not None
-    
     # NOTE: THIS IS WHERE AUTO GRAD IS DONE
     grads = self._ctx.backward(self._ctx, self.grad.data) # get gradients respective to what op happened
     if len(self._ctx.parents) == 1:
@@ -340,5 +333,4 @@ def register(name: str, fxn: Any, gpu: bool = False) -> None:
     setattr(Tensor, "__i%s__" % name, lambda self, x: self.assign(dispatch(self, x)))
 
 import froog.ops # this registers all the operations
-if GPU:
-  import froog.gpu.ops_gpu
+if GPU: import froog.gpu.ops_gpu
