@@ -143,12 +143,28 @@ class Sigmoid(Function):
     return grad_input
 register("sigmoid", Sigmoid)
 
+class DropoutLayer:
+  """
+  Dropout layer that randomly sets a fraction of input units to 0 during training time.
+  pytorch version: https://pytorch.org/docs/stable/generated/torch.nn.Dropout.html
+  """
+  def __init__(self, p=0.5):
+    self.p = p
+    self.training = True
+
+  def __call__(self, x):
+    if not self.training or self.p == 0: return x
+    from froog.tensor import Tensor
+    mask = (np.random.rand(*x.data.shape) >= self.p).astype(np.float32) / (1.0 - self.p)
+    return Tensor(x.data * mask, gpu=x.gpu)
+
 class Dropout(Function):
   @staticmethod
   def forward(ctx, input, p=0.5, training=True):
     if not training: return input
     # create a binary mask with probability (1-p) of being 1
     # scale by 1/(1-p) to keep expectation same
+    ctx.training = training
     mask = (np.random.rand(*input.shape) >= p).astype(np.float32) / (1.0 - p if p < 1.0 else 1e-9) # avoid division by zero if p is 1.0
     ctx.save_for_backward(mask)
     return input * mask

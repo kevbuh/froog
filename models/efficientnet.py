@@ -37,7 +37,7 @@ import json
 import numpy as np
 from froog.tensor import Tensor
 from froog.utils import fetch
-from froog.ops import swish, BatchNorm2D
+from froog.ops import swish, BatchNorm2D, DropoutLayer
 
 GPU = os.getenv("GPU", None) is not None
 
@@ -126,7 +126,7 @@ class EfficientNet:
     self._conv_head = Tensor.zeros(1280,320,1,1)      # TODO: why 320?
     self._bn1 = BatchNorm2D(1280)
 
-    # self._dropout = Dropout(0.2)                    # TODO: make dropout layer
+    self._dropout = DropoutLayer(0.2)
     self._fc = Tensor.zeros(1280, 1000)
     self._fc_bias = Tensor.zeros(1000)        
 
@@ -141,7 +141,7 @@ class EfficientNet:
     x = swish(self._bn1(x.conv2d(self._conv_head)))
     x = x.avg_pool2d(kernel_size=x.shape[2:4])
     x = x.reshape(shape=(-1, 1280))
-    #x = x.dropout(0.2)
+    x = self._dropout(x)
     return x.dot(self._fc).add(self._fc_bias.reshape(shape=[1,-1]))
 
   
