@@ -9,7 +9,7 @@
 # OpenCL kernels
 
 import numpy as np
-from .tensor import Function, register
+from ..tensor import Function, register
 import pyopencl as cl
 import functools
 

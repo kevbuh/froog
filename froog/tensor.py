@@ -9,7 +9,7 @@
 import os
 import numpy as np
 from inspect import signature
-from froog.gpu_utils import GPU, tensor_to_cpu, tensor_to_gpu, cl_ctx, cl_queue, init_gpu, is_buffer, cl
+from froog.gpu.gpu_utils import GPU, tensor_to_cpu, tensor_to_gpu, cl_ctx, cl_queue, init_gpu, is_buffer, cl
 
 # ************ Main Classes ************
 # ********** Tensor, Function **********
@@ -200,4 +200,4 @@ def register(name, fxn, gpu=False):
 
 import froog.ops # this registers all the operations
 if GPU:
-  import froog.ops_gpu
+  import froog.gpu.ops_gpu
