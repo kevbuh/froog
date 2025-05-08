@@ -33,8 +33,6 @@ def clbuild(cl_ctx, prg):
   return cl.Program(cl_ctx, prg).build()
 
 def binary_op(ctx, code, x, y):
-  # if len(x.shape) != len(y.shape):
-  #   raise Exception(f"shape mismatch in binop {code}: {x.shape} {y.shape}")
   xdiv = 1
   ydiv = 1
   if x.shape != y.shape:
@@ -149,11 +147,9 @@ class Pow(Function):
   @staticmethod
   def backward(ctx, grad_output):
     x,y = ctx.saved_tensors
-    gradx = binary_op(ctx, 'a*b', grad_output,
-                      binary_op(ctx, 'b * (pow((float)a, (float)(b-1.0)));', x, y))
-    grady = binary_op(ctx, 'a*b', grad_output,
-                      binary_op(ctx, 'pow((float)a, (float)b) * log(a);', x, y))
-    return gradx, grady
+    grad_x = binary_op(ctx, 'a*b', grad_output, binary_op(ctx, 'b * (pow((float)a, (float)(b-1.0)));', x, y))
+    grad_y = binary_op(ctx, 'a*b', grad_output, binary_op(ctx, 'pow((float)a, (float)b) * log(a);', x, y))
+    return grad_x, grad_y
 register('pow', Pow, gpu=True)
 
 class Sum(Function):
@@ -265,18 +261,16 @@ class Reshape(Function):
   @staticmethod
   def forward(ctx, x, shape):
     ctx.save_for_backward(x.shape)
-    ss = list(shape)
-
-    # ???
-    tsum = 1
-    for s in ss:
-      if s != -1:
-        tsum *= s
-    for i,s in enumerate(ss):
-      if s == -1:
-        ss[i] = np.prod(x.shape) // tsum
-    assert np.prod(x.shape) == np.prod(ss)
-    x.shape = tuple(ss)
+    dims = list(shape)
+    product_of_specified_dims = 1
+    for dim in dims:
+      if dim != -1: 
+        product_of_specified_dims *= dim
+    for i, dim in enumerate(dims):
+      if dim == -1:
+        dims[i] = np.prod(x.shape) // product_of_specified_dims # calculate missing dimension
+    assert np.prod(x.shape) == np.prod(dims)
+    x.shape = tuple(dims)
     return x
 
   @staticmethod
@@ -356,7 +350,6 @@ class LogSoftmax(Function):
   @staticmethod
   def backward(ctx, grad_output):
     output, = ctx.saved_tensors
-
     grad_input = buffer_like(ctx, grad_output)
     prg = clbuild(ctx.cl_ctx, """
     __kernel void lsmsub2(
@@ -365,7 +358,6 @@ class LogSoftmax(Function):
       int gid = get_global_id(0);
       int gidsz = gid*sz;
       int gid2 = get_global_id(1);
-      // TODO: this is repeated in many kernels
       float acc = 0.0;
       for (int x = 0; x < sz; x++) {
         acc += grad_output[gidsz + x];
@@ -373,9 +365,7 @@ class LogSoftmax(Function):
       grad_input[gidsz + gid2] = grad_output[gidsz + gid2] - exp(output[gidsz + gid2]) * acc;
     }
     """)
-    prg.lsmsub2(ctx.cl_queue, [grad_output.shape[0], grad_output.shape[1]], None,
-      grad_output, output, np.int32(grad_output.shape[1]), grad_input)
-
+    prg.lsmsub2(ctx.cl_queue, [grad_output.shape[0], grad_output.shape[1]], None, grad_output, output, np.int32(grad_output.shape[1]), grad_input)
     return grad_input
 register('logsoftmax', LogSoftmax, gpu=True)
 
