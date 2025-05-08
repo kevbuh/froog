@@ -9,35 +9,36 @@
 # OpenCL kernels
 
 import numpy as np
+from typing import Any, Tuple, Union, List, Optional, Dict, Callable
 from ..tensor import Function, register
 import pyopencl as cl
 import functools
 
 # Helper function to calculate the size (total number of elements) of an array-like object
-def get_size(x):
+def get_size(x: Any) -> int:
     """Return the total number of elements in x"""
     return int(np.prod(x.shape))
 
-def buffer_new(ctx, shape):
+def buffer_new(ctx: Any, shape: Tuple[int, ...]) -> Any:
   res_g = cl.Buffer(ctx.cl_ctx, cl.mem_flags.WRITE_ONLY, 4*get_size(shape))
   res_g.shape = shape
   res_g.dtype = np.float32
   return res_g
 
-def buffer_zeros(ctx, shape):
+def buffer_zeros(ctx: Any, shape: Tuple[int, ...]) -> Any:
   res_g = cl.Buffer(ctx.cl_ctx, cl.mem_flags.WRITE_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=np.zeros(shape))
   res_g.shape = shape
   res_g.dtype = np.float32
   return res_g
 
-def buffer_like(ctx, x):
+def buffer_like(ctx: Any, x: Any) -> Any:
   return buffer_new(ctx, x.shape)
 
 @functools.lru_cache
-def clbuild(cl_ctx, prg):
+def clbuild(cl_ctx: cl.Context, prg: str) -> cl.Program:
   return cl.Program(cl_ctx, prg).build()
 
-def binary_op(ctx, code, x, y):
+def binary_op(ctx: Any, code: str, x: Any, y: Any) -> Any:
   xdiv = 1
   ydiv = 1
   if x.shape != y.shape:
@@ -62,7 +63,7 @@ def binary_op(ctx, code, x, y):
   prg.binop(ctx.cl_queue, [get_size(ret)], None, x, y, ret, np.int32(xdiv), np.int32(ydiv))
   return ret
 
-def unary_op(ctx, code, x):
+def unary_op(ctx: Any, code: str, x: Any) -> Any:
   ret = buffer_like(ctx, x)
   prg = clbuild(ctx.cl_ctx, """
   __kernel void unop(
@@ -77,7 +78,7 @@ def unary_op(ctx, code, x):
   return ret
 
 @functools.lru_cache
-def cl_pooling_krnl_build(cl_ctx, iter_op, result_op, init_val=0):
+def cl_pooling_krnl_build(cl_ctx: cl.Context, iter_op: str, result_op: str, init_val: Union[int, str] = 0) -> cl.Program:
   prg = """
   __kernel void subsample(
     __global float *output, __global const float *input, uint2 osize, uint2 isize, uint2 kernel_size, int nelem
@@ -97,7 +98,7 @@ def cl_pooling_krnl_build(cl_ctx, iter_op, result_op, init_val=0):
   """
   return clbuild(cl_ctx, prg)
 
-def pooling_op(ctx, input, kernel_size, iter_op, result_op, init_val=0):
+def pooling_op(ctx: Any, input: Any, kernel_size: Tuple[int, int], iter_op: str, result_op: str, init_val: Union[int, str] = 0) -> Any:
   N, C, Y, X = input.shape
   py,px = kernel_size
   ret = buffer_new(ctx, (N, C, Y//py, X//px))

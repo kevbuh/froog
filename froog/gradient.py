@@ -7,10 +7,11 @@
 # |___|    |___|  |_||_______||_______||_______|
 
 import numpy as np
+from typing import Callable, Union, Any, Tuple
 from froog.tensor import Tensor
 from froog.utils import mask_like
 
-def jacobian(model, input):
+def jacobian(model: Callable[[Tensor], Tensor], input: Tensor) -> np.ndarray:
   output = model(input)
   ji = input.data.reshape(-1).shape[-1]  # jacobian of input
   jo = output.data.reshape(-1).shape[-1] # jacobian of output
@@ -22,7 +23,7 @@ def jacobian(model, input):
       J[o,i] = grad
   return J
 
-def numerical_jacobian(model, input, eps = 1e-6):
+def numerical_jacobian(model: Callable[[Tensor], Tensor], input: Tensor, eps: float = 1e-6) -> np.ndarray:
 #     """
 #     https://timvieira.github.io/blog/post/2017/04/21/how-to-test-gradient-implementations/
 #     Computes :
@@ -46,7 +47,7 @@ def numerical_jacobian(model, input, eps = 1e-6):
     NJ[:,i] = grad_approx
   return NJ
 
-def gradcheck(model, input, eps = 1e-06, atol = 1e-5, rtol = 0.001):
+def gradcheck(model: Callable[[Tensor], Tensor], input: Tensor, eps: float = 1e-06, atol: float = 1e-5, rtol: float = 0.001) -> bool:
   """
   Checks whether computed gradient is close to numerical approximation of the Jacobian
   Params:
