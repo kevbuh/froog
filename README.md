@@ -205,12 +205,12 @@ if GPU:
 
 <img src="assets/efficientnet_pug.png" alt="pug" height="300">
 
-We have a really cool finished implementation of EfficientNet built entirely in ```froog```!
+We have an implementation of [EfficientNet v2](https://arxiv.org/abs/2104.00298) built entirely in ```froog``` using the official PyTorch weights!
 
-In order to run EfficientNet inference:
+Run inference with:
 
 ```bash
-VIZ=1 python3 models/efficientnet.py <https://put_your_image_url_here>
+python3 models/efficientnet.py <https://optional_image_url>
 ```
 
 I would recommend checking out the <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">code</a>, it's highly documented and pretty cool.
