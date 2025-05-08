@@ -7,28 +7,29 @@
 # |___|    |___|  |_||_______||_______||_______|
 
 import numpy as np
+from typing import List, Union, Optional, Any
 from froog.tensor import Tensor, GPU
 
 class Optimizer:
-  def __init__(self, params):
+  def __init__(self, params: List[Tensor]) -> None:
     self.params = params
 
 class SGD(Optimizer):
   """
   Stochastic Gradient Descent
   """
-  def __init__(self, params, lr=0.001):
+  def __init__(self, params: List[Tensor], lr: float = 0.001) -> None:
     super(SGD, self).__init__(params)
     self.lr = Tensor([lr], gpu=params[0].gpu)
 
-  def step(self):
+  def step(self) -> None:
     for t in self.params: t -= t.grad * self.lr
 
 class Adam(Optimizer):  
   """
   Default ADAM opimizer from https://arxiv.org/pdf/1412.6980.pdf algorithm
   """
-  def __init__(self, params, lr=0.001, b1=0.9, b2=0.999, eps=10e-8):
+  def __init__(self, params: List[Tensor], lr: float = 0.001, b1: float = 0.9, b2: float = 0.999, eps: float = 10e-8) -> None:
     super(Adam, self).__init__(params)
     self.lr = lr
     self.b1 = b1
@@ -36,10 +37,10 @@ class Adam(Optimizer):
     self.eps = eps # should be 1e-8?
     self.t = 0
 
-    self.m = [np.zeros_like(t.data) for t in self.params]
-    self.v = [np.zeros_like(t.data) for t in self.params]
+    self.m: List[np.ndarray] = [np.zeros_like(t.data) for t in self.params]
+    self.v: List[np.ndarray] = [np.zeros_like(t.data) for t in self.params]
 
-  def step(self):
+  def step(self) -> None:
     self.t += 1
     a = self.lr * (
       np.sqrt(1 - np.power(self.b2, self.t)) /
@@ -59,14 +60,14 @@ class RMSprop(Optimizer):
   The reason RPROP doesn't work is that it violates the central idea behind stochastic gradient descent, 
   which is when we have small enough learning rate, it averages the gradients over successive mini-batches.
   """
-  def __init__(self, params, decay=0.9, lr=0.001, eps=1e-8):
+  def __init__(self, params: List[Tensor], decay: float = 0.9, lr: float = 0.001, eps: float = 1e-8) -> None:
     super(RMSprop, self).__init__(params)
     self.lr = lr
     self.decay = decay
     self.eps = eps
-    self.v = [np.zeros_like(t.data) for t in self.params]
+    self.v: List[np.ndarray] = [np.zeros_like(t.data) for t in self.params]
 
-  def step(self):
+  def step(self) -> None:
     for i,t in enumerate(self.params):
       self.v[i] = self.decay * self.v[i] + (1-self.decay) * np.square(t.grad.data)
       t.data -= self.lr / (np.sqrt(self.v[i]) + self.eps) * t.grad.data
