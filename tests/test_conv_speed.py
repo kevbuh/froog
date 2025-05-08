@@ -94,6 +94,5 @@ class TestConvSpeed(unittest.TestCase):
     print(f"avg froog forward pass:  {float(fpt):.3f} ms, {float(fpt/self.fpt_baseline):.2f}x off baseline of {self.fpt_baseline:.3f} ms")
     print(f"avg froog backward pass: {float(bpt):.3f} ms, {float(fpt/self.bpt_baseline):.2f}x off baseline of {self.bpt_baseline:.3f} ms")
   
-    
 if __name__ == '__main__':
   unittest.main()
