@@ -10,7 +10,7 @@ import os
 import numpy as np
 from inspect import signature
 from typing import Tuple, List, Union, Optional, Any, TypeVar, cast
-from froog.gpu.gpu_utils import GPU, tensor_to_cpu, tensor_to_gpu, cl_ctx, cl_queue, init_gpu, is_buffer, cl
+from froog.gpu.cl.cl_utils import GPU, tensor_to_cpu, tensor_to_gpu, cl_ctx, cl_queue, init_gpu, is_buffer, cl
 
 T = TypeVar('T', bound='Tensor') # For self-referential types
 
@@ -332,4 +332,4 @@ def register(name: str, fxn: Any, gpu: bool = False) -> None:
     setattr(Tensor, "__i%s__" % name, lambda self, x: self.assign(dispatch(self, x)))
 
 import froog.ops # this registers all the operations
-if GPU: import froog.gpu.ops_gpu
+if GPU: import froog.gpu.cl.ops_cl

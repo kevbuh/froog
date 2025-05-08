@@ -10,9 +10,9 @@
 
 import numpy as np
 from typing import Any, Tuple, Union, List, Optional, Dict, Callable
-from ..tensor import Function, register
+from ...tensor import Function, register
 import pyopencl as cl
-from .gpu_utils import (
+from .cl_utils import (
     get_size, buffer_new, buffer_zeros, buffer_like, 
     clbuild, binary_op, unary_op, cl_pooling_krnl_build, pooling_op
 )
