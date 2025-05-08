@@ -9,8 +9,9 @@
 import numpy as np
 from functools import lru_cache
 import pathlib, hashlib, os, tempfile, urllib
+from typing import Tuple, List, Union, Any, Optional, cast
 
-def fetch(url):
+def fetch(url: str) -> pathlib.Path:
   if url.startswith(("/", ".")): return pathlib.Path(url)
   else: fp = pathlib.Path("_cache_dir") / "froog" / "downloads" / (hashlib.md5(url.encode('utf-8')).hexdigest())
   if not fp.is_file():
@@ -25,7 +26,7 @@ def fetch(url):
         pathlib.Path(f.name).rename(fp)
   return fp
 
-def fetch_mnist():
+def fetch_mnist() -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
   import gzip
   parse = lambda file: np.frombuffer(gzip.open(file).read(), dtype=np.uint8).copy()
   BASE_URL = "https://storage.googleapis.com/cvdf-datasets/mnist/"
@@ -35,13 +36,13 @@ def fetch_mnist():
   Y_test = parse(fetch(f"{BASE_URL}t10k-labels-idx1-ubyte.gz"))[8:].astype(np.int8)
   return X_train, Y_train, X_test, Y_test
 
-def mask_like(like, mask_inx, mask_value=1.0):
+def mask_like(like: np.ndarray, mask_inx: np.ndarray, mask_value: float = 1.0) -> np.ndarray:
   mask = np.zeros_like(like).reshape(-1) # flatten
   mask[mask_inx] = mask_value            # fill 
   return mask.reshape(like.shape)
 
 @lru_cache
-def get_im2col_index(oy, ox, cin, H, W):
+def get_im2col_index(oy: int, ox: int, cin: int, H: int, W: int) -> np.ndarray:
   idx_channel = np.tile(np.arange(cin).repeat(H*W), oy*ox)
   idx_y = np.tile(np.arange(H).repeat(W), oy*ox*cin) + np.arange(oy).repeat(ox*cin*H*W)
   idx_x = np.tile(np.arange(W), oy*ox*cin*H) + np.tile(np.arange(ox), oy).repeat(cin*H*W)
@@ -50,7 +51,7 @@ def get_im2col_index(oy, ox, cin, H, W):
   return idx
 
 @lru_cache
-def rearrange_col2im_index(oy, ox, cin, H, W):
+def rearrange_col2im_index(oy: int, ox: int, cin: int, H: int, W: int) -> np.ndarray:
   idx = get_im2col_index(oy, ox, cin, H, W)
   r_idx = np.zeros((np.max(idx)+1, H*W), dtype=idx.dtype)-1
   for i,x in enumerate(idx):
@@ -61,7 +62,7 @@ def rearrange_col2im_index(oy, ox, cin, H, W):
   return r_idx
 
 # im2col convolution helpers
-def im2col(x, H, W):
+def im2col(x: np.ndarray, H: int, W: int) -> np.ndarray:
   bs, cin, oy, ox = x.shape[0], x.shape[1], x.shape[2]-(H-1), x.shape[3]-(W-1)
   idx = get_im2col_index(oy, ox, cin, H, W)
   tx = x.reshape(bs, -1)[:, idx]
@@ -71,7 +72,7 @@ def im2col(x, H, W):
   tx = tx.ravel()
   return tx.reshape(-1, cin*W*H)
 
-def col2im(tx, H, W, OY, OX):
+def col2im(tx: np.ndarray, H: int, W: int, OY: int, OX: int) -> np.ndarray:
   oy, ox = OY-(H-1), OX-(W-1)
   bs = tx.shape[0] // (oy * ox)
   channels_in = tx.shape[1] // (H * W)

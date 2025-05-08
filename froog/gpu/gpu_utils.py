@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Any, Tuple, Optional, Union, TypeVar, cast
 
 # check if OpenCL is available
 cl_ctx, cl_queue = None, None
@@ -9,7 +10,7 @@ except ImportError:
   cl = None
   GPU = False
 
-def init_gpu():
+def init_gpu() -> None:
   """
   creates global OpenCL context and queue
   """
@@ -21,7 +22,7 @@ def init_gpu():
       cl_ctx = cl.create_some_context(interactive=False)
     cl_queue = cl.CommandQueue(cl_ctx)
 
-def tensor_to_cpu(tensor):
+def tensor_to_cpu(tensor: Any) -> np.ndarray:
   """Convert a GPU tensor to CPU"""
   if tensor.gpu:
     data = np.empty(tensor.shape, dtype=np.float32)
@@ -30,7 +31,7 @@ def tensor_to_cpu(tensor):
   else:
     return tensor.data
 
-def tensor_to_gpu(data):
+def tensor_to_gpu(data: np.ndarray) -> Any:
   """Convert CPU data to GPU buffer"""
   if not GPU: raise Exception("no gpu support! install pyopencl")
   init_gpu()
@@ -40,6 +41,6 @@ def tensor_to_gpu(data):
   gpu_buffer.dtype = data.dtype
   return gpu_buffer
 
-def is_buffer(data):
+def is_buffer(data: Any) -> bool:
   """Check if data is a GPU buffer"""
   return GPU and isinstance(data, cl._cl.Buffer) 
