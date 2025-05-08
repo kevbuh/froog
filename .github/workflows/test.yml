@@ -22,6 +22,7 @@ jobs:
       run: |
         export PYTHONPATH=$GITHUB_WORKSPACE
         python3 models/efficientnet.py > model_output.txt
+        cat model_output.txt
         if ! grep -q "pug" model_output.txt; then
           echo "Error: 'pug' not found in model output"
           exit 1
