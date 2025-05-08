@@ -34,8 +34,10 @@ class Tensor:
     
     if isinstance(data, np.ndarray):
       if data.dtype != np.float32 and not Tensor.did_float_warning:
-        # TODO: set env flag to print all warnings, float64 needed for numerical jacobian
-        print(f"warning, {data.shape} isn't float32")
+        # Only print warnings if WARNING env var is set to "1"
+        # float64 is needed for numerical jacobian calculations
+        if os.getenv("WARNING") == "1":
+          print(f"warning, {data.shape} isn't float32. float64 needed for numerical jacobian")
         if not os.getenv("DEBUG") == "1":
           Tensor.did_float_warning = True
       self.gpu = False

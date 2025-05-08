@@ -31,7 +31,8 @@ More information on downloading ```froog``` in the <a href="https://github.com/k
   - Acceleration methods (Adam)
   - Avg & Max pooling
 - <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">EfficientNet</a> inference
-- <a href="https://github.com/kevbuh/froog/blob/main/froog/ops_gpu.py">GPU Support</a> 
+- <a href="https://github.com/kevbuh/froog/blob/main/froog/gpu/ops_gpu.py">GPU Support</a> 
+- <a href="https://github.com/kevbuh/froog/blob/main/docs/env.md">Configuration via Environment Variables</a>
 - and a bunch <a href="https://github.com/kevbuh/froog/tree/main/froog">more</a> 
 
 # Example
