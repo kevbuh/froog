@@ -10,12 +10,19 @@ import os
 import numpy as np
 from inspect import signature
 from typing import Tuple, List, Union, Optional, Any, TypeVar, cast
-from froog.gpu.cl.cl_utils import GPU, tensor_to_cpu, tensor_to_gpu, is_buffer, init_gpu
+
+# Import device utilities
+from froog.gpu import get_device, set_device
+from froog.gpu.device import Device
+
+# Check if any GPU is available
+DEVICE = get_device()
+GPU = DEVICE is not None
 
 T = TypeVar('T', bound='Tensor') # For self-referential types
 
 # ************ Main Classes ************
-# ********** Tensor, Function **********
+# ********** Tensor, UOP **********
 #   _____________   _______ ____  ____ 
 #  /_  __/ ____/ | / / ___// __ \/ __ \
 #   / / / __/ /  |/ /\__ \/ / / / /_/ /
@@ -26,7 +33,7 @@ class Tensor:
   did_float_warning = False
   def __init__(self, data: Union[List, np.ndarray, Any], gpu: bool = False):
     if isinstance(data, list): data = np.array(data, dtype=np.float32)
-    elif is_buffer(data): self.gpu = True
+    elif self.is_device_tensor(data): self.gpu = True
     elif not isinstance(data, np.ndarray): raise TypeError(f"Error constructing tensor with {data}")
     
     if isinstance(data, np.ndarray):
@@ -226,39 +233,53 @@ class Tensor:
 
   # ****** cpu/gpu ******
     
+  @staticmethod
+  def is_device_tensor(data: Any) -> bool:
+    """Check if data is on a GPU device."""
+    # Use device-specific checks if available
+    if DEVICE:
+      return DEVICE.is_device_tensor(data)
+    return False
+    
   def to_cpu(self) -> T:
     if self.gpu:
-      data = tensor_to_cpu(self)
-      ret = Tensor(data)
-      if self.grad:
-        ret.grad = self.grad.to_cpu()
-      return ret
+      if DEVICE:
+        data = DEVICE.tensor_to_cpu(self.data)
+        ret = Tensor(data)
+        if self.grad:
+          ret.grad = self.grad.to_cpu()
+        return ret
+      else:
+        raise Exception("No GPU device available for tensor conversion")
     else: 
       return cast(T, self)
     
   def gpu_(self) -> None:
     """Move tensor to GPU in-place."""
-    # Initialize GPU if needed
-    init_gpu()
     if not self.gpu and GPU:
-      self.data = tensor_to_gpu(self.data)
-      self.gpu = True
-      if self.grad:
-        self.grad.gpu_()
+      if DEVICE:
+        self.data = DEVICE.tensor_to_device(self.data)
+        self.gpu = True
+        if self.grad:
+          self.grad.gpu_()
+      else:
+        raise Exception("No GPU device available")
   
   def to_gpu(self) -> T:
     """Return a copy of this tensor on the GPU."""
     if not GPU:
-      raise Exception("no gpu support! install pyopencl")
+      raise Exception("No GPU support available!")
+    
     if not self.gpu:
-      # Initialize GPU if needed
-      init_gpu()
-      gpu_data = tensor_to_gpu(self.data)
-      ret = Tensor(gpu_data)
-      ret.gpu = True
-      if self.grad:
-        ret.grad = self.grad.to_gpu()
-      return ret
+      if DEVICE:
+        gpu_data = DEVICE.tensor_to_device(self.data)
+        ret = Tensor(gpu_data)
+        ret.gpu = True
+        if self.grad:
+          ret.grad = self.grad.to_gpu()
+        return ret
+      else:
+        raise Exception("No GPU device available")
     else:
       return cast(T, self)
 
@@ -285,7 +306,7 @@ class Tensor:
 #  / __/ / /_/ / /|  / /___  / / _/ // /_/ / /|  /  
 # /_/    \____/_/ |_/\____/ /_/ /___/\____/_/ |_/     
                     
-class Function:
+class UOP:
   """
   Base class for all operations. Stores context for autograd graph.
   """
@@ -342,4 +363,15 @@ def register(name: str, fxn: Any, gpu: bool = False) -> None:
     setattr(Tensor, "__i%s__" % name, lambda self, x: self.assign(dispatch(self, x)))
 
 import froog.ops # this registers all the operations
-if GPU: import froog.gpu.cl.ops_cl
+if GPU:
+    # Import GPU operations based on available backend
+    if DEVICE.name == "Metal":
+        try:
+            import froog.gpu.metal.ops_metal
+        except ImportError:
+            pass
+    else:
+        try:
+            import froog.gpu.cl.ops_cl
+        except ImportError:
+            pass

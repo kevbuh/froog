@@ -10,14 +10,14 @@
 
 import numpy as np
 from typing import Any, Tuple, Union, List, Optional, Dict, Callable
-from ...tensor import Function, register
+from ...tensor import UOP, register
 import pyopencl as cl
 from .cl_utils import (
     get_size, buffer_new, buffer_zeros, buffer_like, 
     clbuild, binary_op, unary_op, cl_pooling_krnl_build, pooling_op
 )
 
-class Add(Function):
+class Add(UOP):
   @staticmethod
   def forward(ctx, x, y):
     return binary_op(ctx, 'a+b', x, y)
@@ -27,7 +27,7 @@ class Add(Function):
     return grad_output, grad_output
 register('add', Add, gpu=True)
 
-class Sub(Function):
+class Sub(UOP):
   @staticmethod
   def forward(ctx, x, y):
     return binary_op(ctx, 'a-b', x, y)
@@ -38,7 +38,7 @@ class Sub(Function):
     return grad_output, not_grad_output
 register('sub', Sub, gpu=True)
 
-class Mul(Function):
+class Mul(UOP):
   @staticmethod
   def forward(ctx, x, y):
     ctx.save_for_backward(x, y)
@@ -50,7 +50,7 @@ class Mul(Function):
     return binary_op(ctx, 'a*b', y, grad_output), binary_op(ctx, 'a*b', x, grad_output)
 register('mul', Mul, gpu=True)
 
-class Pow(Function):
+class Pow(UOP):
   @staticmethod
   def forward(ctx, x, y):
     ctx.save_for_backward(x, y)
@@ -64,7 +64,7 @@ class Pow(Function):
     return grad_x, grad_y
 register('pow', Pow, gpu=True)
 
-class Sum(Function):
+class Sum(UOP):
   @staticmethod
   def forward(ctx, input):
     ctx.save_for_backward(input)
@@ -99,7 +99,7 @@ class Sum(Function):
     return ret
 register('sum', Sum, gpu=True)
 
-class Dot(Function):
+class Dot(UOP):
   """
   A[gid_y * size + i] accesses an element in the row gid_y of matrix A and the column i
   """
@@ -168,7 +168,7 @@ register('matmul', Dot, gpu=True)
 
 # ***** SIMPLE OPS ********
 
-class Reshape(Function):
+class Reshape(UOP):
   @staticmethod
   def forward(ctx, x, shape):
     ctx.save_for_backward(x.shape)
@@ -193,7 +193,7 @@ register('reshape', Reshape, gpu=True)
 
 # ***** ACTIVATION OPS ********
 
-class ReLU(Function):
+class ReLU(UOP):
   @staticmethod
   def forward(ctx, input):
     ctx.save_for_backward(input)
@@ -205,7 +205,7 @@ class ReLU(Function):
     return binary_op(ctx, 'a * (b >= 0);', grad_output, input)
 register('relu', ReLU, gpu=True)
 
-class LogSoftmax(Function):
+class LogSoftmax(UOP):
   @staticmethod
   def forward(ctx, input):
     # first find max values for numerical stability
@@ -280,7 +280,7 @@ class LogSoftmax(Function):
     return grad_input
 register('logsoftmax', LogSoftmax, gpu=True)
 
-class Sigmoid(Function):
+class Sigmoid(UOP):
   @staticmethod
   def forward(ctx, input):
     ret = unary_op(ctx, '1./(1+exp(-a))', input)
@@ -295,7 +295,7 @@ register('sigmoid', Sigmoid, gpu=True)
 
 # ***** CONV OPS ********
 
-class Conv2D(Function):
+class Conv2D(UOP):
   @staticmethod
   def forward(ctx, x, w, stride=1, groups=1):
     if type(ctx.stride) == int: # ctx stores function params
@@ -351,7 +351,7 @@ class Conv2D(Function):
 
 register('conv2d', Conv2D, gpu=True)
 
-class Pad2D(Function):
+class Pad2D(UOP):
   @staticmethod
   def forward(ctx, x, padding=None):
     bs,cin,iy,ix = x.shape
@@ -386,7 +386,7 @@ class Pad2D(Function):
     raise Exception("write this")
 register('pad2d', Pad2D, gpu=True)
 
-class AvgPool2D(Function):
+class AvgPool2D(UOP):
   @staticmethod
   def forward(ctx, input, kernel_size=(2, 2)):
     iter_op = "group_res += input[iid]"
@@ -427,7 +427,7 @@ class AvgPool2D(Function):
     return ret
 register('avg_pool2d', AvgPool2D, gpu=True)
 
-class MaxPool2D(Function):
+class MaxPool2D(UOP):
   @staticmethod
   def forward(ctx, input, kernel_size=(2, 2)):
     init_val = "FLT_MIN"
@@ -493,7 +493,7 @@ class MaxPool2D(Function):
     return ret
 register('max_pool2d', MaxPool2D, gpu=True)
 
-class Dropout(Function):
+class Dropout(UOP):
   @staticmethod
   def forward(ctx, input, p=0.5, training=True):
     if not training: return input

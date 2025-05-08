@@ -31,7 +31,7 @@ froog computes gradients automatically through a process called automatic differ
 
 # Functions
 
-The other base class in froog is the class Function. It keeps track of input tensors and tensors that need to be saved for backward passes
+The other base class in froog is the class UOP. It keeps track of input tensors and tensors that need to be saved for backward passes
 
 ```def __init__(self, *tensors)```: takes in an argument of tensors, which are then saved. 
 

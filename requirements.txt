@@ -7,3 +7,4 @@ pillow
 matplotlib
 tabulate
 wheel
+# for METAL:pip install pyobjc pyobjc-framework-Metal pyobjc-framework-MetalPerformanceShaders

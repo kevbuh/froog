@@ -11,7 +11,7 @@
   <br/>
 </div>
 
-```froog``` is an easy-to-read tensor library (<a href="https://www.pepy.tech/projects/froog">25k pip installs!</a>) with OpenCL support for GPU acceleration. Inspired by pytorch, tinygrad, and micrograd.
+```froog``` is an easy-to-read tensor library (<a href="https://www.pepy.tech/projects/froog">25k pip installs!</a>) with Metal and OpenCL support for GPU acceleration. Inspired by pytorch, tinygrad, and micrograd.
 
 # Installation
 ```bash
@@ -191,7 +191,7 @@ So there are two quick examples to get you up and running. You might have notice
 
 # GPU Support
 
-Have a GPU and need a speedup? You're in good luck because we have GPU support via OpenCL for our operations defined in <a href="https://github.com/kevbuh/froog/blob/main/froog/ops_gpu.py">```ops_gpu.py```</a>.
+Have a GPU and need a speedup? You're in good luck because we have GPU support via Metal or OpenCL for our operations defined in <a href="https://github.com/kevbuh/froog/blob/main/froog/ops_gpu.py">```ops_gpu.py```</a>.
 
 Here's how you can send data to the GPU during a forward pass and bring it back to the CPU.
 
@@ -242,7 +242,7 @@ Tensors are the fundamental datatype in froog, and one of the two main classes.
 
 *Functions*
 
-The other base class in froog is the class ```Function```. It keeps track of input tensors and tensors that need to be saved for backward passes
+The other base class in froog is the class ```UOP```. It keeps track of input tensors and tensors that need to be saved for backward passes
 
 - ```def __init__(self, *tensors)```: takes in an argument of tensors, which are then saved. 
 - ```def save_for_backward(self, *x)```: saves Tensors that are necessary to compute for the computation of gradients in the backward pass. 

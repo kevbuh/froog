@@ -8,7 +8,7 @@
 
 import numpy as np
 from typing import Tuple, List, Union, Optional, Any, TypeVar, cast, Callable
-from froog.tensor import Function, register
+from froog.tensor import UOP, register
 from froog.utils import im2col, col2im
 from froog.tensor import Tensor
 
@@ -22,7 +22,7 @@ from froog.tensor import Tensor
 # **************** Basic Operations ***************
 # - grad_output is the gradient of the loss with respect to the output of the operation.
 
-class Add(Function):# x.add(y)
+class Add(UOP):# x.add(y)
   @staticmethod     # @staticmethod doesn't require an instance of Add to work, so you can do x.add(y)
   def forward(ctx: Any, x: np.ndarray, y: np.ndarray) -> np.ndarray:
     return x + y
@@ -32,7 +32,7 @@ class Add(Function):# x.add(y)
     return grad_output, grad_output 
 register("add", Add)
 
-class Sub(Function): # x.sub(y)
+class Sub(UOP): # x.sub(y)
   @staticmethod
   def forward(ctx: Any, x: np.ndarray, y: np.ndarray) -> np.ndarray:
     return x-y
@@ -42,7 +42,7 @@ class Sub(Function): # x.sub(y)
     return grad_output, -grad_output
 register('sub', Sub)
 
-class Mul(Function): # x.mul(y)
+class Mul(UOP): # x.mul(y)
   @staticmethod
   def forward(ctx: Any, x: np.ndarray, y: np.ndarray) -> np.ndarray:
     ctx.save_for_backward(x, y)
@@ -54,7 +54,7 @@ class Mul(Function): # x.mul(y)
     return y * grad_output, x * grad_output
 register("mul", Mul)
 
-class Sum(Function): # x.sum()
+class Sum(UOP): # x.sum()
   """
   reduce op
   reduces its input tensor to a single value by summing all the elements
@@ -70,7 +70,7 @@ class Sum(Function): # x.sum()
     return grad_output * np.ones_like(input)
 register("sum", Sum)
 
-class Pow(Function): # x.pow(y)
+class Pow(UOP): # x.pow(y)
   @staticmethod
   def forward(ctx: Any, x: np.ndarray, y: np.ndarray) -> np.ndarray:
     ctx.save_for_backward(x, y)
@@ -92,7 +92,7 @@ register("pow", Pow)
 # 
 # ******* GEMM ops *******          
                              
-class Dot(Function):  # x.dot(y)
+class Dot(UOP):  # x.dot(y)
   @staticmethod
   def forward(ctx: Any, input: np.ndarray, weight: np.ndarray) -> np.ndarray:
     ctx.save_for_backward(input, weight)
@@ -117,7 +117,7 @@ register('matmul', Dot)
 #
 # ************************ nn ops ***********************              
                                                           
-class ReLU(Function): 
+class ReLU(UOP): 
   @staticmethod
   def forward(ctx: Any, input: np.ndarray) -> np.ndarray:
     ctx.save_for_backward(input)
@@ -130,7 +130,7 @@ class ReLU(Function):
     return grad_input
 register("relu", ReLU)
 
-class Sigmoid(Function): 
+class Sigmoid(UOP): 
   @staticmethod
   def forward(ctx: Any, input: np.ndarray) -> np.ndarray:
     ctx.save_for_backward(input)
@@ -159,7 +159,7 @@ class DropoutLayer:
     mask = (np.random.rand(*x.data.shape) >= self.p).astype(np.float32) / (1.0 - self.p)
     return Tensor(x.data * mask, gpu=x.gpu)
 
-class Dropout(Function):
+class Dropout(UOP):
   @staticmethod
   def forward(ctx: Any, input: np.ndarray, p: float = 0.5, training: bool = True) -> np.ndarray:
     if not training: return input
@@ -177,7 +177,7 @@ class Dropout(Function):
     return grad_output * mask
 register("dropout", Dropout)
 
-class Reshape(Function):
+class Reshape(UOP):
   @staticmethod
   def forward(ctx: Any, x: np.ndarray, shape: Tuple[int, ...]) -> np.ndarray:
     ctx.save_for_backward(x.shape)
@@ -189,7 +189,7 @@ class Reshape(Function):
     return grad_output.reshape(in_shape)
 register('reshape', Reshape)
 
-class Pad2D(Function):
+class Pad2D(UOP):
   """
   The first element (0,0) corresponds to padding along the batch dimension, which indicates no padding on both sides (0 elements added).
   """
@@ -204,7 +204,7 @@ class Pad2D(Function):
     raise Exception("write this")
 register('pad2d', Pad2D)
 
-class LogSoftmax(Function):
+class LogSoftmax(UOP):
   """
   converts a vector of numbers into a vector of probabilities
   probabilities of each value are proportional to the scale of each value 
@@ -235,7 +235,7 @@ register("logsoftmax", LogSoftmax)
 #
 # ****************** conv ops *****************
 
-class Conv2D(Function): # TODO: understand group splits
+class Conv2D(UOP): # TODO: understand group splits
   @staticmethod
   def forward(ctx: Any, x: np.ndarray, w: np.ndarray, stride: Union[int, Tuple[int, int]] = 1, groups: int = 1) -> np.ndarray:
     """
@@ -299,7 +299,7 @@ class Conv2D(Function): # TODO: understand group splits
 register('conv2d', Conv2D)
 
 
-class im2ColConv(Function):
+class im2ColConv(UOP):
   """
   uses im2col
   https://leonardoaraujosantos.gitbook.io/artificial-inteligence/machine_learning/deep_learning/convolution_layer/making_faster
@@ -361,7 +361,7 @@ def unstack_for_pool(fxn: Callable[[int], np.ndarray], s: Tuple[int, ...], py: i
   return ret if ret is not None else np.zeros(s)
 
 
-class MaxPool2D(Function):
+class MaxPool2D(UOP):
   @staticmethod
   def forward(ctx: Any, x: np.ndarray, kernel_size: Tuple[int, int] = (2,2)) -> np.ndarray:
     ctx.kernel_size = kernel_size
@@ -383,7 +383,7 @@ class MaxPool2D(Function):
                             *ctx.kernel_size)
 register('max_pool2d', MaxPool2D)
 
-class AvgPool2D(Function):
+class AvgPool2D(UOP):
   @staticmethod
   def forward(ctx: Any, x: np.ndarray, kernel_size: Tuple[int, int] = (2,2)) -> np.ndarray:
     ctx.kernel_size = kernel_size
