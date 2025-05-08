@@ -10,7 +10,7 @@ import os
 import numpy as np
 from inspect import signature
 from typing import Tuple, List, Union, Optional, Any, TypeVar, cast
-from froog.gpu.cl.cl_utils import GPU, tensor_to_cpu, tensor_to_gpu, cl_ctx, cl_queue, init_gpu, is_buffer, cl
+from froog.gpu.cl.cl_utils import GPU, tensor_to_cpu, tensor_to_gpu, is_buffer, init_gpu
 
 T = TypeVar('T', bound='Tensor') # For self-referential types
 
@@ -237,20 +237,30 @@ class Tensor:
       return cast(T, self)
     
   def gpu_(self) -> None:
-    self.data = self.to_gpu().data
-    self.gpu = True
+    """Move tensor to GPU in-place."""
+    # Initialize GPU if needed
+    init_gpu()
+    if not self.gpu and GPU:
+      self.data = tensor_to_gpu(self.data)
+      self.gpu = True
+      if self.grad:
+        self.grad.gpu_()
   
   def to_gpu(self) -> T:
+    """Return a copy of this tensor on the GPU."""
     if not GPU:
       raise Exception("no gpu support! install pyopencl")
     if not self.gpu:
+      # Initialize GPU if needed
+      init_gpu()
       gpu_data = tensor_to_gpu(self.data)
       ret = Tensor(gpu_data)
+      ret.gpu = True
       if self.grad:
         ret.grad = self.grad.to_gpu()
       return ret
     else:
-      return cast(T, self) 
+      return cast(T, self)
 
   ops = {}     # stores operations that are done on the CPU
   ops_gpu = {} # stores operations that are done on the GPU
@@ -315,14 +325,14 @@ def register(name: str, fxn: Any, gpu: bool = False) -> None:
   
   Enables syntax like x.dot(w).relu() where w is a tensor.
   """
-  if gpu: 
-    Tensor.ops_gpu[name] = fxn
+  if gpu:
+    setattr(Tensor, name, lambda self, *x, **kwargs: fxn.apply(fxn, self, *x, **kwargs))
+    Tensor.ops_gpu[name] = fxn 
   else:
     Tensor.ops[name] = fxn
-
+  
   def dispatch(self: Tensor, *x: Any, **kwargs: Any) -> Tensor:
     op_func = (Tensor.ops_gpu if self.gpu else Tensor.ops)[name]
-    op_func.cl_ctx, op_func.cl_queue = cl_ctx, cl_queue
     return op_func.apply(op_func, self, *x, **kwargs)
   
   setattr(Tensor, name, dispatch)
