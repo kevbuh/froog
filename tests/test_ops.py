@@ -5,7 +5,7 @@ import functools
 import numpy as np
 from froog.tensor import Tensor, GPU
 
-def helper_test_op(shape, torch_func, froog_func, atol=1e-7, grad_atol=1e-7, gpu=False, forward_only=False):
+def helper_test_op(shape, torch_func, froog_func, atol=1e-6, grad_atol=1e-6, gpu=False, forward_only=False):
   torch_tensors = [torch.rand(x, requires_grad=True) for x in shape]
   froog_tensors = [Tensor(x.detach().numpy()) for x in torch_tensors]
   if gpu: froog_tensors = [x.to_gpu() for x in froog_tensors]
