@@ -25,17 +25,13 @@ T = TypeVar('T', bound='Tensor') # For self-referential types
 class Tensor:
   did_float_warning = False
   def __init__(self, data: Union[List, np.ndarray, Any], gpu: bool = False):
-    if isinstance(data, list):
-      data = np.array(data, dtype=np.float32)
-    elif is_buffer(data):
-      self.gpu = True
-    elif not isinstance(data, np.ndarray):
-      raise TypeError(f"Error constructing tensor with {data}")
+    if isinstance(data, list): data = np.array(data, dtype=np.float32)
+    elif is_buffer(data): self.gpu = True
+    elif not isinstance(data, np.ndarray): raise TypeError(f"Error constructing tensor with {data}")
     
     if isinstance(data, np.ndarray):
       if data.dtype != np.float32 and not Tensor.did_float_warning:
         # Only print warnings if WARNING env var is set to "1"
-        # float64 is needed for numerical jacobian calculations
         if os.getenv("WARNING") == "1":
           print(f"warning, {data.shape} isn't float32. float64 needed for numerical jacobian")
         if not os.getenv("DEBUG") == "1":
@@ -64,10 +60,11 @@ class Tensor:
     return self.data.shape
   
   @property
-  def size(self) -> int:
+  def size(self, dim=None) -> Union[int, Tuple[int, ...]]:
     """
-    Total number of elements in the tensor.
+    Total number of elements in the tensor or size in a specific dimension.
     """
+    if dim is not None: return self.shape[dim]
     return int(np.prod(self.shape))
   
   @property
@@ -261,7 +258,7 @@ class Tensor:
   # ****** basic tensor math ops ******
 
   def mean(self) -> T:
-    div = Tensor(np.array([1 / np.prod(self.shape)], dtype=self.data.dtype), gpu=self.gpu)
+    div = Tensor(np.array([1 / self.size], dtype=self.data.dtype), gpu=self.gpu)
     return self.sum().mul(div)
   
   def sqrt(self) -> T:

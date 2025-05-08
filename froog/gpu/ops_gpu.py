@@ -13,8 +13,13 @@ from ..tensor import Function, register
 import pyopencl as cl
 import functools
 
+# Helper function to calculate the size (total number of elements) of an array-like object
+def get_size(x):
+    """Return the total number of elements in x"""
+    return int(np.prod(x.shape))
+
 def buffer_new(ctx, shape):
-  res_g = cl.Buffer(ctx.cl_ctx, cl.mem_flags.WRITE_ONLY, 4*np.prod(shape))
+  res_g = cl.Buffer(ctx.cl_ctx, cl.mem_flags.WRITE_ONLY, 4*get_size(shape))
   res_g.shape = shape
   res_g.dtype = np.float32
   return res_g
@@ -41,11 +46,11 @@ def binary_op(ctx, code, x, y):
       ydiv = x.shape[2] * x.shape[3]
     elif len(y.shape) == 4 and x.shape[0:2] == y.shape[0:2] and x.shape[2] == 1 and x.shape[3] == 1:
       xdiv = y.shape[2] * y.shape[3]
-    elif np.prod(y.shape) == 1:
-      ydiv = np.prod(x.shape)
+    elif get_size(y) == 1:
+      ydiv = get_size(x)
     else:
       raise Exception(f"binary op shape mismatch: {x.shape} != {y.shape}")
-  ret = buffer_like(ctx, x if np.prod(x.shape) >= np.prod(y.shape) else y)
+  ret = buffer_like(ctx, x if get_size(x) >= get_size(y) else y)
   prg = clbuild(ctx.cl_ctx, """
   __kernel void binop(  __global const float *a_g, __global const float *b_g, __global float *res_g, int xdiv, int ydiv) {
     int gid = get_global_id(0);
@@ -54,7 +59,7 @@ def binary_op(ctx, code, x, y):
     res_g[gid] = """+code+""";
   }
   """)
-  prg.binop(ctx.cl_queue, [np.prod(ret.shape)], None, x, y, ret, np.int32(xdiv), np.int32(ydiv))
+  prg.binop(ctx.cl_queue, [get_size(ret)], None, x, y, ret, np.int32(xdiv), np.int32(ydiv))
   return ret
 
 def unary_op(ctx, code, x):
@@ -68,7 +73,7 @@ def unary_op(ctx, code, x):
     res_g[gid] = """+code+""";
   }
   """)
-  prg.unop(ctx.cl_queue, [np.prod(ret.shape)], None, x, ret)
+  prg.unop(ctx.cl_queue, [get_size(ret)], None, x, ret)
   return ret
 
 @functools.lru_cache
@@ -129,7 +134,6 @@ class Mul(Function):
   @staticmethod
   def forward(ctx, x, y):
     ctx.save_for_backward(x, y)
-
     return binary_op(ctx, 'a*b', x, y)
 
   @staticmethod
@@ -168,7 +172,7 @@ class Sum(Function):
       res_g[0] = out;
     }
     """)
-    prg.sum(ctx.cl_queue, [input.shape[0]], None, input, np.int32(np.prod(input.shape)), ret)
+    prg.sum(ctx.cl_queue, [input.shape[0]], None, input, np.int32(get_size(input)), ret)
     return ret
 
   @staticmethod
@@ -183,7 +187,7 @@ class Sum(Function):
       res_g[gid] = a_g[0];
     }
     """)
-    prg.fill(ctx.cl_queue, [np.prod(ret.shape)], None, grad_output, ret)
+    prg.fill(ctx.cl_queue, [get_size(ret)], None, grad_output, ret)
     return ret
 register('sum', Sum, gpu=True)
 
@@ -199,7 +203,6 @@ class Dot(Function):
     osize = np.int32(weight.shape[1])
     one = np.int32(1)
     ret = buffer_new(ctx, (isize, osize))
-
     prg = clbuild(ctx.cl_ctx, """
     __kernel void matmul(
         __global const float *input,
@@ -268,8 +271,8 @@ class Reshape(Function):
         product_of_specified_dims *= dim
     for i, dim in enumerate(dims):
       if dim == -1:
-        dims[i] = np.prod(x.shape) // product_of_specified_dims # calculate missing dimension
-    assert np.prod(x.shape) == np.prod(dims)
+        dims[i] = get_size(x) // product_of_specified_dims # calculate missing dimension
+    assert get_size(x) == np.prod(dims)
     x.shape = tuple(dims)
     return x
 
@@ -512,9 +515,7 @@ class AvgPool2D(Function):
     osize = np.array((X//px, Y//py), dtype=cl.cltypes.uint2)
     isize = np.array((X, Y), dtype=cl.cltypes.uint2)
     ksize = np.array((px,py), dtype=cl.cltypes.uint2)
-    
     prg.avgpool_backward(ctx.cl_queue, (N*C, Y//py, X//px), None, ret, grad_output, osize, isize, ksize, np.int32(input_shape.size))
-    
     return ret
 register('avg_pool2d', AvgPool2D, gpu=True)
 
@@ -559,9 +560,7 @@ class MaxPool2D(Function):
     osize = np.array((X//px, Y//py), dtype=cl.cltypes.uint2)
     isize = np.array((X, Y), dtype=cl.cltypes.uint2)
     ksize = np.array((px,py), dtype=cl.cltypes.uint2)
-    
     prg.maxpool_indices(ctx.cl_queue, (N*C, Y//py, X//px), None, input, ret, indices, osize, isize, ksize, np.int32(input.size))
-    
     ctx.save_for_backward(indices)
     return ret
 
@@ -582,7 +581,6 @@ class MaxPool2D(Function):
       }
     }
     """)
-  
     prg.maxpool_backward(ctx.cl_queue, [np.prod(grad_output.shape)], None, ret, grad_output, indices, np.int32(grad_output.size))
     return ret
 register('max_pool2d', MaxPool2D, gpu=True)

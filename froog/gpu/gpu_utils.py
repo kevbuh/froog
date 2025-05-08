@@ -1,14 +1,13 @@
 import numpy as np
 
 # check if OpenCL is available
+cl_ctx, cl_queue = None, None
 try:
   import pyopencl as cl
   GPU = True
 except ImportError:
   cl = None
   GPU = False
-
-cl_ctx, cl_queue = None, None
 
 def init_gpu():
   """
@@ -33,11 +32,9 @@ def tensor_to_cpu(tensor):
 
 def tensor_to_gpu(data):
   """Convert CPU data to GPU buffer"""
-  if not GPU:
-    raise Exception("no gpu support! install pyopencl")
-  
+  if not GPU: raise Exception("no gpu support! install pyopencl")
   init_gpu()
-  assert data.dtype == np.float32  # GPU only allows float32
+  assert data.dtype == np.float32 # GPU only allows float32
   gpu_buffer = cl.Buffer(cl_ctx, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=data.ravel())
   gpu_buffer.shape = data.shape
   gpu_buffer.dtype = data.dtype

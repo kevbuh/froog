@@ -22,8 +22,7 @@ class SGD(Optimizer):
     self.lr = Tensor([lr], gpu=params[0].gpu)
 
   def step(self):
-    for t in self.params:
-      t -= t.grad * self.lr
+    for t in self.params: t -= t.grad * self.lr
 
 class Adam(Optimizer):  
   """

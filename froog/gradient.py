@@ -35,21 +35,15 @@ def numerical_jacobian(model, input, eps = 1e-6):
 #         NJ    : an approx. of the Jacobian
 #     """
   output = model(input)
-
   ji = input.data.reshape(-1).shape[-1]
   jo = output.data.reshape(-1).shape[-1]
   NJ = np.zeros((jo, ji), dtype=np.float32)
-
   for i in range(ji):
     eps_perturb = mask_like(input.data, i, mask_value = eps)
-
     output_perturb_add = model(Tensor(input.data + eps_perturb)).data.reshape(-1)
     output_perturb_sub = model(Tensor(input.data - eps_perturb)).data.reshape(-1)
-
     grad_approx = ((output_perturb_add) - (output_perturb_sub)) / (2*eps) # CDM: (f(x + h) - f(x - h)) / (2 * h)
-
     NJ[:,i] = grad_approx
-
   return NJ
 
 def gradcheck(model, input, eps = 1e-06, atol = 1e-5, rtol = 0.001):
