@@ -596,3 +596,16 @@ class MaxPool2D(Function):
     prg.maxpool_backward(ctx.cl_queue, [np.prod(grad_output.shape)], None, ret, grad_output, indices, np.int32(grad_output.size))
     return ret
 register('max_pool2d', MaxPool2D, gpu=True)
+
+class Dropout(Function):
+  @staticmethod
+  def forward(ctx, input, p=0.5, training=True):
+    if not training: return input
+    else: raise NotImplementedError("GPU dropout in training mode is not yet implemented.")
+
+  @staticmethod
+  def backward(ctx, grad_output):
+    if not ctx.training: return grad_output
+    else: raise NotImplementedError("GPU dropout backward in training mode is not yet implemented.")
+
+register("dropout", Dropout, gpu=True)

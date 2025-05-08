@@ -143,28 +143,22 @@ class Sigmoid(Function):
     return grad_input
 register("sigmoid", Sigmoid)
 
-# class Dropout(Function):
-#   """
-#   Randomly zeroes some of the elements of the input tensor with probability p during training.
-#   The elements to zero are randomized on every forward call.
-#   During inference, dropout is disabled and the input is scaled by (1-p) to maintain the expected value.
-#   """
-#   @staticmethod
-#   def forward(ctx, input, p=0.5, training=True):
-#     if training:
-#       # Create a binary mask with probability (1-p) of being 1
-#       mask = (np.random.random(input.shape) > p).astype(np.float32)
-#       ctx.save_for_backward(mask)
-#       return input * mask
-#     else:
-#       # during inference, scale the input by (1-p)
-#       return input * (1-p)
+class Dropout(Function):
+  @staticmethod
+  def forward(ctx, input, p=0.5, training=True):
+    if not training: return input
+    # create a binary mask with probability (1-p) of being 1
+    # scale by 1/(1-p) to keep expectation same
+    mask = (np.random.rand(*input.shape) >= p).astype(np.float32) / (1.0 - p if p < 1.0 else 1e-9) # avoid division by zero if p is 1.0
+    ctx.save_for_backward(mask)
+    return input * mask
 
-#   @staticmethod
-#   def backward(ctx, grad_output):
-#     mask, = ctx.saved_tensors
-#     return grad_output * mask
-# register("dropout", Dropout)
+  @staticmethod
+  def backward(ctx, grad_output):
+    if not ctx.training: return grad_output
+    mask, = ctx.saved_tensors
+    return grad_output * mask
+register("dropout", Dropout)
 
 class Reshape(Function):
   @staticmethod
