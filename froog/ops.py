@@ -426,19 +426,38 @@ class BatchNorm2D:
   self.running_mean has shape [num_channels].
   self.running_mean.reshape(shape=[1, -1, 1, 1]) reshapes it to [1, num_channels, 1, 1]
   """
-  def __init__(self, sz, eps=0.001):
+  def __init__(self, sz, eps=0.001, momentum=0.1):
     self.eps = eps
-    self.weight = Tensor.zeros(sz)
-    self.bias = Tensor.zeros(sz)
-
-    # TODO: need running_mean and running_var
+    self.momentum = momentum
+    self.weight = Tensor.ones(sz)  # Initialize to ones for γ
+    self.bias = Tensor.zeros(sz)   # Initialize to zeros for β
     self.running_mean = Tensor.zeros(sz)
-    self.running_var = Tensor.zeros(sz)
+    self.running_var = Tensor.ones(sz)  # Initialize to ones for numerical stability
     self.num_batches_tracked = Tensor.zeros(1)
+    self.training = True
 
   def __call__(self, x):
-    x = x.sub(self.running_mean.reshape(shape=[1, -1, 1, 1]))
+    if self.training:
+      # calculate batch statistics, don't include channel dimension
+      batch_mean = x.mean(axis=(0, 2, 3), keepdims=True)
+      batch_var = x.var(axis=(0, 2, 3), keepdims=True)
+      # update running statistics with exponential moving average
+      # new running stat = (1-momentum) * old_running_stat + momentum * current_batch_stat
+      self.running_mean = self.running_mean.mul(Tensor([1 - self.momentum], gpu=x.gpu)).add(
+          batch_mean.reshape(-1).mul(Tensor([self.momentum], gpu=x.gpu))
+      )
+      self.running_var = self.running_var.mul(Tensor([1 - self.momentum], gpu=x.gpu)).add(
+          batch_var.reshape(-1).mul(Tensor([self.momentum], gpu=x.gpu))
+      )
+      # normalize with batch statistics
+      x = x.sub(batch_mean)
+      x = x.div(batch_var.add(Tensor([self.eps], gpu=x.gpu)).sqrt())
+      self.num_batches_tracked = self.num_batches_tracked.add(Tensor([1], gpu=x.gpu))
+    else:
+      # normalize with running statistics
+      x = x.sub(self.running_mean.reshape(shape=[1, -1, 1, 1])) # reshape transforms channel statistics to the proper 4D shape [1, channels, 1, 1]
+      x = x.div(self.running_var.add(Tensor([self.eps], gpu=x.gpu)).reshape(shape=[1, -1, 1, 1]).sqrt())
+    # apply scale and shift
     x = x.mul(self.weight.reshape(shape=[1, -1, 1, 1]))
-    x = x.div(self.running_var.add(Tensor([self.eps], gpu=x.gpu)).reshape(shape=[1, -1, 1, 1]).sqrt())
     x = x.add(self.bias.reshape(shape=[1, -1, 1, 1]))
     return x
