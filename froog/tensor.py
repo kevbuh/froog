@@ -5,35 +5,11 @@
 # |    ___||    __  ||  |_|  ||  |_|  ||   ||  |
 # |   |    |   |  | ||       ||       ||   |_| |
 # |___|    |___|  |_||_______||_______||_______|
-#
-# inspired by pytorch
-# inspired by tinygrad
-# inspired by https://github.com/karpathy/micrograd/blob/master/micrograd/engine.py
 
 import os
 import numpy as np
 from inspect import signature
-
-try:
-  import pyopencl as cl
-  GPU = True
-except ImportError:
-  # no GPU support
-  GPU = False
-
-cl_ctx, cl_queue = None, None
-def init_gpu():
-  """
-  creates global OpenCL context and queue
-  """
-  global cl_ctx, cl_queue
-  if cl_queue is None:
-    try:
-      # if you have an m2 mac 
-      cl_ctx = cl.create_some_context(answers=[0]) 
-    except (cl._cl.RuntimeError, TypeError):
-      cl_ctx = cl.create_some_context(interactive=False)
-    cl_queue = cl.CommandQueue(cl_ctx)
+from froog.gpu_utils import GPU, tensor_to_cpu, tensor_to_gpu, cl_ctx, cl_queue, init_gpu, is_buffer, cl
 
 # ************ Main Classes ************
 # ********** Tensor, Function **********
@@ -48,7 +24,7 @@ class Tensor:
   def __init__(self, data, gpu=False):
     if isinstance(data, list):
       data = np.array(data, dtype=np.float32)
-    elif GPU and isinstance(data, cl._cl.Buffer):
+    elif is_buffer(data):
       self.gpu = True
     elif not isinstance(data, np.ndarray):
       raise TypeError(f"Error constructing tensor with {data}")
@@ -61,14 +37,11 @@ class Tensor:
           Tensor.did_float_warning = True
       self.gpu = False
 
+    # internal variables used for autograd graph construction
     self.data = data
     self.grad = None
-
-    if gpu:
-      self.gpu_()
-
-    # internal variables used for autograd graph construction
     self._ctx = None # these are where the backward gradient computation are saved
+    if gpu: self.gpu_()
 
   def __repr__(self):
     return f"Tensor data: {self.data}, gradients: {self.grad.data if self.grad else None}" 
@@ -124,8 +97,7 @@ class Tensor:
     
   def to_cpu(self):
     if self.gpu:
-      data = np.empty(self.shape, dtype=np.float32)
-      cl.enqueue_copy(cl_queue, data, self.data) # copy data from cpu to gpu (queue, dest, src)
+      data = tensor_to_cpu(self)
       ret = Tensor(data)
       if self.grad:
         ret.grad = self.grad.to_cpu()
@@ -141,13 +113,8 @@ class Tensor:
     if not GPU:
       raise Exception("no gpu support! install pyopencl")
     if not self.gpu:
-      init_gpu()
-      assert self.data.dtype == np.float32 # GPU only allows float32
-      # hostbuf is the data buffer on host machine with the data to be copied to the OpenCL buffer
-      data = cl.Buffer(cl_ctx, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=self.data.ravel()) # from pyopencl docs
-      data.shape = self.shape
-      data.dtype = self.data.dtype
-      ret = Tensor(data)
+      gpu_data = tensor_to_gpu(self.data)
+      ret = Tensor(gpu_data)
       if self.grad:
         ret.grad = self.grad.to_gpu()
       return ret
