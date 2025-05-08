@@ -7,6 +7,7 @@
 # |___|    |___|  |_||_______||_______||_______|
 
 import numpy as np
+from typing import Tuple, List, Union, Optional, Any, TypeVar, cast, Callable
 from froog.tensor import Function, register
 from froog.utils import im2col, col2im
 from froog.tensor import Tensor
@@ -23,32 +24,32 @@ from froog.tensor import Tensor
 
 class Add(Function):# x.add(y)
   @staticmethod     # @staticmethod doesn't require an instance of Add to work, so you can do x.add(y)
-  def forward(ctx, x, y):
+  def forward(ctx: Any, x: np.ndarray, y: np.ndarray) -> np.ndarray:
     return x + y
   
   @staticmethod
-  def backward(ctx, grad_output):
+  def backward(ctx: Any, grad_output: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     return grad_output, grad_output 
 register("add", Add)
 
 class Sub(Function): # x.sub(y)
   @staticmethod
-  def forward(ctx, x, y):
+  def forward(ctx: Any, x: np.ndarray, y: np.ndarray) -> np.ndarray:
     return x-y
 
   @staticmethod
-  def backward(ctx, grad_output):
+  def backward(ctx: Any, grad_output: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     return grad_output, -grad_output
 register('sub', Sub)
 
 class Mul(Function): # x.mul(y)
   @staticmethod
-  def forward(ctx, x, y):
+  def forward(ctx: Any, x: np.ndarray, y: np.ndarray) -> np.ndarray:
     ctx.save_for_backward(x, y)
     return x * y
 
   @staticmethod
-  def backward(ctx, grad_output):
+  def backward(ctx: Any, grad_output: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     x, y = ctx.saved_tensors
     return y * grad_output, x * grad_output
 register("mul", Mul)
@@ -59,24 +60,24 @@ class Sum(Function): # x.sum()
   reduces its input tensor to a single value by summing all the elements
   """
   @staticmethod
-  def forward(ctx, input):
+  def forward(ctx: Any, input: np.ndarray) -> np.ndarray:
     ctx.save_for_backward(input)
     return np.array([input.sum()])
 
   @staticmethod
-  def backward(ctx, grad_output):
+  def backward(ctx: Any, grad_output: np.ndarray) -> np.ndarray:
     (input,) = ctx.saved_tensors
     return grad_output * np.ones_like(input)
 register("sum", Sum)
 
 class Pow(Function): # x.pow(y)
   @staticmethod
-  def forward(ctx, x, y):
+  def forward(ctx: Any, x: np.ndarray, y: np.ndarray) -> np.ndarray:
     ctx.save_for_backward(x, y)
     return x ** y
   
   @staticmethod
-  def backward(ctx, grad_output):
+  def backward(ctx: Any, grad_output: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     x, y = ctx.saved_tensors
     return y * (x**(y-1.0)) * grad_output, (x**y) * np.log(x) * grad_output # power rule, d/dx (y^x)
 register("pow", Pow)
@@ -93,12 +94,12 @@ register("pow", Pow)
                              
 class Dot(Function):  # x.dot(y)
   @staticmethod
-  def forward(ctx, input, weight):
+  def forward(ctx: Any, input: np.ndarray, weight: np.ndarray) -> np.ndarray:
     ctx.save_for_backward(input, weight)
     return input.dot(weight)
 
   @staticmethod
-  def backward(ctx, grad_output):
+  def backward(ctx: Any, grad_output: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     input, weight = ctx.saved_tensors
     grad_input = grad_output.dot(weight.T)
     grad_weight = input.T.dot(grad_output)
@@ -118,12 +119,12 @@ register('matmul', Dot)
                                                           
 class ReLU(Function): 
   @staticmethod
-  def forward(ctx, input):
+  def forward(ctx: Any, input: np.ndarray) -> np.ndarray:
     ctx.save_for_backward(input)
     return np.maximum(input, 0)                     # relu(x) = max(0,x)
 
   @staticmethod
-  def backward(ctx, grad_output):
+  def backward(ctx: Any, grad_output: np.ndarray) -> np.ndarray:
     input, = ctx.saved_tensors
     grad_input = grad_output * (input >= 0)
     return grad_input
@@ -131,13 +132,13 @@ register("relu", ReLU)
 
 class Sigmoid(Function): 
   @staticmethod
-  def forward(ctx, input):
+  def forward(ctx: Any, input: np.ndarray) -> np.ndarray:
     ctx.save_for_backward(input)
     ret = 1/(1 + np.exp(-input))                    # sigmoid(x) = 1 / (1 + exp(-x))
     return ret 
 
   @staticmethod
-  def backward(ctx, grad_output):
+  def backward(ctx: Any, grad_output: np.ndarray) -> np.ndarray:
     ret, = ctx.saved_tensors
     grad_input = grad_output * (ret * (1 - ret))    # just take the derivative of sigmoid
     return grad_input
@@ -148,11 +149,11 @@ class DropoutLayer:
   Dropout layer that randomly sets a fraction of input units to 0 during training time.
   pytorch version: https://pytorch.org/docs/stable/generated/torch.nn.Dropout.html
   """
-  def __init__(self, p=0.5):
+  def __init__(self, p: float = 0.5) -> None:
     self.p = p
     self.training = True
 
-  def __call__(self, x):
+  def __call__(self, x: Tensor) -> Tensor:
     if not self.training or self.p == 0: return x
     from froog.tensor import Tensor
     mask = (np.random.rand(*x.data.shape) >= self.p).astype(np.float32) / (1.0 - self.p)
@@ -160,7 +161,7 @@ class DropoutLayer:
 
 class Dropout(Function):
   @staticmethod
-  def forward(ctx, input, p=0.5, training=True):
+  def forward(ctx: Any, input: np.ndarray, p: float = 0.5, training: bool = True) -> np.ndarray:
     if not training: return input
     # create a binary mask with probability (1-p) of being 1
     # scale by 1/(1-p) to keep expectation same
@@ -170,7 +171,7 @@ class Dropout(Function):
     return input * mask
 
   @staticmethod
-  def backward(ctx, grad_output):
+  def backward(ctx: Any, grad_output: np.ndarray) -> np.ndarray:
     if not ctx.training: return grad_output
     mask, = ctx.saved_tensors
     return grad_output * mask
@@ -178,12 +179,12 @@ register("dropout", Dropout)
 
 class Reshape(Function):
   @staticmethod
-  def forward(ctx, x, shape):
+  def forward(ctx: Any, x: np.ndarray, shape: Tuple[int, ...]) -> np.ndarray:
     ctx.save_for_backward(x.shape)
     return x.reshape(shape)
 
   @staticmethod
-  def backward(ctx, grad_output):
+  def backward(ctx: Any, grad_output: np.ndarray) -> np.ndarray:
     in_shape, = ctx.saved_tensors
     return grad_output.reshape(in_shape)
 register('reshape', Reshape)
@@ -193,11 +194,13 @@ class Pad2D(Function):
   The first element (0,0) corresponds to padding along the batch dimension, which indicates no padding on both sides (0 elements added).
   """
   @staticmethod
-  def forward(ctx, x, padding=None): 
+  def forward(ctx: Any, x: np.ndarray, padding: Optional[Tuple[int, int, int, int]] = None) -> np.ndarray: 
+    if padding is None:
+      padding = (0, 0, 0, 0)
     return np.pad(x, ((0,0), (0,0), (padding[0], padding[1]), (padding[2], padding[3]))) # (top, bottom, left, right)
 
   @staticmethod
-  def backward(ctx, grad_output):
+  def backward(ctx: Any, grad_output: np.ndarray) -> np.ndarray:
     raise Exception("write this")
 register('pad2d', Pad2D)
 
@@ -207,8 +210,8 @@ class LogSoftmax(Function):
   probabilities of each value are proportional to the scale of each value 
   """
   @staticmethod
-  def forward(ctx, input):
-    def logsumexp(x):
+  def forward(ctx: Any, input: np.ndarray) -> np.ndarray:
+    def logsumexp(x: np.ndarray) -> np.ndarray:
       c = x.max(axis=1)
       return c + np.log(np.exp(x - c.reshape((-1, 1))).sum(axis=1)) # axis=1 refers to the columns
 
@@ -217,7 +220,7 @@ class LogSoftmax(Function):
     return output
 
   @staticmethod
-  def backward(ctx, grad_output):
+  def backward(ctx: Any, grad_output: np.ndarray) -> np.ndarray:
     (output,) = ctx.saved_tensors
     return grad_output - np.exp(output)*(grad_output.sum(axis=1).reshape((-1, 1)))
 register("logsoftmax", LogSoftmax)
@@ -234,7 +237,7 @@ register("logsoftmax", LogSoftmax)
 
 class Conv2D(Function): # TODO: understand group splits
   @staticmethod
-  def forward(ctx, x, w, stride=1, groups=1):
+  def forward(ctx: Any, x: np.ndarray, w: np.ndarray, stride: Union[int, Tuple[int, int]] = 1, groups: int = 1) -> np.ndarray:
     """
     https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md
     WARNING: doesn't handle padding or strides yet
@@ -247,7 +250,10 @@ class Conv2D(Function): # TODO: understand group splits
       (a, b, c, d)(e, f, g, h)      --> (a, e, c-(g-1), d-(h-1)) 
       in general, output x and y = [(W−K+2P)/S]+1
     """
-    if type(ctx.stride) == int:                                                                           # ctx stores function params
+    ctx.stride = stride
+    ctx.groups = groups
+    
+    if isinstance(ctx.stride, int):                                                                           # ctx stores function params
       ctx.stride = (ctx.stride, ctx.stride)
 
     cout, cin, H, W = w.shape
@@ -273,7 +279,7 @@ class Conv2D(Function): # TODO: understand group splits
     return ret
 
   @staticmethod
-  def backward(ctx, grad_output):
+  def backward(ctx: Any, grad_output: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     x, w = ctx.saved_tensors
     cout, cin, H, W = w.shape
     dx, dw = np.zeros_like(x), np.zeros_like(w)                                         
@@ -300,7 +306,7 @@ class im2ColConv(Function):
   """
 
   @staticmethod
-  def forward(ctx, x, w):
+  def forward(ctx: Any, x: np.ndarray, w: np.ndarray) -> np.ndarray:
     cout, cin, k_h, k_x = w.shape
     bs, oy, ox = x.shape[0], x.shape[2]-(k_h-1), x.shape[3]-(k_x-1)
     tw = w.reshape(cout, -1).T                                             # each filter flattened into a row
@@ -310,7 +316,7 @@ class im2ColConv(Function):
     return np.moveaxis(ret, [0,1,2,3], [0,2,3,1])                          # reorders the axes (batch size, number of channels, height, width)
 
   @staticmethod
-  def backward(ctx, grad_output):
+  def backward(ctx: Any, grad_output: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     bs,_,oy,ox = grad_output.shape
     tx, w = ctx.saved_tensors                                              # transformed input, filter weights 
     cout,cin,H,W = w.shape
@@ -332,7 +338,7 @@ register('im2col2dconv', im2ColConv)
 #
 # **************** pooling ops ***************
 
-def stack_for_pool(x, pool_y, pool_x):
+def stack_for_pool(x: np.ndarray, pool_y: int, pool_x: int) -> np.ndarray:
   my, mx = (x.shape[2]//pool_y)*pool_y, (x.shape[3]//pool_x)*pool_x        # ensures input tensor can be evenly divided into 2x2 blocks for max pooling
   stack = []
   cropped_x = x[:, :, :my, :mx]                                            # crop input so 2x2 max pool can be taken
@@ -342,33 +348,36 @@ def stack_for_pool(x, pool_y, pool_x):
   return np.concatenate(stack, axis=0)                                     # put all into one row
 
 
-def unstack_for_pool(fxn, s, py, px):
+def unstack_for_pool(fxn: Callable[[int], np.ndarray], s: Tuple[int, ...], py: int, px: int) -> np.ndarray:
   max_y, max_x = (s[2]//py)*py, (s[3]//px)*px                              # get shape that allows (pool_size_y,pool_size_x) max pool
+  ret = None
   for Y in range(py):
     for X in range(px):
       level_w_new_grad = fxn(Y*px+X)
       if X == 0 and Y == 0:                                                # pool of zero size
         ret = np.zeros(s, dtype=level_w_new_grad.dtype)
-      ret[:, :, Y:max_y:py, X:max_x:px] = level_w_new_grad
-  return ret
+      if ret is not None:
+        ret[:, :, Y:max_y:py, X:max_x:px] = level_w_new_grad
+  return ret if ret is not None else np.zeros(s)
 
 
 class MaxPool2D(Function):
   @staticmethod
-  def forward(ctx, x, kernel_size=(2,2)):
+  def forward(ctx: Any, x: np.ndarray, kernel_size: Tuple[int, int] = (2,2)) -> np.ndarray:
+    ctx.kernel_size = kernel_size
     stack = stack_for_pool(x, *kernel_size)
     idx_of_max = np.argmax(stack, axis=0)
     ctx.save_for_backward(idx_of_max, x.shape)
     return np.max(stack, axis=0)
 
   @staticmethod
-  def backward(ctx, grad_output):
+  def backward(ctx: Any, grad_output: np.ndarray) -> np.ndarray:
     """
     Distributes the gradient from the output of the max pooling layer to its inputs
     The purpose of (idxs == idx) is to generate a boolean mask indicating the locations of the maximum values in each 2x2 block of the original input
     The expression (Y*2+X) is a way to iterate through the four possible positions within the kernel block: e.g. (0,0), (0,1), (1,0), and (1,1), which get mapped to the indices 0, 1, 2, and 3 
     """
-    idxs, s = ctx.saved_tensors                                     
+    idxs, s = ctx.saved_tensors
     return unstack_for_pool(lambda idx: grad_output * (idxs == idx), 
                             s,
                             *ctx.kernel_size)
@@ -376,13 +385,14 @@ register('max_pool2d', MaxPool2D)
 
 class AvgPool2D(Function):
   @staticmethod
-  def forward(ctx, x, kernel_size=(2,2)):
+  def forward(ctx: Any, x: np.ndarray, kernel_size: Tuple[int, int] = (2,2)) -> np.ndarray:
+    ctx.kernel_size = kernel_size
     stack = stack_for_pool(x, *kernel_size)
     ctx.save_for_backward(x.shape)
     return np.mean(stack, axis=0)
 
   @staticmethod
-  def backward(ctx, grad_output):
+  def backward(ctx: Any, grad_output: np.ndarray) -> np.ndarray:
     s, = ctx.saved_tensors
     py, px = ctx.kernel_size                                  # kernel_size passed from forward context
     my, mx = (s[2]//py)*py, (s[3]//px)*px
@@ -402,12 +412,12 @@ register('avg_pool2d', AvgPool2D)
 #
 # ************* nn ops ************   
 
-def Linear(*x):
+def Linear(*x: int) -> np.ndarray:
   # random Glorot initialization
   ret = np.random.uniform(-1., 1., size=x)/np.sqrt(np.prod(x))
   return ret.astype(np.float32)
 
-def swish(x):
+def swish(x: Tensor) -> Tensor:
   return x.mul(x.sigmoid())
 
 class BatchNorm2D:
@@ -426,7 +436,7 @@ class BatchNorm2D:
   self.running_mean has shape [num_channels].
   self.running_mean.reshape(shape=[1, -1, 1, 1]) reshapes it to [1, num_channels, 1, 1]
   """
-  def __init__(self, sz, eps=0.001):
+  def __init__(self, sz: int, eps: float = 0.001) -> None:
     self.eps = eps
     self.weight = Tensor.zeros(sz)
     self.bias = Tensor.zeros(sz)
@@ -436,7 +446,7 @@ class BatchNorm2D:
     self.running_var = Tensor.zeros(sz)
     self.num_batches_tracked = Tensor.zeros(1)
 
-  def __call__(self, x):
+  def __call__(self, x: Tensor) -> Tensor:
     x = x.sub(self.running_mean.reshape(shape=[1, -1, 1, 1]))
     x = x.mul(self.weight.reshape(shape=[1, -1, 1, 1]))
     x = x.div(self.running_var.add(Tensor([self.eps], gpu=x.gpu)).reshape(shape=[1, -1, 1, 1]).sqrt())
