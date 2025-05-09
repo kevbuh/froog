@@ -43,6 +43,7 @@ jobs:
     - name: Install macOS Specific Dependencies
       run: |
         pip install pyobjc pyobjc-framework-Metal pyobjc-framework-MetalPerformanceShaders
+        pip install -r requirements.txt
     - name: Run Pytest
       run: python -m pytest -s -v
     - name: Run EfficientNet model
