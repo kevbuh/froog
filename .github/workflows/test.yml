@@ -28,6 +28,7 @@ jobs:
         if ! grep -q "pug" model_output.txt; then
           echo "Error: 'pug' not found in model output"
           exit 1
+        fi
 
   # test:
   #   name: pytest

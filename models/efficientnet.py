@@ -192,23 +192,18 @@ if __name__ == "__main__":
   # instantiate and get weights
   model = EfficientNet()
   model.load_weights_from_torch() 
-
   # load image and preprocess
   from PIL import Image
   if len(sys.argv) > 1: url = sys.argv[1]
   else: url = "https://cdn.britannica.com/34/233234-050-1649BFA9/Pug-dog.jpg"
-
   # process image for pretrained weights
   img = processImage(url)
-
   if os.getenv('VIZ') == "1":
     import matplotlib.pyplot as plt
     plt.imshow(img[0].mean(axis=0))
     plt.show()
-
   # get imagenet labels into dictionary
   with open('assets/imagenet_classes.txt', 'r') as f: lbls = json.load(f)
-
   # inference
   import time
   st = time.time()
@@ -217,12 +212,10 @@ if __name__ == "__main__":
     from froog.gpu.buffer_utils import get_buffer_data
     result = get_buffer_data(out.data)
   else: result = model.forward(Tensor(img)).data
-
   if os.getenv('VIZ') == "1":
     import matplotlib.pyplot as plt
     plt.plot(result[0])
     plt.show()
-
   print("\n******************************")
   print(f"inference {float(time.time()-st):.2f} s\n")
   print("imagenet class:", np.argmax(result))
