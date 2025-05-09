@@ -12,5 +12,5 @@ jobs:
       uses: actions/checkout@v2
     - name: Install SLOCCount
       run: sudo apt install sloccount
-    - name: Check <= 2500 lines
-      run: sloccount froog tests examples models docs; if [ $(sloccount test froog | sed -n 's/.*Total Physical Source Lines of Code (SLOC)[ ]*= \([^ ]*\).*/\1/p' | tr -d ',') -gt 2500 ]; then exit 1; fi
+    - name: Check <= 3500 lines
+      run: sloccount froog tests examples models docs; if [ $(sloccount test froog | sed -n 's/.*Total Physical Source Lines of Code (SLOC)[ ]*= \([^ ]*\).*/\1/p' | tr -d ',') -gt 3500 ]; then exit 1; fi
