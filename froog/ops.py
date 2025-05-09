@@ -268,11 +268,13 @@ class DropoutLayer:
     self.p = p
     self.training = True
 
-  def __call__(self, x: Tensor) -> Tensor:
-    if not self.training or self.p == 0: return x
+  def __call__(self, x):
+    # build a CPU‐side random mask of the same shape as the tensor x
+    mask_np = (np.random.rand(*x.shape) >= self.p).astype(np.float32) / (1.0 - self.p)
     from froog.tensor import Tensor
-    mask = (np.random.rand(*x.data.shape) >= self.p).astype(np.float32) / (1.0 - self.p)
-    return Tensor(x.data * mask, gpu=x.gpu)
+    mask_t = Tensor(mask_np)
+    if getattr(x, "is_gpu", False): mask_t = mask_t.to_gpu()
+    return x.mul(mask_t)
 
 class Dropout(Function):
   @staticmethod

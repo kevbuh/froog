@@ -383,9 +383,11 @@ class MPSAvgPool2d(Function):
 class MPSReshape(Function):
     @staticmethod
     def forward(ctx, x, shape):
-        ctx.orig_shape = x.shape
-        out = _reshape(get_buffer_data(x), shape)
-        return get_device().upload_tensor(out)
+        x_cpu = get_buffer_data(x)
+        ctx.orig_shape = x_cpu.shape
+        out_cpu = _reshape(x_cpu, shape)
+        return get_device().upload_tensor(out_cpu)
+
     @staticmethod
     def backward(ctx, grad):
         g_cpu = get_buffer_data(grad)
@@ -431,9 +433,32 @@ class MPSPad2d(Function):
 
 class MPSConv2d(Function):
     @staticmethod
-    def forward(ctx, x, w, b=None, stride=1, padding=0):
-        out = _conv2d(get_buffer_data(x), get_buffer_data(w), get_buffer_data(b) if b is not None else None, stride, padding)
-        return get_device().upload_tensor(out)
+    def forward(ctx, x, w, b=None, stride=1, padding=0, groups=1):
+        # Download buffers into NumPy
+        x_cpu = get_buffer_data(x)
+        w_cpu = get_buffer_data(w)
+        b_cpu = get_buffer_data(b) if b is not None else None
+
+        if groups == 1:
+            # normal convolution
+            out_cpu = _conv2d(x_cpu, w_cpu, b_cpu, stride, padding)
+        else:
+            # grouped conv fallback (pure NumPy)
+            N, C, H, W = x_cpu.shape
+            F, Cpg, kH, kW = w_cpu.shape
+            G = groups
+            assert C == Cpg * G and F % G == 0, "bad grouped‐conv shapes"
+            Fpg = F // G
+            out_slices = []
+            for g in range(G):
+                xg = x_cpu[:, g*Cpg:(g+1)*Cpg, :, :]
+                wg = w_cpu[g*Fpg:(g+1)*Fpg, :, :, :]
+                bg = b_cpu[g*Fpg:(g+1)*Fpg] if b_cpu is not None else None
+                out_g = _conv2d_cpu(xg, wg, bg, stride, padding)
+                out_slices.append(out_g)
+            out_cpu = np.concatenate(out_slices, axis=1)
+
+        return get_device().upload_tensor(out_cpu)
 
 register("add",        MPSAdd,        gpu=True)
 register("sub",        MPSSub,        gpu=True)
