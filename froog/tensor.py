@@ -17,7 +17,7 @@ from froog.gpu.cl.cl_utils import GPU as CL_GPU
 
 # Try to import Metal-specific utilities if available
 try:
-    from froog.gpu.metal.metal_utils import METAL_GPU
+    from froog.gpu.metal.metal_utils import METAL_GPU, check_and_initialize_metal
     GPU = CL_GPU or METAL_GPU
 except ImportError:
     GPU = CL_GPU
@@ -404,33 +404,27 @@ def register(name: str, fxn: Any, gpu: bool = False) -> None:
     setattr(Tensor, "__i%s__" % name, lambda self, x: self.assign(dispatch(self, x)))
 
 import froog.ops # this registers all the operations
-if GPU: 
-    # Import appropriate GPU operations based on device type
-    device = get_device()
-    
-    # Print device information
-    if device:
-        print(f"GPU enabled: Using {device.__class__.__name__}")
-        capabilities = device.get_capabilities()
-        if isinstance(capabilities, dict) and 'name' in capabilities:
-            print(f"Device name: {capabilities['name']}")
-    else:
-        print("GPU enabled but no device available")
+if GPU:
+    # Use the centralized function to check and initialize Metal
+    if check_and_initialize_metal(get_device, set_device):
+        device = get_device()
+        if device:
+            print(f"Using {device.__class__.__name__}")
+        else:
+            print("GPU enabled but no device available")
     
     if device is not None:
         if device.__class__.__name__ == "MetalDevice":
             try:
                 import froog.gpu.metal.ops_metal
-                print("Metal operations imported successfully")
             except ImportError:
-                print("Failed to import Metal operations")
+                pass
         elif device.__class__.__name__ == "OpenCLDevice":
             try:
                 import froog.gpu.cl.ops_cl
                 print("OpenCL operations imported successfully")
             except ImportError:
                 print("Failed to import OpenCL operations")
-        print(f"Available GPU operations: {list(Tensor.ops_gpu.keys())}")
 
 # Replace the to_cpu and to_gpu methods with our versions that handle fake GPU mode
 
@@ -480,3 +474,24 @@ def to_gpu(self) -> T:
 Tensor.to_cpu = to_cpu
 Tensor.gpu_ = gpu_
 Tensor.to_gpu = to_gpu
+
+def print_computation_graph(tensor: Tensor) -> None:
+    """
+    Traverse and print the computation graph starting from the given tensor.
+    """
+    visited = set()
+    def traverse(t: Tensor, depth: int = 0):
+        if t in visited: return
+        visited.add(t)
+        indent = '  ' * depth
+        print(f"{indent}Tensor: {t}, Grad: {t.grad}")
+        if t._ctx is not None:
+            print(f"{indent}Operation: {t._ctx.__class__.__name__}")
+            for parent in t._ctx.parents:
+                traverse(parent, depth + 1)
+
+    traverse(tensor)
+
+# Example usage:
+# output_tensor = ... # some tensor resulting from operations
+# print_computation_graph(output_tensor)

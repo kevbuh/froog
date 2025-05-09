@@ -30,7 +30,7 @@ class MetalDevice(Device):
                 raise RuntimeError("Failed to create Metal command queue")
                 
             # Print additional device info for debugging
-            print(f"Initialized Metal device: {str(self.device.name())}")
+            # print(f"Initialized Metal device: {str(self.device.name())}")
             
         except Exception as e:
             print(f"Metal device initialization failed: {str(e)}")

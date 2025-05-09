@@ -218,6 +218,8 @@ if __name__ == "__main__":
   else:
     out = model.forward(Tensor(img))
 
+  print(out.data)
+
   if os.getenv('VIZ') == "1":
     # outputs
     import matplotlib.pyplot as plt

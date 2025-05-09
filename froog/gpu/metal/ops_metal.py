@@ -517,7 +517,7 @@ class MPSConv2d(Function):
 # Register ops with Froog -----------------------------------------------------
 # ----------------------------------------------------------------------------
 
-print("Registering MPS (or NumPy fallback) GPU operations …")
+# print("Registering MPS (or NumPy fallback) GPU operations …")
 register("add",        MPSAdd,        gpu=True)
 register("sub",        MPSSub,        gpu=True)
 register("mul",        MPSMul,        gpu=True)

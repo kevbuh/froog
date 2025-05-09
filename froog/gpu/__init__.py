@@ -15,12 +15,18 @@ try:
 except ImportError:
     METAL_AVAILABLE = False
 
+# Import the centralized Metal check function
+from froog.gpu.metal.metal_utils import check_and_initialize_metal
+
 # Make device classes available at package level
 __all__ = ['Device', 'OpenCLDevice', 'MetalDevice', 'get_device', 'set_device', 'buffer_utils']
 
 # Global device instance
 _current_device = None
 _device_info_printed = False
+
+# Ensure MetalDevice is imported before it is used
+from froog.gpu.metal.device_metal import MetalDevice
 
 def get_device() -> Device:
     """
@@ -34,38 +40,31 @@ def get_device() -> Device:
         import platform
         
         # Print system info for debugging
-        print(f"System: {platform.system()} {platform.release()}")
-        print(f"Python: {platform.python_version()}")
+        # print(f"System: {platform.system()} {platform.release()}")
+        # print(f"Python: {platform.python_version()}")
         
         # Try Metal first (on macOS)
         if platform.system() == "Darwin":
-            # Import here to ensure METAL_AVAILABLE is defined
-            try:
-                from froog.gpu.metal.metal_utils import METAL_AVAILABLE
-                from froog.gpu.metal.device_metal import MetalDevice
-                
-                if METAL_AVAILABLE:
-                    print("Metal is available, initializing device...")
-                    try:
-                        metal_device = MetalDevice()
-                        if metal_device.device is not None:
-                            print(f"Successfully initialized Metal device: {metal_device.device.name()}")
-                            _current_device = metal_device
-                            _device_info_printed = True
-                            return _current_device
-                        else:
-                            print("Metal device initialization failed: device is None")
-                    except Exception as e:
-                        import traceback
-                        print(f"Error initializing Metal device: {e}")
-                        traceback.print_exc()
-                else:
-                    print("Metal is not available on this Mac")
-            except ImportError as e:
-                print(f"Failed to import Metal modules: {e}")
-                print("Metal is not available on this Mac")
+            # Use the centralized function to check and initialize Metal
+            if check_and_initialize_metal(get_device, set_device):
+                try:
+                    metal_device = MetalDevice()
+                    if metal_device.device is not None:
+                        # print(f"Successfully initialized Metal device: {metal_device.device.name()}")
+                        _current_device = metal_device
+                        _device_info_printed = True
+                        return _current_device
+                except Exception as e:
+                    import traceback
+                    # print(f"Error initializing Metal device: {e}")
+                    traceback.print_exc()
+            # except ImportError as e:
+                # print(f"Failed to import Metal modules: {e}")
+                # print("Metal is not available on this Mac")
+                # pass
         else:
-            print(f"Metal is not available on {platform.system()}")
+            # print(f"Metal is not available on {platform.system()}")
+            pass
         
         # Fall back to OpenCL
         if CL_AVAILABLE:
