@@ -30,13 +30,12 @@ class SGD(Optimizer):
         continue
       
       if t.gpu:
-        from froog.gpu import get_device
-        from froog.tensor import tensor_to_cpu, tensor_to_gpu
+        from froog.gpu import get_device, download_tensor, upload_tensor
         
         # device = get_device()
-        t_cpu = tensor_to_cpu(t)
-        grad_cpu = tensor_to_cpu(t.grad)
-        lr_cpu = tensor_to_cpu(self.lr)
+        t_cpu = download_tensor(t)
+        grad_cpu = download_tensor(t.grad)
+        lr_cpu = download_tensor(self.lr)
         
         if self.weight_decay > 0:
           grad_cpu += self.weight_decay * t_cpu
@@ -45,7 +44,7 @@ class SGD(Optimizer):
           grad_cpu = np.clip(grad_cpu, -self.clip_value, self.clip_value)
         
         t_cpu -= grad_cpu * lr_cpu
-        t.data = tensor_to_gpu(t_cpu)
+        t.data = upload_tensor(t_cpu)
       else:
         if self.weight_decay > 0:
           t.grad.data += self.weight_decay * t.data
@@ -70,15 +69,15 @@ class Adam(Optimizer):
     self.on_gpu = any(t.gpu for t in self.params if t is not None)
     
     if self.on_gpu:
-      from froog.tensor import tensor_to_cpu
-      self.m = [np.zeros_like(tensor_to_cpu(t.data)) for t in self.params]
-      self.v = [np.zeros_like(tensor_to_cpu(t.data)) for t in self.params]
+      from froog.gpu import download_tensor
+      self.m = [np.zeros_like(download_tensor(t.data)) for t in self.params]
+      self.v = [np.zeros_like(download_tensor(t.data)) for t in self.params]
     else:
       self.m = [np.zeros_like(t.data) for t in self.params]
       self.v = [np.zeros_like(t.data) for t in self.params]
 
   def step(self) -> None:
-    from froog.tensor import tensor_to_cpu, tensor_to_gpu
+    from froog.gpu import download_tensor, upload_tensor
     
     self.t += 1
     a = self.lr * (np.sqrt(1 - np.power(self.b2, self.t)) / (1 - np.power(self.b1, self.t)))
@@ -89,8 +88,8 @@ class Adam(Optimizer):
         
       if t.gpu:
         try:
-          t_data_cpu = tensor_to_cpu(t.data)
-          grad_cpu = tensor_to_cpu(t.grad.data)
+          t_data_cpu = download_tensor(t.data)
+          grad_cpu = download_tensor(t.grad.data)
           
           if np.isnan(grad_cpu).any() or np.isinf(grad_cpu).any():
             print(f"Warning: NaN or Inf detected in gradients for parameter {i}")
@@ -117,7 +116,7 @@ class Adam(Optimizer):
             max_val = np.finfo(np.float32).max / 10
             t_data_cpu = np.nan_to_num(t_data_cpu, nan=0.0, posinf=max_val, neginf=-max_val)
           
-          t.data = tensor_to_gpu(t_data_cpu)
+          t.data = upload_tensor(t_data_cpu)
         except Exception as e:
           print(f"Error in Adam update for GPU tensor {i}: {e}")
           continue

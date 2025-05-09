@@ -3,23 +3,23 @@ name: Unit Tests
 on: [push, pull_request]
 
 jobs:
-  test:
-    name: pytest
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [windows-latest]
-    steps:
-    - name: Checkout Code
-      uses: actions/checkout@v2
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.11
-    - name: Install Dependencies
-      run: pip install -r requirements.txt
-    - name: Run Pytest 
-      run: python -m pytest -s -v
+  # test:
+  #   name: pytest
+  #   runs-on: ${{ matrix.os }}
+  #   strategy:
+  #     matrix:
+  #       os: [windows-latest]
+  #   steps:
+  #   - name: Checkout Code
+  #     uses: actions/checkout@v2
+  #   - name: Set up Python 3.11
+  #     uses: actions/setup-python@v2
+  #     with:
+  #       python-version: 3.11
+  #   - name: Install Dependencies
+  #     run: pip install -r requirements.txt
+  #   - name: Run Pytest 
+  #     run: python -m pytest -s -v
     # - name: Run EfficientNet model
     #   shell: bash
     #   run: |

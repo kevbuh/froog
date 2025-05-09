@@ -165,16 +165,17 @@ class Dot(Function):  # x.dot(y)
     
     # Check if we're working with GPU buffers
     try:
-        from froog.tensor import is_buffer, tensor_to_cpu
+        from froog.tensor import is_buffer
+        from froog.gpu import download_tensor
         
         # Convert any GPU buffers to CPU for the operation
         if is_buffer(input):
-            input_cpu = tensor_to_cpu(input)
+            input_cpu = download_tensor(input)
         else:
             input_cpu = input
             
         if is_buffer(weight):
-            weight_cpu = tensor_to_cpu(weight)
+            weight_cpu = download_tensor(weight)
         else:
             weight_cpu = weight
             
@@ -195,20 +196,21 @@ class Dot(Function):  # x.dot(y)
     
     # Convert GPU buffers to CPU if needed
     try:
-        from froog.tensor import is_buffer, tensor_to_cpu
+        from froog.tensor import is_buffer
+        from froog.gpu import download_tensor
         
         if is_buffer(input):
-            input_cpu = tensor_to_cpu(input)
+            input_cpu = download_tensor(input)
         else:
             input_cpu = input
             
         if is_buffer(weight):
-            weight_cpu = tensor_to_cpu(weight)
+            weight_cpu = download_tensor(weight)
         else:
             weight_cpu = weight
             
         if is_buffer(grad_output):
-            grad_output_cpu = tensor_to_cpu(grad_output)
+            grad_output_cpu = download_tensor(grad_output)
         else:
             grad_output_cpu = grad_output
             
@@ -371,17 +373,18 @@ class Conv2D(Function): # TODO: understand group splits
 
     # Check if we're working with GPU buffers and convert to CPU
     try:
-        from froog.tensor import is_buffer, tensor_to_cpu
+        from froog.tensor import is_buffer
+        from froog.gpu import download_tensor
         
         # Convert input to CPU if it's a GPU buffer
         if is_buffer(x):
-            x_cpu = tensor_to_cpu(x)
+            x_cpu = download_tensor(x)
         else:
             x_cpu = x
             
         # Convert weight to CPU if it's a GPU buffer
         if is_buffer(w):
-            w_cpu = tensor_to_cpu(w)
+            w_cpu = download_tensor(w)
         else:
             w_cpu = w
             
@@ -419,11 +422,12 @@ class Conv2D(Function): # TODO: understand group splits
   @staticmethod
   def backward(ctx: Any, grad_output: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     try:
-        from froog.tensor import is_buffer, tensor_to_cpu
+        from froog.tensor import is_buffer
+        from froog.gpu import download_tensor
         
         # Convert grad_output to CPU if it's a GPU buffer
         if is_buffer(grad_output):
-            grad_output_cpu = tensor_to_cpu(grad_output)
+            grad_output_cpu = download_tensor(grad_output)
         else:
             grad_output_cpu = grad_output
             
@@ -547,9 +551,7 @@ class MaxPool2D(Function):
     The expression (Y*2+X) is a way to iterate through the four possible positions within the kernel block: e.g. (0,0), (0,1), (1,0), and (1,1), which get mapped to the indices 0, 1, 2, and 3 
     """
     idxs, s = ctx.saved_tensors
-    return unstack_for_pool(lambda idx: grad_output * (idxs == idx), 
-                            s,
-                            *ctx.kernel_size)
+    return unstack_for_pool(lambda idx: grad_output * (idxs == idx),  s, *ctx.kernel_size)
 register('max_pool2d', MaxPool2D)
 
 class AvgPool2D(Function):

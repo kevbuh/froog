@@ -12,9 +12,6 @@ from inspect import signature
 from typing import Tuple, List, Union, Optional, Any, TypeVar, cast
 from froog.gpu import get_device, upload_tensor, download_tensor, is_buffer
 
-tensor_to_cpu = download_tensor
-tensor_to_gpu = upload_tensor
-
 T = TypeVar('T', bound='Tensor')
 
 class Tensor:
@@ -49,7 +46,7 @@ class Tensor:
                 buffer_id = id(self.data)
                 if buffer_id in device.buffer_metadata: return device.buffer_metadata[buffer_id]['shape']
             try:
-                data = tensor_to_cpu(self)
+                data = download_tensor(self)
                 return data.shape
             except Exception as e:
                 print(f"Warning: Failed to get shape from GPU tensor: {e}")
@@ -148,7 +145,7 @@ class Tensor:
                     if buffer_id in device.buffer_metadata: g_shape = device.buffer_metadata[buffer_id]['shape']
                     else:
                         try:
-                            g_cpu = tensor_to_cpu(g)
+                            g_cpu = download_tensor(g)
                             g_shape = g_cpu.shape
                         except:
                             print(f"Warning: Could not determine shape of gradient in {self._ctx}")
@@ -163,7 +160,7 @@ class Tensor:
 
     def to_cpu(self) -> T:
         if self.gpu:
-            data = tensor_to_cpu(self)
+            data = download_tensor(self)
             ret = Tensor(data)
             if self.grad: ret.grad = self.grad.to_cpu()
             return ret
@@ -228,6 +225,9 @@ def register(name: str, fxn: Any, gpu: bool = False) -> None:
         setattr(Tensor, "__%s__" % name, dispatch)
         setattr(Tensor, "__i%s__" % name, lambda self, x: self.assign(dispatch(self, x)))
 
+# Import operations
+import froog.ops
+
 # Check for GPU availability using the device manager
 device = get_device()
 if device is not None and device.name != "CPU":
@@ -244,7 +244,7 @@ if device is not None and device.name != "CPU":
 
 def to_cpu(self) -> T:
     if self.gpu:
-        data = tensor_to_cpu(self)
+        data = download_tensor(self)
         ret = Tensor(data)
         if self.grad: ret.grad = self.grad.to_cpu()
         return ret
@@ -254,7 +254,7 @@ def to_cpu(self) -> T:
 def gpu_(self) -> None:
     get_device()
     if not self.gpu and get_device() is not None and get_device().name != "CPU":
-        self.data = tensor_to_gpu(self.data)
+        self.data = upload_tensor(self.data)
         self.gpu = True
         if self.grad: self.grad.gpu_()
 
@@ -265,7 +265,7 @@ def to_gpu(self) -> T:
     if not self.gpu:
         get_device()
         if device is None: raise Exception("No GPU device available")
-        gpu_data = tensor_to_gpu(self.data)
+        gpu_data = upload_tensor(self.data)
         ret = Tensor(gpu_data)
         ret.gpu = True
         if self.grad: ret.grad = self.grad.to_gpu()
