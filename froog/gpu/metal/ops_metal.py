@@ -178,16 +178,61 @@ class MetalReLUFunction(Function):
         # Handle Metal buffers
         device = get_device()
         input_cpu = device.download_tensor(input)
+        
+        # Check for NaN/Inf values
+        if np.isnan(input_cpu).any() or np.isinf(input_cpu).any():
+            print("Warning: Input contains NaN or Inf values in ReLU forward")
+            input_cpu = np.nan_to_num(input_cpu, nan=0.0, posinf=1.0, neginf=0.0)
+        
+        # Apply ReLU safely
         result_cpu = np.maximum(input_cpu, 0)
+        
+        # Verify result doesn't have NaN/Inf
+        if np.isnan(result_cpu).any() or np.isinf(result_cpu).any():
+            print("Warning: Result contains NaN or Inf values after ReLU")
+            max_val = np.finfo(np.float32).max / 10
+            result_cpu = np.nan_to_num(result_cpu, nan=0.0, posinf=max_val, neginf=0.0)
+        
         return device.upload_tensor(result_cpu)
     
     @staticmethod
     def backward(ctx, grad_output):
         input, = ctx.saved_tensors
         device = get_device()
-        input_cpu = device.download_tensor(input)
-        grad_cpu = device.download_tensor(grad_output)
-        return device.upload_tensor(grad_cpu * (input_cpu > 0))
+        
+        try:
+            input_cpu = device.download_tensor(input)
+            grad_cpu = device.download_tensor(grad_output)
+            
+            # Check for NaN/Inf values in grad
+            if np.isnan(grad_cpu).any() or np.isinf(grad_cpu).any():
+                print("Warning: Grad contains NaN or Inf values in ReLU backward")
+                max_val = np.finfo(np.float32).max / 10
+                grad_cpu = np.nan_to_num(grad_cpu, nan=0.0, posinf=max_val, neginf=-max_val)
+            
+            # Calculate gradient: grad * (input > 0)
+            # For ReLU, gradient is 1 where input > 0, else 0
+            mask = (input_cpu > 0).astype(np.float32)
+            result = grad_cpu * mask
+            
+            # Verify result doesn't have NaN/Inf
+            if np.isnan(result).any() or np.isinf(result).any():
+                print("Warning: Result contains NaN or Inf values in ReLU backward")
+                max_val = np.finfo(np.float32).max / 10
+                result = np.nan_to_num(result, nan=0.0, posinf=max_val, neginf=-max_val)
+            
+            return device.upload_tensor(result)
+            
+        except Exception as e:
+            print(f"Error in ReLU backward: {e}")
+            # Get the shape from metadata as fallback
+            input_shape = device.buffer_metadata.get(id(input), {}).get('shape')
+            if input_shape is None:
+                # Last resort fallback
+                print("Warning: Could not determine input shape for ReLU backward")
+                return device.upload_tensor(np.zeros((1,), dtype=np.float32))
+            
+            return device.upload_tensor(np.zeros(input_shape, dtype=np.float32))
 
 class MetalSigmoidFunction(Function):
     @staticmethod
@@ -210,36 +255,41 @@ class MetalDotFunction(Function):
         input_cpu = device.download_tensor(input)
         weight_cpu = device.download_tensor(weight)
         
-        # Prevent overflow by checking magnitudes
-        max_val = np.finfo(np.float32).max
-        need_scaling = False
+        # Validate input data
+        if np.isnan(input_cpu).any() or np.isinf(input_cpu).any():
+            print("Warning: Input contains NaN or Inf values before dot product")
+            input_cpu = np.nan_to_num(input_cpu, nan=0.0, posinf=1.0, neginf=-1.0)
+            
+        if np.isnan(weight_cpu).any() or np.isinf(weight_cpu).any():
+            print("Warning: Weight contains NaN or Inf values before dot product")
+            weight_cpu = np.nan_to_num(weight_cpu, nan=0.0, posinf=1.0, neginf=-1.0)
         
-        # Calculate maximum values to detect potential overflow
-        max_input = np.max(np.abs(input_cpu))
-        max_weight = np.max(np.abs(weight_cpu))
+        # Prevent overflow by using double precision for the computation
+        input_double = input_cpu.astype(np.float64)
+        weight_double = weight_cpu.astype(np.float64)
         
-        # Estimate if the dot product might overflow
-        # For N-dim dot product, worst case is N * max_input * max_weight
-        max_dim = max(input_cpu.shape[-1], 1)
-        if max_input * max_weight * max_dim > max_val / 100:
-            need_scaling = True
-            scale_factor = np.sqrt(max_val / (100 * max_input * max_weight * max_dim))
-            input_cpu = input_cpu * scale_factor
-            weight_cpu = weight_cpu * scale_factor
-        
-        # Perform matrix multiplication
+        # Compute the dot product with higher precision
         try:
-            result_cpu = np.matmul(input_cpu, weight_cpu)
+            result_double = np.matmul(input_double, weight_double)
             
-            # Scale back if needed
-            if need_scaling:
-                result_cpu = result_cpu / (scale_factor * scale_factor)
+            # Convert back to float32 with controlled clipping
+            max_val = np.finfo(np.float32).max / 10
+            min_val = np.finfo(np.float32).min / 10
+            result_cpu = np.clip(result_double, min_val, max_val).astype(np.float32)
             
-            # Clip to prevent any extreme values
-            result_cpu = np.clip(result_cpu, -max_val/10, max_val/10)
+            # Final check for NaN or Inf
+            if np.isnan(result_cpu).any() or np.isinf(result_cpu).any():
+                print("Warning: Result contains NaN or Inf values after dot product")
+                result_cpu = np.nan_to_num(result_cpu, nan=0.0, posinf=max_val, neginf=min_val)
+                
         except Exception as e:
             print(f"Error in dot product: {e}")
-            # Return zeros as fallback
+            # Create a more informative error
+            print(f"Input shape: {input_cpu.shape}, Weight shape: {weight_cpu.shape}")
+            print(f"Input min/max: {np.min(input_cpu)}/{np.max(input_cpu)}")
+            print(f"Weight min/max: {np.min(weight_cpu)}/{np.max(weight_cpu)}")
+            
+            # Create zeros as fallback but with proper shape
             result_shape = list(input_cpu.shape)
             result_shape[-1] = weight_cpu.shape[-1]
             result_cpu = np.zeros(tuple(result_shape), dtype=np.float32)
@@ -251,32 +301,55 @@ class MetalDotFunction(Function):
         input, weight = ctx.saved_tensors
         device = get_device()
         
-        # Download to CPU
-        input_cpu = device.download_tensor(input)
-        weight_cpu = device.download_tensor(weight)
-        grad_cpu = device.download_tensor(grad_output)
-        
-        # Clip grad to prevent overflow
-        max_val = np.finfo(np.float32).max / 100
-        grad_cpu = np.clip(grad_cpu, -max_val, max_val)
-        
-        # Compute gradients with overflow protection
         try:
-            grad_input_cpu = np.matmul(grad_cpu, weight_cpu.T)
-            grad_input_cpu = np.clip(grad_input_cpu, -max_val, max_val)
-        except Exception as e:
-            print(f"Error in dot product backward (input): {e}")
-            grad_input_cpu = np.zeros_like(input_cpu)
+            # Get CPU tensors
+            input_cpu = device.download_tensor(input)
+            weight_cpu = device.download_tensor(weight)
+            grad_cpu = device.download_tensor(grad_output)
             
-        try:
-            grad_weight_cpu = np.matmul(input_cpu.T, grad_cpu)
-            grad_weight_cpu = np.clip(grad_weight_cpu, -max_val, max_val)
+            # Validate gradient data
+            if np.isnan(grad_cpu).any() or np.isinf(grad_cpu).any():
+                print("Warning: Gradient contains NaN or Inf values in dot backward")
+                max_val = np.finfo(np.float32).max / 100
+                grad_cpu = np.nan_to_num(grad_cpu, nan=0.0, posinf=max_val, neginf=-max_val)
+            
+            # Use double precision for gradient computation
+            input_double = input_cpu.astype(np.float64)
+            weight_double = weight_cpu.astype(np.float64)
+            grad_double = grad_cpu.astype(np.float64)
+            
+            # Compute gradients with higher precision
+            grad_input_double = np.matmul(grad_double, weight_double.T)
+            grad_weight_double = np.matmul(input_double.T, grad_double)
+            
+            # Convert back to float32 with controlled clipping
+            max_val = np.finfo(np.float32).max / 10
+            min_val = np.finfo(np.float32).min / 10
+            
+            grad_input = np.clip(grad_input_double, min_val, max_val).astype(np.float32)
+            grad_weight = np.clip(grad_weight_double, min_val, max_val).astype(np.float32)
+            
+            # Final check for NaN or Inf
+            if np.isnan(grad_input).any() or np.isinf(grad_input).any():
+                print("Warning: grad_input contains NaN or Inf values")
+                grad_input = np.nan_to_num(grad_input, nan=0.0, posinf=max_val, neginf=min_val)
+                
+            if np.isnan(grad_weight).any() or np.isinf(grad_weight).any():
+                print("Warning: grad_weight contains NaN or Inf values")
+                grad_weight = np.nan_to_num(grad_weight, nan=0.0, posinf=max_val, neginf=min_val)
+                
+            return device.upload_tensor(grad_input), device.upload_tensor(grad_weight)
+            
         except Exception as e:
-            print(f"Error in dot product backward (weight): {e}")
-            grad_weight_cpu = np.zeros_like(weight_cpu)
-        
-        # Upload back to GPU
-        return device.upload_tensor(grad_input_cpu), device.upload_tensor(grad_weight_cpu)
+            print(f"Error in dot backward: {e}")
+            # Return zero gradients as fallback
+            input_shape = device.buffer_metadata.get(id(input), {}).get('shape', (1,))
+            weight_shape = device.buffer_metadata.get(id(weight), {}).get('shape', (1,))
+            
+            grad_input = np.zeros(input_shape, dtype=np.float32)
+            grad_weight = np.zeros(weight_shape, dtype=np.float32)
+            
+            return device.upload_tensor(grad_input), device.upload_tensor(grad_weight)
 
 class MetalMaxPool2dFunction(Function):
     @staticmethod
@@ -473,53 +546,94 @@ class MetalDropoutFunction(Function):
 
 class MetalLogSoftmaxFunction(Function):
     @staticmethod
-    def forward(ctx, x):
-        from froog.gpu.buffer_utils import get_buffer_data, buffer_logsoftmax
+    def forward(ctx, input):
+        """
+        LogSoftmax forward with numerical stability improvements.
+        Uses the log-sum-exp trick for numerical stability.
+        """
+        ctx.save_for_backward(input)
         device = get_device()
+        input_cpu = device.download_tensor(input)
         
-        # Get the data as a numpy array
-        x_cpu = get_buffer_data(x)
+        # Check for NaN/Inf values
+        if np.isnan(input_cpu).any() or np.isinf(input_cpu).any():
+            print("Warning: Input contains NaN or Inf values in LogSoftmax forward")
+            input_cpu = np.nan_to_num(input_cpu, nan=0.0, posinf=1.0, neginf=-1.0)
         
-        # Compute log softmax
-        # Subtract max for numerical stability
-        max_vals = np.max(x_cpu, axis=-1, keepdims=True)
+        # Use double precision for intermediate calculations
+        input_double = input_cpu.astype(np.float64)
         
-        # Clip values to prevent overflow
-        safe_x = np.clip(x_cpu - max_vals, -88, 88)  # limit to exp range for float32
+        # Shift input values for numerical stability (log-sum-exp trick)
+        input_shift = input_double - np.max(input_double, axis=-1, keepdims=True)
         
-        # Calculate in a numerically stable way
-        exp_vals = np.exp(safe_x)
-        sum_exp = np.sum(exp_vals, axis=-1, keepdims=True)
+        # Compute exp safely
+        exp_input_shift = np.exp(input_shift)
         
-        # Add small epsilon to prevent log(0)
-        log_sum_exp = np.log(sum_exp + 1e-10)
-        output = safe_x - log_sum_exp
+        # Compute the log of the sum of exponentials with double precision
+        log_sum_exp = np.log(np.sum(exp_input_shift, axis=-1, keepdims=True))
         
-        # Save outputs for backward pass
-        ctx.save_for_backward(output)
+        # Compute log softmax: input - log(sum(exp(input)))
+        log_softmax_result = input_shift - log_sum_exp
         
-        # Upload back to GPU
-        return device.upload_tensor(output)
-    
+        # Convert back to float32 with safety checks
+        result = log_softmax_result.astype(np.float32)
+        
+        # Final check for NaN/Inf values
+        if np.isnan(result).any() or np.isinf(result).any():
+            print("Warning: Result contains NaN or Inf values in LogSoftmax forward")
+            # Use a safe lower bound for log values
+            min_val = -20.0  # Lower bound for log values
+            result = np.nan_to_num(result, nan=min_val, posinf=0.0, neginf=min_val)
+        
+        return device.upload_tensor(result)
+
     @staticmethod
     def backward(ctx, grad_output):
-        from froog.gpu.buffer_utils import get_buffer_data
+        """
+        LogSoftmax backward with numerical stability improvements.
+        The gradient is: grad_output - exp(output) * sum(grad_output)
+        """
+        input, = ctx.saved_tensors
         device = get_device()
         
-        output, = ctx.saved_tensors
-        grad_cpu = get_buffer_data(grad_output)
-        
-        # Compute softmax gradients
-        # Softmax gradient: dy/dx = (1 - exp(logsoftmax)) * dy
-        softmax = np.exp(output)
-        
-        # Clip to prevent overflow in gradient computation
-        softmax = np.clip(softmax, 1e-10, 1.0)
-        
-        dx = grad_cpu - np.sum(grad_cpu * softmax, axis=-1, keepdims=True) * softmax
-        
-        # Upload back to GPU
-        return device.upload_tensor(dx)
+        try:
+            input_cpu = device.download_tensor(input)
+            grad_cpu = device.download_tensor(grad_output)
+            
+            # Check for NaN/Inf values in grad
+            if np.isnan(grad_cpu).any() or np.isinf(grad_cpu).any():
+                print("Warning: Grad contains NaN or Inf values in LogSoftmax backward")
+                grad_cpu = np.nan_to_num(grad_cpu, nan=0.0, posinf=1.0, neginf=-1.0)
+            
+            # Compute the softmax values with better precision
+            input_double = input_cpu.astype(np.float64)
+            input_shift = input_double - np.max(input_double, axis=-1, keepdims=True)
+            softmax = np.exp(input_shift) / np.sum(np.exp(input_shift), axis=-1, keepdims=True)
+            softmax = softmax.astype(np.float32)
+            
+            # Compute the sum of gradients along the class dimension
+            sum_grad = np.sum(grad_cpu, axis=-1, keepdims=True)
+            
+            # Compute the gradient: grad_input = grad_output - softmax * sum(grad_output)
+            result = grad_cpu - softmax * sum_grad
+            
+            # Check for NaN/Inf in the result
+            if np.isnan(result).any() or np.isinf(result).any():
+                print("Warning: Result contains NaN or Inf values in LogSoftmax backward")
+                max_val = np.finfo(np.float32).max / 100
+                result = np.nan_to_num(result, nan=0.0, posinf=max_val, neginf=-max_val)
+                
+            return device.upload_tensor(result)
+            
+        except Exception as e:
+            print(f"Error in LogSoftmax backward: {e}")
+            # Get the shape from saved input
+            input_shape = device.buffer_metadata.get(id(input), {}).get('shape')
+            if input_shape is None:
+                input_cpu = device.download_tensor(input)
+                input_shape = input_cpu.shape
+                
+            return device.upload_tensor(np.zeros(input_shape, dtype=np.float32))
 
 class MetalPad2dFunction(Function):
     @staticmethod

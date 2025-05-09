@@ -1,5 +1,6 @@
 import Metal, objc  # PyObjC allows using Apple's Metal API in Python
 from froog.gpu.device import Device
+import time  # Import time module
 
 class MetalDevice(Device):
     """GPU device implementation for Apple Metal."""
@@ -72,6 +73,13 @@ class MetalDevice(Device):
         # Ensure array is contiguous and float32 (Metal typically uses float32)
         host_array = np.ascontiguousarray(host_array, dtype=np.float32)
         
+        # Check for NaN or Inf values before uploading
+        if np.isnan(host_array).any() or np.isinf(host_array).any():
+            print(f"Warning: Array contains NaN or Inf values before uploading to Metal")
+            # Replace with safe values
+            max_val = np.finfo(np.float32).max / 100
+            host_array = np.nan_to_num(host_array, nan=0.0, posinf=max_val, neginf=-max_val)
+        
         # Get the raw bytes representation of the array
         byte_data = host_array.tobytes()
         
@@ -92,7 +100,8 @@ class MetalDevice(Device):
             'shape': host_array.shape,
             'dtype': host_array.dtype,
             'numpy_array': host_array.copy(),  # Keep a CPU copy for download
-            'size': host_array.size
+            'size': host_array.size,
+            'upload_time': time.time()  # Store upload timestamp
         }
         
         return buffer
@@ -101,66 +110,64 @@ class MetalDevice(Device):
         """Download data from a Metal buffer back to host memory as a NumPy array."""
         import numpy as np
         
+        # If the buffer is None, return an error
+        if buffer is None:
+            print("Error: Attempting to download from a None buffer")
+            raise ValueError("Cannot download from a None buffer")
+            
         try:
             # Get the buffer's metadata if available
             buffer_id = id(buffer)
             metadata = self.buffer_metadata.get(buffer_id, {})
             
-            # If we have kept a CPU copy, return it
+            # If we have kept a CPU copy, use it
             if 'numpy_array' in metadata:
                 return metadata['numpy_array'].copy()
             
             # Try to read the bytes from the Metal buffer's contents
             if hasattr(buffer, 'contents'):
-                try:
-                    buffer_length = buffer.length()
-                    float_count = buffer_length // 4  # 4 bytes per float32
+                buffer_length = buffer.length()
+                float_count = buffer_length // 4  # 4 bytes per float32
+                
+                # If we have the shape, use it to reshape the data
+                shape = metadata.get('shape', (float_count,))
+                dtype = metadata.get('dtype', np.float32)
+                
+                # Get a pointer to the buffer contents
+                contents = buffer.contents()
+                if contents:
+                    # Create a NumPy array from the pointer
+                    import ctypes
+                    ptr = ctypes.cast(contents, ctypes.POINTER(ctypes.c_float))
+                    result = np.ctypeslib.as_array(ptr, shape=(float_count,))
                     
-                    # If we have the shape, use it to reshape the data
-                    shape = metadata.get('shape', (float_count,))
-                    dtype = metadata.get('dtype', np.float32)
+                    # Check for NaN or inf values
+                    if np.isnan(result).any() or np.isinf(result).any():
+                        print(f"Warning: NaN or Inf values detected in buffer {buffer_id}")
+                        # Replace NaN and Inf with zeros to prevent propagation
+                        result = np.nan_to_num(result, nan=0.0, posinf=0.0, neginf=0.0)
                     
-                    # Get a pointer to the buffer contents
-                    contents = buffer.contents()
-                    if contents:
-                        # Create a NumPy array from the pointer
-                        import ctypes
-                        ptr = ctypes.cast(contents, ctypes.POINTER(ctypes.c_float))
-                        result = np.ctypeslib.as_array(ptr, shape=(float_count,))
-                        
-                        # Reshape if we have the original shape
-                        if shape != (float_count,):
-                            result = result.reshape(shape)
-                        
-                        # Cache the result for future use
-                        if buffer_id not in self.buffer_metadata:
-                            self.buffer_metadata[buffer_id] = {}
-                        self.buffer_metadata[buffer_id]['numpy_array'] = result.copy()
-                        
-                        return result
-                except Exception as e:
-                    print(f"Error accessing Metal buffer contents: {e}")
-            
-            # Fallback - create a basic 1D array of float32s
-            buffer_length = buffer.length()
-            float_count = buffer_length // 4  # 4 bytes per float32
-            
-            # Use cached shape if available
-            shape = metadata.get('shape', (float_count,))
-            
-            # Create a dummy array with the right shape
-            result = np.zeros(shape, dtype=np.float32)
-            
-            # Cache the result for future use
-            if buffer_id not in self.buffer_metadata:
-                self.buffer_metadata[buffer_id] = {}
-            self.buffer_metadata[buffer_id]['numpy_array'] = result.copy()
-            
-            print(f"Warning: Using fallback tensor download (zeros with shape {shape})")
-            return result
+                    # Reshape if we have the original shape
+                    if shape != (float_count,):
+                        result = result.reshape(shape)
+                    
+                    # Cache the result for future use
+                    if buffer_id not in self.buffer_metadata:
+                        self.buffer_metadata[buffer_id] = {}
+                    self.buffer_metadata[buffer_id]['numpy_array'] = result.copy()
+                    
+                    return result
+                else:
+                    print(f"Error: Buffer contents pointer is null for buffer {buffer_id}")
+                    raise ValueError("Buffer contents pointer is null")
+            else:
+                print(f"Error: Buffer does not have 'contents' attribute: {type(buffer)}")
+                raise ValueError(f"Buffer does not have 'contents' attribute: {type(buffer)}")
+        
         except Exception as e:
             print(f"Error downloading tensor from Metal: {e}")
-            return np.array([0], dtype=np.float32)  # Return something to prevent crashes
+            # Raise the exception instead of returning a default value
+            raise RuntimeError(f"Failed to download tensor from Metal: {e}")
     
     def compile_kernel(self, source: str, kernel_name: str):
         """Compile a Metal compute kernel from source code. Returns a pipeline state object."""

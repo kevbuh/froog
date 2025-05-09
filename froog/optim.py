@@ -69,13 +69,14 @@ class Adam(Optimizer):
   """
   Default ADAM opimizer from https://arxiv.org/pdf/1412.6980.pdf algorithm
   """
-  def __init__(self, params: List[Tensor], lr: float = 0.001, b1: float = 0.9, b2: float = 0.999, eps: float = 10e-8) -> None:
+  def __init__(self, params: List[Tensor], lr: float = 0.001, b1: float = 0.9, b2: float = 0.999, eps: float = 10e-8, max_grad: float = 10.0) -> None:
     super(Adam, self).__init__(params)
     self.lr = lr
     self.b1 = b1
     self.b2 = b2
-    self.eps = eps # should be 1e-8?
+    self.eps = eps
     self.t = 0
+    self.max_grad = max_grad  # Max gradient value for clipping
     
     # Check if parameters are on GPU
     self.on_gpu = any(t.gpu for t in self.params if t is not None)
@@ -91,6 +92,7 @@ class Adam(Optimizer):
 
   def step(self) -> None:
     from froog.tensor import tensor_to_cpu, tensor_to_gpu
+    import numpy as np
     
     self.t += 1
     a = self.lr * (
@@ -103,23 +105,55 @@ class Adam(Optimizer):
         
       if t.gpu:
         # Handle GPU tensors
-        t_data_cpu = tensor_to_cpu(t.data)
-        grad_cpu = tensor_to_cpu(t.grad.data)
-        
-        # Update momentum and velocity
-        self.m[i] = self.b1 * self.m[i] + (1 - self.b1) * grad_cpu
-        self.v[i] = self.b2 * self.v[i] + (1 - self.b2) * np.square(grad_cpu)
-        
-        # Compute update
-        update = a * self.m[i] / (np.sqrt(self.v[i]) + self.eps)
-        
-        # Apply update
-        t_data_cpu -= update
-        
-        # Upload back to GPU
-        t.data = tensor_to_gpu(t_data_cpu)
+        try:
+          # Download to CPU safely
+          t_data_cpu = tensor_to_cpu(t.data)
+          grad_cpu = tensor_to_cpu(t.grad.data)
+          
+          # Check for NaN/Inf in gradients and clip if needed
+          if np.isnan(grad_cpu).any() or np.isinf(grad_cpu).any():
+            print(f"Warning: NaN or Inf detected in gradients for parameter {i}")
+            grad_cpu = np.nan_to_num(grad_cpu, nan=0.0, posinf=self.max_grad, neginf=-self.max_grad)
+          
+          # Clip gradients for stability on Metal
+          if self.max_grad > 0:
+            grad_cpu = np.clip(grad_cpu, -self.max_grad, self.max_grad)
+          
+          # Update momentum and velocity with more stability
+          self.m[i] = self.b1 * self.m[i] + (1 - self.b1) * grad_cpu
+          self.v[i] = self.b2 * self.v[i] + (1 - self.b2) * np.square(grad_cpu)
+          
+          # Compute update with numerical stability
+          denom = np.sqrt(self.v[i]) + self.eps
+          update = a * self.m[i] / denom
+          
+          # Check for NaN/Inf in update
+          if np.isnan(update).any() or np.isinf(update).any():
+            print(f"Warning: NaN or Inf detected in update for parameter {i}")
+            max_update = np.finfo(np.float32).max / 100
+            update = np.nan_to_num(update, nan=0.0, posinf=max_update, neginf=-max_update)
+          
+          # Apply update
+          t_data_cpu -= update
+          
+          # Check for NaN/Inf in result
+          if np.isnan(t_data_cpu).any() or np.isinf(t_data_cpu).any():
+            print(f"Warning: NaN or Inf detected in parameter {i} after update")
+            max_val = np.finfo(np.float32).max / 10
+            t_data_cpu = np.nan_to_num(t_data_cpu, nan=0.0, posinf=max_val, neginf=-max_val)
+          
+          # Upload back to GPU
+          t.data = tensor_to_gpu(t_data_cpu)
+        except Exception as e:
+          print(f"Error in Adam update for GPU tensor {i}: {e}")
+          # Skip this parameter for this step
+          continue
       else:
-        # CPU tensor path
+        # CPU tensor path - keep original but with gradient clipping for consistency
+        # Clip gradients if needed
+        if self.max_grad > 0:
+          np.clip(t.grad.data, -self.max_grad, self.max_grad, out=t.grad.data)
+          
         self.m[i] = self.b1 * self.m[i] + (1 - self.b1) * t.grad.data
         self.v[i] = self.b2 * self.v[i] + (1 - self.b2) * np.square(t.grad.data)
         t.data -= a * self.m[i] / (np.sqrt(self.v[i]) + self.eps)
