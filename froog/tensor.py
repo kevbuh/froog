@@ -16,6 +16,8 @@ T = TypeVar('T', bound='Tensor')
 
 class Tensor:
     did_float_warning = False
+    ops = {}
+    ops_gpu = {}
 
     def __init__(self, data: Union[List, np.ndarray, Any], gpu: bool = False):
         if isinstance(data, list): data = np.array(data, dtype=np.float32)
@@ -29,14 +31,10 @@ class Tensor:
         self.data = data
         self.grad: Optional[Tensor] = None
         self._ctx = None
-        if gpu:
-            self.gpu_()
+        if gpu: self.gpu_()
 
-    def __repr__(self) -> str:
-        return f"Tensor data: {self.data}, gradients: {self.grad.data if self.grad else None}"
-
-    def assign(self, x: T) -> None:
-        self.data = x.data
+    def __repr__(self) -> str: return f"Tensor data: {self.data}, gradients: {self.grad.data if self.grad else None}"
+    def assign(self, x: T) -> None: self.data = x.data
 
     @property
     def shape(self) -> Tuple[int, ...]:
@@ -109,32 +107,25 @@ class Tensor:
 
     def unsqueeze(self, dim: int) -> T:
         shape = list(self.shape)
-        if dim < 0:
-            dim = len(shape) + 1 + dim
+        if dim < 0: dim = len(shape) + 1 + dim
         shape.insert(dim, 1)
         return Tensor(self.data.reshape(shape), gpu=self.gpu)
 
     def squeeze(self, dim: Optional[int] = None) -> T:
-        if dim is None:
-            return Tensor(self.data.squeeze(), gpu=self.gpu)
-        else:
-            shape = list(self.shape)
-            if dim < 0:
-                dim = len(shape) + dim
-            if 0 <= dim < len(shape) and shape[dim] == 1:
-                shape.pop(dim)
-            return Tensor(self.data.reshape(shape), gpu=self.gpu)
+        if dim is None: return Tensor(self.data.squeeze(), gpu=self.gpu)
+        shape = list(self.shape)
+        if dim < 0: dim = len(shape) + dim
+        if 0 <= dim < len(shape) and shape[dim] == 1: shape.pop(dim)
+        return Tensor(self.data.reshape(shape), gpu=self.gpu)
 
     def backward(self, allow_fill: bool = True) -> None:
-        if self._ctx is None:
-            return
+        if self._ctx is None: return
         if self.grad is None and allow_fill:
             assert self.shape == (1,)
             self.grad = Tensor(np.ones(self.shape, dtype=self.dtype), gpu=self.gpu)
         assert self.grad is not None
         grads = self._ctx.backward(self._ctx, self.grad.data)
-        if len(self._ctx.parents) == 1:
-            grads = [grads]
+        if len(self._ctx.parents) == 1: grads = [grads]
         for t, g in zip(self._ctx.parents, grads):
             if g is None: continue
             t_shape = t.shape
@@ -159,16 +150,11 @@ class Tensor:
             t.backward(allow_fill=False)
 
     def to_cpu(self) -> T:
-        if self.gpu:
-            data = download_tensor(self)
-            ret = Tensor(data)
-            if self.grad: ret.grad = self.grad.to_cpu()
-            return ret
-        else:
-            return cast(T, self)
-
-    ops = {}
-    ops_gpu = {}
+        if not self.gpu: return cast(T, self)
+        data = download_tensor(self)
+        ret = Tensor(data)
+        if self.grad: ret.grad = self.grad.to_cpu()
+        return ret
 
     def mean(self) -> T:
         div = Tensor(np.array([1 / self.size], dtype=np.float32), gpu=self.gpu)
@@ -181,6 +167,21 @@ class Tensor:
     def div(self, y: T) -> T:
         root = Tensor(np.zeros(self.shape, dtype=np.float32) - 1, gpu=self.gpu)
         return self.mul(y.pow(root))
+
+    def gpu_(self) -> None:
+        if not self.gpu and (device := get_device()) is not None and device.name != "CPU":
+            self.data = upload_tensor(self.data)
+            self.gpu = True
+            if self.grad: self.grad.gpu_()
+
+    def to_gpu(self) -> T:
+        if (device := get_device()) is None or device.name == "CPU": raise Exception("no gpu support! install pyopencl or use a Metal-compatible device")
+        if self.gpu: return cast(T, self)
+        gpu_data = upload_tensor(self.data)
+        ret = Tensor(gpu_data)
+        ret.gpu = True
+        if self.grad: ret.grad = self.grad.to_gpu()
+        return ret
 
 class Function:
     def __init__(self, *tensors: Tensor) -> None:
@@ -225,12 +226,9 @@ def register(name: str, fxn: Any, gpu: bool = False) -> None:
         setattr(Tensor, "__%s__" % name, dispatch)
         setattr(Tensor, "__i%s__" % name, lambda self, x: self.assign(dispatch(self, x)))
 
-# Import operations
-import froog.ops
-
 # Check for GPU availability using the device manager
-device = get_device()
-if device is not None and device.name != "CPU":
+
+if (device := get_device()) is not None and device.name != "CPU":
     if device.__class__.__name__ == "MetalDevice":
         try: import froog.gpu.metal.ops_metal
         except ImportError: 
@@ -241,50 +239,3 @@ if device is not None and device.name != "CPU":
             if os.getenv("DEBUG") == "1": print("OpenCL operations imported successfully")
         except ImportError: 
             if os.getenv("DEBUG") == "1": print("Failed to import OpenCL operations")
-
-def to_cpu(self) -> T:
-    if self.gpu:
-        data = download_tensor(self)
-        ret = Tensor(data)
-        if self.grad: ret.grad = self.grad.to_cpu()
-        return ret
-    else:
-        return cast(T, self)
-
-def gpu_(self) -> None:
-    get_device()
-    if not self.gpu and get_device() is not None and get_device().name != "CPU":
-        self.data = upload_tensor(self.data)
-        self.gpu = True
-        if self.grad: self.grad.gpu_()
-
-def to_gpu(self) -> T:
-    device = get_device()
-    if device is None or device.name == "CPU":
-        raise Exception("no gpu support! install pyopencl or use a Metal-compatible device")
-    if not self.gpu:
-        get_device()
-        if device is None: raise Exception("No GPU device available")
-        gpu_data = upload_tensor(self.data)
-        ret = Tensor(gpu_data)
-        ret.gpu = True
-        if self.grad: ret.grad = self.grad.to_gpu()
-        return ret
-    else:
-        return cast(T, self)
-
-Tensor.to_cpu = to_cpu
-Tensor.gpu_ = gpu_
-Tensor.to_gpu = to_gpu
-
-def print_computation_graph(tensor: Tensor) -> None:
-    visited = set()
-    def traverse(t: Tensor, depth: int = 0):
-        if t in visited: return
-        visited.add(t)
-        indent = '  ' * depth
-        print(f"{indent}Tensor: {t}, Grad: {t.grad}")
-        if t._ctx is not None:
-            print(f"{indent}Operation: {t._ctx.__class__.__name__}")
-            for parent in t._ctx.parents: traverse(parent, depth + 1)
-    traverse(tensor)

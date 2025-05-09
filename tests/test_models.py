@@ -103,12 +103,12 @@ class TestModels(unittest.TestCase):
   def test_conv_cpu(self):
     model = SimpleConvNet()
     optimizer = optim.SGD(model.parameters(), lr=0.001)
-    train(model, optimizer, steps=300)
+    train(model, optimizer, steps=200)
     evaluate(model)
   def test_mnist_conv_adam(self):
     model = SimpleConvNet()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
-    train(model, optimizer, steps=300)
+    train(model, optimizer, steps=100)
     evaluate(model)
   def test_mnist_mlp_sgd(self):
     model = SimpleMLP()
@@ -120,7 +120,7 @@ class TestModels(unittest.TestCase):
     for param in model.parameters(): param.data = param.data * 0.1
     [x.gpu_() for x in model.parameters()]
     optimizer = optim.SGD(model.parameters(), lr=0.0002, clip_value=1.0)
-    train(model, optimizer, steps=1200, BS=32, gpu=True)
+    train(model, optimizer, steps=650, BS=512, gpu=True)
     evaluate(model, gpu=True)
   def test_mnist_mlp_rmsprop(self):
     model = SimpleMLP()
