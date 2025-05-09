@@ -141,20 +141,12 @@ class Tensor:
                         except:
                             print(f"Warning: Could not determine shape of gradient in {self._ctx}")
                             g_shape = t_shape
-            else:
-                g_shape = g.shape
+            else: g_shape = g.shape
             if g_shape != t_shape:
                 print(f"grad shape must match tensor shape in {self._ctx}, {g_shape} != {t_shape}")
                 assert False
             t.grad = Tensor(g)
             t.backward(allow_fill=False)
-
-    def to_cpu(self) -> T:
-        if not self.gpu: return cast(T, self)
-        data = download_tensor(self)
-        ret = Tensor(data)
-        if self.grad: ret.grad = self.grad.to_cpu()
-        return ret
 
     def mean(self) -> T:
         div = Tensor(np.array([1 / self.size], dtype=np.float32), gpu=self.gpu)
@@ -167,7 +159,14 @@ class Tensor:
     def div(self, y: T) -> T:
         root = Tensor(np.zeros(self.shape, dtype=np.float32) - 1, gpu=self.gpu)
         return self.mul(y.pow(root))
-
+    
+    def to_cpu(self) -> T:
+        if not self.gpu: return cast(T, self)
+        data = download_tensor(self)
+        ret = Tensor(data)
+        if self.grad: ret.grad = self.grad.to_cpu()
+        return ret
+    
     def gpu_(self) -> None:
         if not self.gpu and (device := get_device()) is not None and device.name != "CPU":
             self.data = upload_tensor(self.data)
@@ -226,16 +225,12 @@ def register(name: str, fxn: Any, gpu: bool = False) -> None:
         setattr(Tensor, "__%s__" % name, dispatch)
         setattr(Tensor, "__i%s__" % name, lambda self, x: self.assign(dispatch(self, x)))
 
-# Check for GPU availability using the device manager
-
 if (device := get_device()) is not None and device.name != "CPU":
     if device.__class__.__name__ == "MetalDevice":
         try: import froog.gpu.metal.ops_metal
         except ImportError: 
             if os.getenv("DEBUG") == "1": print("Failed to import Metal operations")
     elif device.__class__.__name__ == "OpenCLDevice":
-        try:
-            import froog.gpu.cl.ops_cl
-            if os.getenv("DEBUG") == "1": print("OpenCL operations imported successfully")
+        try: import froog.gpu.cl.ops_cl
         except ImportError: 
             if os.getenv("DEBUG") == "1": print("Failed to import OpenCL operations")
