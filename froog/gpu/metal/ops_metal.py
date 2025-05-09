@@ -7,21 +7,19 @@ passes the test‑suite even on machines without the MPSGraph Obj‑C runtime.
 """
 
 from __future__ import annotations
-
 import numpy as np
 
 # Optional PyObjC bridge to MPSGraph -------------------------------------------------
 try:
     import Metal as _mtl  # type: ignore
     import MetalPerformanceShadersGraph as _mpsg  # type: ignore
-
     _HAS_MPS = hasattr(_mpsg, "MPSGraph") and hasattr(_mpsg.MPSGraphTensorData, "tensorDataWithDevice_shape_data_")
 except (ImportError, AttributeError):
     _mpsg = None  # type: ignore
     _mtl = None  # type: ignore
     _HAS_MPS = False
 
-from froog.tensor import Function, Tensor, register  # type: ignore
+from froog.tensor import Function, register  # type: ignore
 from froog.gpu import get_device                     # knows how to upload / download
 from froog.gpu.buffer_utils import get_buffer_data   # helpers for Metal buffers
 
@@ -33,26 +31,19 @@ if _HAS_MPS:
     _mps_graph = _mpsg.MPSGraph.alloc().init()
 
     def _to_td(arr: np.ndarray):
-        return _mpsg.MPSGraphTensorData.tensorDataWithDevice_shape_data_(
-            _mps_device, tuple(arr.shape), arr.astype(np.float32, copy=False).tobytes()
-        )
+        return _mpsg.MPSGraphTensorData.tensorDataWithDevice_shape_data_(_mps_device, tuple(arr.shape), arr.astype(np.float32, copy=False).tobytes())
 
     def _run_graph(build_fn, feeds: dict[str, np.ndarray]):
         placeholders = {}
         feeds_td = {}
         for name, arr in feeds.items():
-            ph = _mps_graph.placeholderWithShape_dataType_name_(
-                tuple(arr.shape), _mpsg.MPSDataTypeFloat32, name
-            )
+            ph = _mps_graph.placeholderWithShape_dataType_name_(tuple(arr.shape), _mpsg.MPSDataTypeFloat32, name)
             placeholders[name] = ph
             feeds_td[ph] = _to_td(arr)
 
         out_tensor = build_fn(placeholders)
-        res_map, err = _mps_graph.runWithFeeds_targetTensors_targetOperations_error_(
-            feeds_td, [out_tensor], None, None
-        )
-        if err is not None:
-            raise RuntimeError(err.localizedDescription())
+        res_map, err = _mps_graph.runWithFeeds_targetTensors_targetOperations_error_(feeds_td, [out_tensor], None, None)
+        if err is not None: raise RuntimeError(err.localizedDescription())
         td = res_map[out_tensor]
         out_shape = tuple(td.shape())
         return np.frombuffer(td.data().bytes(), dtype=np.float32).reshape(out_shape).copy()
@@ -66,46 +57,25 @@ else:
 # ----------------------------------------------------------------------------
 
 def _binary_cpu(name: str, x: np.ndarray, y: np.ndarray):
-    if name == "add":
-        return x + y
-    if name == "sub":
-        return x - y
-    if name == "mul":
-        return x * y
-    if name == "div":
-        return x / y
-    if name == "pow":
-        return np.power(x, y)
+    if name == "add": return x + y
+    if name == "sub": return x - y
+    if name == "mul": return x * y
+    if name == "div": return x / y
+    if name == "pow": return np.power(x, y)
     raise ValueError(name)
-
 
 def _unary_cpu(name: str, x: np.ndarray):
-    if name == "relu":
-        return np.maximum(x, 0)
-    if name == "sigmoid":
-        return 1 / (1 + np.exp(-x))
-    if name == "sqrt":
-        return np.sqrt(x)
+    if name == "relu": return np.maximum(x, 0)
+    if name == "sigmoid": return 1 / (1 + np.exp(-x))
+    if name == "sqrt": return np.sqrt(x)
     raise ValueError(name)
 
-
-def _sum_cpu(x: np.ndarray):
-    return np.array([x.sum()], dtype=x.dtype)
-
-
-def _matmul_cpu(x: np.ndarray, y: np.ndarray):
-    return x @ y
-
-
-def _reshape_cpu(x: np.ndarray, shape):
-    return x.reshape(shape)
-
-
+def _sum_cpu(x: np.ndarray): return np.array([x.sum()], dtype=x.dtype)
+def _matmul_cpu(x: np.ndarray, y: np.ndarray): return x @ y
+def _reshape_cpu(x: np.ndarray, shape): return x.reshape(shape)
 def _logsoftmax_cpu(x: np.ndarray):
     shift = x - np.max(x, axis=-1, keepdims=True)
     return shift - np.log(np.sum(np.exp(shift), axis=-1, keepdims=True))
-
-
 def _pool2d_cpu(x: np.ndarray, kernel, mode):
     kH, kW = kernel
     N, C, H, W = x.shape
@@ -117,18 +87,12 @@ def _pool2d_cpu(x: np.ndarray, kernel, mode):
                 for w in range(outW):
                     h0, w0 = h * kH, w * kW
                     window = x[n, c, h0:h0+kH, w0:w0+kW]
-                    if mode == "max":
-                        out[n, c, h, w] = window.max()
-                    else:
-                        out[n, c, h, w] = window.mean()
+                    if mode == "max": out[n, c, h, w] = window.max()
+                    else: out[n, c, h, w] = window.mean()
     return out
-
-
 def _pad2d_cpu(x: np.ndarray, pad):
     l, r, t, b = pad
     return np.pad(x, ((0,0),(0,0),(t,b),(l,r)))
-
-
 def _conv2d_cpu(x: np.ndarray, w: np.ndarray, b: np.ndarray | None, stride, padding):
     if isinstance(stride, int):
         stride = (stride, stride)
@@ -153,8 +117,7 @@ def _conv2d_cpu(x: np.ndarray, w: np.ndarray, b: np.ndarray | None, stride, padd
                     h0, w0 = h * sH, w_ * sW
                     region = xp[n, :, h0:h0+kH, w0:w0+kW]
                     out[n, f, h, w_] = np.sum(region * w[f])
-                    if b is not None:
-                        out[n, f, h, w_] += b[f]
+                    if b is not None: out[n, f, h, w_] += b[f]
     return out
 
 # ----------------------------------------------------------------------------
@@ -174,13 +137,11 @@ def _binary_op(name: str, x_cpu: np.ndarray, y_cpu: np.ndarray):
                 "pow": _mpsg.MPSGraph.powerWithPrimaryTensor_secondaryTensor_name_,
             }[name]
             return sel(_mps_graph, xa, ya, name)
-        try:
-            return _run_graph(build, {"x": x_cpu, "y": y_cpu})
+        try: return _run_graph(build, {"x": x_cpu, "y": y_cpu})
         except Exception:
             # Fallback if a selector is missing on this macOS version
             pass
     return _binary_cpu(name, x_cpu, y_cpu)
-
 
 def _unary_op(name: str, x_cpu: np.ndarray):
     if _HAS_MPS:
@@ -192,24 +153,19 @@ def _unary_op(name: str, x_cpu: np.ndarray):
                 "sqrt": _mpsg.MPSGraph.sqrtWithTensor_name_,
             }[name]
             return sel(_mps_graph, xa, name)
-        try:
-            return _run_graph(build, {"x": x_cpu})
+        try: return _run_graph(build, {"x": x_cpu})
         except Exception:
             pass
     return _unary_cpu(name, x_cpu)
 
-
 def _sum_op(x_cpu: np.ndarray):
     if _HAS_MPS:
         axes = np.arange(x_cpu.ndim, dtype=np.int32)
-        def build(ph):
-            return _mps_graph.reductionSumWithTensor_axes_name_(ph["x"], _to_td(axes), "sum")
-        try:
-            return _run_graph(build, {"x": x_cpu})
+        def build(ph): return _mps_graph.reductionSumWithTensor_axes_name_(ph["x"], _to_td(axes), "sum")
+        try: return _run_graph(build, {"x": x_cpu})
         except Exception:
             pass
     return _sum_cpu(x_cpu)
-
 
 def _matmul(x_cpu: np.ndarray, y_cpu: np.ndarray):
     if _HAS_MPS:
@@ -243,7 +199,6 @@ def _logsoftmax(x_cpu: np.ndarray):
             pass
     return _logsoftmax_cpu(x_cpu)
 
-
 def _pool2d(x_cpu: np.ndarray, kernel, mode):
     if _HAS_MPS:
         try:
@@ -259,7 +214,6 @@ def _pool2d(x_cpu: np.ndarray, kernel, mode):
             pass
     return _pool2d_cpu(x_cpu, kernel, mode)
 
-
 def _pad2d(x_cpu: np.ndarray, padding):
     if _HAS_MPS:
         try:
@@ -271,7 +225,6 @@ def _pad2d(x_cpu: np.ndarray, padding):
         except Exception:
             pass
     return _pad2d_cpu(x_cpu, padding)
-
 
 def _conv2d(x_cpu: np.ndarray, w_cpu: np.ndarray, b_cpu: np.ndarray | None, stride, padding):
     if _HAS_MPS:
@@ -305,13 +258,10 @@ def _conv2d(x_cpu: np.ndarray, w_cpu: np.ndarray, b_cpu: np.ndarray | None, stri
 class _BinOp(Function):
     _op: str
     @staticmethod
-    def forward(ctx, x, y):
-        ctx._op = "noop"  # placeholder
+    def forward(ctx, x, y): ctx._op = "noop" # placeholder
 
     @staticmethod
-    def backward(ctx, grad):
-        raise NotImplementedError
-
+    def backward(ctx, grad): raise NotImplementedError
 
 def _make_bin_cls(name):
     class _C(Function):
@@ -327,26 +277,17 @@ def _make_bin_cls(name):
             g_cpu     = get_buffer_data(grad)
             x_cpu     = get_buffer_data(x)
             y_cpu     = get_buffer_data(y)
-
-            if name == "add":
-                dx_cpu, dy_cpu = g_cpu, g_cpu
-            elif name == "sub":
-                dx_cpu, dy_cpu = g_cpu, -g_cpu
-            elif name == "mul":
-                dx_cpu, dy_cpu = g_cpu * y_cpu, g_cpu * x_cpu
+            if name == "add": dx_cpu, dy_cpu = g_cpu, g_cpu
+            elif name == "sub": dx_cpu, dy_cpu = g_cpu, -g_cpu
+            elif name == "mul": dx_cpu, dy_cpu = g_cpu * y_cpu, g_cpu * x_cpu
             elif name == "div":
                 dx_cpu = g_cpu / y_cpu
                 dy_cpu = -g_cpu * x_cpu / (y_cpu ** 2)
             elif name == "pow":
                 dx_cpu = y_cpu * np.power(x_cpu, y_cpu - 1) * g_cpu
                 dy_cpu = np.log(x_cpu) * np.power(x_cpu, y_cpu) * g_cpu
-            else:
-                raise NotImplementedError
-
-            return (
-                get_device().upload_tensor(dx_cpu),
-                get_device().upload_tensor(dy_cpu),
-            )
+            else: raise NotImplementedError
+            return ( get_device().upload_tensor(dx_cpu), get_device().upload_tensor(dy_cpu), )
     _C.__name__ = f"MPS{name.capitalize()}"
     return _C
 
@@ -360,10 +301,10 @@ class MPSSqrt(Function):
         return get_device().upload_tensor(out)
     @staticmethod
     def backward(ctx, grad):
-        x,       = ctx.saved_tensors
-        g_cpu     = get_buffer_data(grad)
-        x_cpu     = get_buffer_data(x)
-        dx_cpu    = g_cpu * 0.5 / np.sqrt(x_cpu)
+        x, = ctx.saved_tensors
+        g_cpu = get_buffer_data(grad)
+        x_cpu = get_buffer_data(x)
+        dx_cpu = g_cpu * 0.5 / np.sqrt(x_cpu)
         return get_device().upload_tensor(dx_cpu)
 
 class MPSReLU(Function):
@@ -374,10 +315,10 @@ class MPSReLU(Function):
         return get_device().upload_tensor(out)
     @staticmethod
     def backward(ctx, grad):
-        x,        = ctx.saved_tensors
-        g_cpu      = get_buffer_data(grad)
-        mask_cpu   = (get_buffer_data(x) > 0).astype(np.float32)
-        dx_cpu     = g_cpu * mask_cpu
+        x, = ctx.saved_tensors
+        g_cpu = get_buffer_data(grad)
+        mask_cpu = (get_buffer_data(x) > 0).astype(np.float32)
+        dx_cpu = g_cpu * mask_cpu
         return get_device().upload_tensor(dx_cpu)
 
 class MPSSigmoid(Function):
@@ -402,16 +343,13 @@ class MPSDot(Function):
         return get_device().upload_tensor(out)
     @staticmethod
     def backward(ctx, grad):
-        x, y    = ctx.saved_tensors
-        g_cpu    = get_buffer_data(grad)
-        x_cpu    = get_buffer_data(x)
-        y_cpu    = get_buffer_data(y)
-        dx_cpu   = g_cpu @ y_cpu.T
-        dy_cpu   = x_cpu.T @ g_cpu
-        return (
-            get_device().upload_tensor(dx_cpu),
-            get_device().upload_tensor(dy_cpu),
-        )
+        x, y = ctx.saved_tensors
+        g_cpu = get_buffer_data(grad)
+        x_cpu = get_buffer_data(x)
+        y_cpu = get_buffer_data(y)
+        dx_cpu = g_cpu @ y_cpu.T
+        dy_cpu = x_cpu.T @ g_cpu
+        return ( get_device().upload_tensor(dx_cpu), get_device().upload_tensor(dy_cpu), )
 
 MPSMatMul = MPSDot  # alias
 
@@ -458,15 +396,14 @@ class MPSDropout(Function):
     @staticmethod
     def forward(ctx, x, p=0.5, training=True):
         ctx.training, ctx.p = training, p
-        if training:
-            mask = (np.random.rand(*x.shape) > p).astype(np.float32)
-            ctx.mask = mask
-            return x * mask / (1 - p)
-        return x
+        if not training: return x
+        mask = (np.random.rand(*x.shape) > p).astype(np.float32)
+        ctx.mask = mask
+        return x * mask / (1 - p)
+    
     @staticmethod
     def backward(ctx, grad):
-        if not ctx.training:
-            return grad
+        if not ctx.training: return grad
         g_cpu  = get_buffer_data(grad)
         dx_cpu = g_cpu * ctx.mask / (1 - ctx.p)
         return get_device().upload_tensor(dx_cpu)
