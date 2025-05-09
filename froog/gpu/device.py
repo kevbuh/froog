@@ -3,75 +3,44 @@ import numpy as np
 from typing import Any, Tuple, Optional, Union, TypeVar, List, Dict, Callable
 
 class Device(ABC):
-    """Base device abstraction for GPU operations."""
+    """Abstract base class representing a generic GPU compute device."""
     
     @abstractmethod
-    def __init__(self):
-        """Initialize the device."""
-        pass
-    
-    @property
-    @abstractmethod
-    def name(self) -> str:
-        """Return the device name."""
-        pass
+    def allocate_memory(self, size: int):
+        """Allocate `size` bytes on the GPU device memory and return a handle to the allocated buffer."""
+        ...
     
     @abstractmethod
-    def is_available(self) -> bool:
-        """Check if the device is available."""
-        pass
-        
-    @abstractmethod
-    def tensor_to_device(self, data: np.ndarray) -> Any:
-        """Convert CPU data to device."""
-        pass
-        
-    @abstractmethod
-    def tensor_to_cpu(self, tensor: Any) -> np.ndarray:
-        """Convert a device tensor to CPU."""
-        pass
+    def free_memory(self, buffer):
+        """Free a previously allocated GPU buffer."""
+        ...
     
     @abstractmethod
-    def is_device_tensor(self, data: Any) -> bool:
-        """Check if data is a device tensor."""
-        pass
+    def upload_tensor(self, host_array) -> object:
+        """Copy data from a host (CPU) array to device memory. Returns a device buffer containing the data."""
+        ...
     
     @abstractmethod
-    def get_size(self, x: Any) -> int:
-        """Return the total number of elements in x."""
-        pass
+    def download_tensor(self, buffer) -> object:
+        """Copy data from a device memory buffer back to a host array (e.g., NumPy array)."""
+        ...
     
     @abstractmethod
-    def buffer_new(self, shape: Tuple[int, ...]) -> Any:
-        """Create a new empty buffer with the given shape."""
-        pass
+    def compile_kernel(self, source: str, kernel_name: str) -> object:
+        """Compile a compute kernel from source code. Returns an object representing the compiled kernel (e.g., a handle or pipeline state)."""
+        ...
     
     @abstractmethod
-    def buffer_zeros(self, shape: Tuple[int, ...]) -> Any:
-        """Create a new buffer filled with zeros."""
-        pass
+    def execute_kernel(self, compiled_kernel, grid_size: tuple, threadgroup_size: tuple, buffers: list):
+        """Launch a compiled kernel on the device. `grid_size` is the global work size (threads), `threadgroup_size` is the size of each thread group, and `buffers` is a list of device buffers to bind to the kernel."""
+        ...
     
     @abstractmethod
-    def buffer_like(self, x: Any) -> Any:
-        """Create a new buffer with the same shape as x."""
-        pass
+    def synchronize(self):
+        """Block until all pending device operations (kernels, memory transfers) have completed."""
+        ...
     
     @abstractmethod
-    def build_program(self, code: str) -> Any:
-        """Build a program/kernel from source code."""
-        pass
-    
-    @abstractmethod
-    def binary_op(self, code: str, x: Any, y: Any) -> Any:
-        """Apply a binary operation to two tensors."""
-        pass
-    
-    @abstractmethod
-    def unary_op(self, code: str, x: Any) -> Any:
-        """Apply a unary operation to a tensor."""
-        pass
-    
-    @abstractmethod
-    def pooling_op(self, input: Any, kernel_size: Tuple[int, int], iter_op: str, result_op: str, init_val: Union[int, str] = 0) -> Any:
-        """Apply a pooling operation to a tensor."""
-        pass
+    def get_capabilities(self) -> dict:
+        """Query device capabilities (e.g., name, total memory) and return them as a dictionary."""
+        ...
