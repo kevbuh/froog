@@ -116,7 +116,7 @@ class TestModels(unittest.TestCase):
     for param in model.parameters(): param.data = param.data * 0.1
     [x.gpu_() for x in model.parameters()]
     optimizer = optim.SGD(model.parameters(), lr=0.0002, clip_value=1.0)
-    train(model, optimizer, steps=1100, BS=32, gpu=True)
+    train(model, optimizer, steps=1200, BS=32, gpu=True)
     evaluate(model, gpu=True)
   def test_mnist_mlp_rmsprop(self):
     model = SimpleMLP()

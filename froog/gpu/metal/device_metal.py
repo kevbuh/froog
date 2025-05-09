@@ -1,6 +1,5 @@
-import Metal, objc  # PyObjC allows using Apple's Metal API in Python
+import time 
 from froog.gpu.device import Device
-import time  # Import time module
 
 class MetalDevice(Device):
     """GPU device implementation for Apple Metal."""
