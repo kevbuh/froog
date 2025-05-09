@@ -191,22 +191,10 @@ def evaluate(model, gpu=False):
         conf_matrix[Y_test[i]][Y_test_preds[i]] += 1
     
     print(conf_matrix)
-    
     return accuracy
 
   accuracy = numpy_eval()
-  
-  # Use a different threshold for GPU vs CPU tests
-  # GPU implementation may have numerical issues that affect accuracy
-  # if gpu:
-  #   # For Metal GPU, we currently have significant numerical issues
-  #   # Use a much lower threshold until the implementation is improved
-  #   threshold = 0.10  # Temporary lower threshold for Metal
-  #   print("\nNOTE: Using reduced accuracy threshold for Metal GPU test")
-  #   print("Current Metal implementation has known numerical stability issues")
-  #   print("This test is primarily checking that the Metal code runs without crashing")
-  # else:
-  threshold = 0.9  # Standard threshold for CPU tests
+  threshold = 0.9
   
   # Print thresholds for clarity
   print(f"Required accuracy threshold: {threshold:.2f}")
