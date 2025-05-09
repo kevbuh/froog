@@ -1,3 +1,14 @@
+"""
+- `get_device()`: Get the current device or default device
+- `set_device()`: Set the active device
+- `get_available_devices()`: Get a list of all available devices
+- `upload_tensor()`: Upload data to the current device
+- `download_tensor()`: Download data from the current device
+- `allocate_buffer()`: Allocate a buffer on the current device
+- `is_device_tensor()`: Check if data is a device buffer
+- `synchronize()`: Synchronize operations on the current device
+"""
+
 import functools
 import platform
 import os

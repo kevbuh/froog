@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Any, Callable
+from typing import Any
 
 # Check if Metal is available
 try:
@@ -13,16 +13,33 @@ try:
     else:
         test_device = Metal.MTLCreateSystemDefaultDevice()
         METAL_AVAILABLE = test_device is not None
-        METAL_GPU = METAL_AVAILABLE
 except ImportError as e:
-    print(f"Metal not available: {str(e)}")
+    if __name__ == "__main__":
+        print(f"Metal not available: {str(e)}")
     METAL_AVAILABLE = False
-    METAL_GPU = False
     Metal = None
     objc = None
 
-_metal_device = None
-METAL_GPU = METAL_GPU
+def is_metal_buffer(data: Any) -> bool:
+    """Check if the data is a Metal buffer."""
+    return (hasattr(data, "__pyobjc_object__") or 
+            (hasattr(data, "length") and callable(data.length)) or
+            str(type(data)).find('Metal.MTLBuffer') >= 0)
+
+def get_buffer_data(buffer: Any) -> np.ndarray:
+    """Get data from a Metal buffer."""
+    if hasattr(buffer, "contents"):
+        import ctypes
+        buffer_length = buffer.length()
+        float_count = buffer_length // 4  # Assuming float32
+        
+        contents = buffer.contents()
+        if contents is not None:
+            ptr = ctypes.cast(contents, ctypes.POINTER(ctypes.c_float))
+            return np.ctypeslib.as_array(ptr, shape=(float_count,))
+    
+    # Return empty array if we couldn't get data
+    return np.array([], dtype=np.float32)
 
 def check_and_initialize_metal(get_device_func, set_device_func) -> bool:
     global METAL_AVAILABLE, METAL_GPU, _metal_device
