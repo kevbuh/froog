@@ -544,4 +544,4 @@ for _name, _cls in {
 }.items():
     register(_name, _cls, gpu=False)
 
-print(f"Tensor.ops_gpu keys → {sorted(Tensor.ops_gpu.keys())}")
+# print(f"Tensor.ops_gpu keys → {sorted(Tensor.ops_gpu.keys())}")
