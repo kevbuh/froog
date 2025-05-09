@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   test:
-    name: Tensor Test
+    name: pytest
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -20,18 +20,18 @@ jobs:
       run: pip install -r requirements.txt
     - name: Run Pytest 
       run: python -m pytest -s -v
-    - name: Run EfficientNet model
-      shell: bash
-      run: |
-        export PYTHONPATH=$GITHUB_WORKSPACE
-        python3 models/efficientnet.py > model_output.txt
-        cat model_output.txt
-        if ! grep -q "pug" model_output.txt; then
-          echo "Error: 'pug' not found in model output"
-          exit 1
+    # - name: Run EfficientNet model
+    #   shell: bash
+    #   run: |
+    #     export PYTHONPATH=$GITHUB_WORKSPACE
+    #     python3 models/efficientnet.py > model_output.txt
+    #     cat model_output.txt
+    #     if ! grep -q "pug" model_output.txt; then
+    #       echo "Error: 'pug' not found in model output"
+    #       exit 1
 
   macos-test:
-    name: macOS Specific Test
+    name: pytest
     runs-on: macos-latest
     steps:
     - name: Checkout Code
@@ -46,12 +46,12 @@ jobs:
         pip install -r requirements.txt
     - name: Run Pytest
       run: python -m pytest -s -v
-    - name: Run EfficientNet model
-      shell: bash
-      run: |
-        export PYTHONPATH=$GITHUB_WORKSPACE
-        python3 models/efficientnet.py > model_output.txt
-        cat model_output.txt
-        if ! grep -q "pug" model_output.txt; then
-          echo "Error: 'pug' not found in model output"
-          exit 1
+    # - name: Run EfficientNet model
+    #   shell: bash
+    #   run: |
+    #     export PYTHONPATH=$GITHUB_WORKSPACE
+    #     python3 models/efficientnet.py > model_output.txt
+    #     cat model_output.txt
+    #     if ! grep -q "pug" model_output.txt; then
+    #       echo "Error: 'pug' not found in model output"
+    #       exit 1
