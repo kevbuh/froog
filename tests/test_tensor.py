@@ -14,6 +14,7 @@ m_init = np.random.randn(1,3).astype(np.float32)
 
 class TestTensor(unittest.TestCase):
   def test_jacobian(self):
+    np.random.seed(1337)
     W = np.random.RandomState(1337).random((10, 5))
     x = np.random.RandomState(7331).random((1, 10)) - 0.5
     torch_x = torch.tensor(x, requires_grad=True)
@@ -52,6 +53,7 @@ class TestTensor(unittest.TestCase):
       np.testing.assert_allclose(x, y, atol=1e-5)
 
   def test_gradcheck(self):
+    np.random.seed(7331)
     class TorchModel(torch.nn.Module):
       def __init__(self, weights_init):
         super(TorchModel, self).__init__()
