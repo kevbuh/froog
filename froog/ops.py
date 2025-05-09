@@ -253,7 +253,7 @@ class Conv2D(Function): # TODO: understand group splits
     ctx.stride = stride
     ctx.groups = groups
     
-    if isinstance(ctx.stride, int):                                                                           # ctx stores function params
+    if isinstance(ctx.stride, int):                                                                       # ctx stores function params
       ctx.stride = (ctx.stride, ctx.stride)
 
     cout, cin, H, W = w.shape

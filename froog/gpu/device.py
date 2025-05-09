@@ -72,7 +72,6 @@ class Device(ABC):
         pass
     
     @abstractmethod
-    def pooling_op(self, input: Any, kernel_size: Tuple[int, int], 
-                  iter_op: str, result_op: str, init_val: Union[int, str] = 0) -> Any:
+    def pooling_op(self, input: Any, kernel_size: Tuple[int, int], iter_op: str, result_op: str, init_val: Union[int, str] = 0) -> Any:
         """Apply a pooling operation to a tensor."""
-        pass 
+        pass

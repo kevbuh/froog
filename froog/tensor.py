@@ -44,35 +44,20 @@ class Tensor:
     self._ctx = None # these are where the backward gradient computation are saved
     if gpu: self.gpu_()
 
-  def __repr__(self) -> str:
-    return f"Tensor data: {self.data}, gradients: {self.grad.data if self.grad else None}" 
-  
-  def assign(self, x: T) -> None:
-    self.data = x.data
+  def __repr__(self) -> str: return f"Tensor data: {self.data}, gradients: {self.grad.data if self.grad else None}" 
+  def assign(self, x: T) -> None: self.data = x.data
 
   # ********** Properties **********
-
   @property
-  def shape(self) -> Tuple[int, ...]:
-    """
-    The shape of the tensor as a tuple of dimensions.
-    """
-    return self.data.shape
+  def shape(self) -> Tuple[int, ...]: return self.data.shape # The shape of the tensor as a tuple of dimensions.
   
   @property
-  def size(self, dim=None) -> Union[int, Tuple[int, ...]]:
-    """
-    Total number of elements in the tensor or size in a specific dimension.
-    """
+  def size(self, dim=None) -> Union[int, Tuple[int, ...]]: # Total number of elements in the tensor or size in a specific dimension.
     if dim is not None: return self.shape[dim]
     return int(np.prod(self.shape))
   
   @property
-  def ndim(self) -> int:
-    """
-    Number of dimensions (rank) of the tensor.
-    """
-    return len(self.shape)
+  def ndim(self) -> int:  return len(self.shape) # Number of dimensions (rank) of the tensor.
   
   @property
   def transpose(self) -> T:
@@ -87,48 +72,24 @@ class Tensor:
       return Tensor(cpu_tensor.data.T, gpu=self.gpu)
   
   @property
-  def dtype(self) -> np.dtype:
-    """
-    Data type of the tensor.
-    """
-    return self.data.dtype
+  def dtype(self) -> np.dtype: return self.data.dtype    
   
   @property
-  def is_gpu(self) -> bool:
-    """
-    True if the tensor is on GPU.
-    """
-    return self.gpu
-  
+  def is_gpu(self) -> bool: return self.gpu # True if the tensor is on GPU.
+      
   # ********** Methods **********
   
   @staticmethod
-  def zeros(*shape: int) -> T:
-    """
-    Creates a tensor filled with zeros of the specified shape.
-    """
-    return Tensor(np.zeros(shape, dtype=np.float32))
+  def zeros(*shape: int) -> T:  return Tensor(np.zeros(shape, dtype=np.float32))
   
   @staticmethod
-  def ones(*shape: int) -> T:
-    """
-    Creates a tensor filled with ones of the specified shape.
-    """
-    return Tensor(np.ones(shape, dtype=np.float32))
+  def ones(*shape: int) -> T: return Tensor(np.ones(shape, dtype=np.float32))
   
   @staticmethod
-  def randn(*shape: int) -> T:
-    """
-    Creates a tensor with random values from a normal distribution.
-    """
-    return Tensor(np.random.randn(*shape).astype(np.float32))
-  
+  def randn(*shape: int) -> T: return Tensor(np.random.randn(*shape).astype(np.float32))
+
   @staticmethod
-  def eye(dim: int) -> T:
-    """
-    Creates a 2D identity tensor of shape (dim, dim).
-    """
-    return Tensor(np.eye(dim).astype(np.float32))
+  def eye(dim: int) -> T: return Tensor(np.eye(dim).astype(np.float32))
 
   @staticmethod
   def arange(start: Union[int, float], stop: Optional[Union[int, float]] = None, step: Union[int, float] = 1) -> T:
@@ -141,23 +102,12 @@ class Tensor:
       start = 0
     return Tensor(np.arange(start, stop, step, dtype=np.float32))
   
-  def flatten(self) -> T:
-    """
-    Returns a flattened (1D) copy of the tensor.
-    """
-    return Tensor(self.data.reshape(-1), gpu=self.gpu)
-  
-  def detach(self) -> T:
-    """
-    Returns a new tensor detached from the current computation graph.
-    """
-    return Tensor(self.data.copy(), gpu=self.gpu)
-  
-  def view(self, *shape: int) -> T:
-    """
-    Returns a tensor with the same data but different shape.
-    """
-    return Tensor(self.data.reshape(shape), gpu=self.gpu)
+  def flatten(self) -> T: return Tensor(self.data.reshape(-1), gpu=self.gpu)
+  def detach(self) -> T: return Tensor(self.data.copy(), gpu=self.gpu) # Returns a new tensor detached from the current computation graph.    
+  def view(self, *shape: int) -> T: return Tensor(self.data.reshape(shape), gpu=self.gpu)
+  def to_float(self) -> T:  return Tensor(self.data.astype(np.float32), gpu=self.gpu)
+  def to_int(self) -> T: return Tensor(self.data.astype(np.int32), gpu=self.gpu)
+  def to_bool(self) -> T: return Tensor(self.data.astype(bool), gpu=self.gpu)
   
   def unsqueeze(self, dim: int) -> T:
     """
@@ -183,24 +133,6 @@ class Tensor:
       if 0 <= dim < len(shape) and shape[dim] == 1:
         shape.pop(dim)
       return Tensor(self.data.reshape(shape), gpu=self.gpu)
-  
-  def to_float(self) -> T:
-    """
-    Converts tensor to float32 data type.
-    """
-    return Tensor(self.data.astype(np.float32), gpu=self.gpu)
-  
-  def to_int(self) -> T:
-    """
-    Converts tensor to int32 data type.
-    """
-    return Tensor(self.data.astype(np.int32), gpu=self.gpu)
-  
-  def to_bool(self) -> T:
-    """
-    Converts tensor to boolean data type.
-    """
-    return Tensor(self.data.astype(bool), gpu=self.gpu)
 
   # ********** Backward **********
 
