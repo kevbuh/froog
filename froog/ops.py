@@ -71,18 +71,25 @@ class Mul(Function): # x.mul(y)
     if is_metal_buffer(x) or is_metal_buffer(y):
       # Import get_buffer_data helper for Metal buffers
       try:
-        from froog.gpu.buffer_utils import get_buffer_data
+        from froog.gpu.buffer_utils import get_buffer_data, buffer_mul
         x_data = get_buffer_data(x)
         y_data = get_buffer_data(y)
         ctx.save_for_backward(x_data, y_data)
-        return x_data * y_data
-      except ImportError:
-        print("Warning: buffer_utils not available")
-        # Fall back to regular implementation
-        ctx.save_for_backward(x, y)
-        return x * y
+        return buffer_mul(x, y)
+      except Exception as e:
+        print(f"Error in Mul.forward with buffer: {e}")
+        # Fall back to CPU implementation if buffer handling fails
+        from froog.gpu import get_device
+        device = get_device()
+        if device:
+          x_cpu = device.download_tensor(x) if is_metal_buffer(x) else x
+          y_cpu = device.download_tensor(y) if is_metal_buffer(y) else y
+          ctx.save_for_backward(x_cpu, y_cpu)
+          result = x_cpu * y_cpu
+          return device.upload_tensor(result)
+        raise
     
-    # Regular implementation
+    # Standard CPU implementation
     ctx.save_for_backward(x, y)
     return x * y
 
@@ -99,24 +106,33 @@ class Sum(Function): # x.sum()
   """
   @staticmethod
   def forward(ctx: Any, input: np.ndarray) -> np.ndarray:
-    # Check if we have GPU buffers
+    # Check if we have a GPU buffer
     is_metal_buffer = lambda x: hasattr(x, '__pyobjc_object__') or str(type(x)).find('Buffer') >= 0
     if is_metal_buffer(input):
-      # Import get_buffer_data helper for Metal buffers
+      # Use buffer utilities
       try:
-        from froog.gpu.buffer_utils import get_buffer_data
+        from froog.gpu.buffer_utils import get_buffer_data, buffer_sum
         input_data = get_buffer_data(input)
         ctx.save_for_backward(input_data)
-        return np.array([np.sum(input_data)])
-      except ImportError:
-        print("Warning: buffer_utils not available")
-        # Fall back to regular implementation
-        ctx.save_for_backward(input)
-        return np.array([input.sum()])
+        ctx.input_shape = input_data.shape
+        return buffer_sum(input)
+      except Exception as e:
+        print(f"Error in Sum.forward with buffer: {e}")
+        # Fall back to CPU implementation
+        from froog.gpu import get_device
+        device = get_device()
+        if device:
+          input_cpu = device.download_tensor(input)
+          ctx.save_for_backward(input_cpu)
+          ctx.input_shape = input_cpu.shape
+          result = np.array([np.sum(input_cpu)])
+          return device.upload_tensor(result)
+        raise
     
-    # Regular implementation
+    # Standard CPU implementation
     ctx.save_for_backward(input)
-    return np.array([input.sum()])
+    ctx.input_shape = input.shape
+    return np.array([np.sum(input)])
 
   @staticmethod
   def backward(ctx: Any, grad_output: np.ndarray) -> np.ndarray:

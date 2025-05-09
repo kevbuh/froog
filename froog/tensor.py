@@ -260,8 +260,9 @@ class Tensor:
     if self._ctx is None: return
     if self.grad is None and allow_fill:
       # allow_fill gives backprop a starting point, fills in the first grad with one is its None
-      assert self.data.shape == (1,) # numpy returns tuples as shapes
-      self.grad = Tensor(np.ones(self.data.shape, dtype=self.data.dtype), gpu=self.gpu)
+      # Use the shape property instead of directly accessing shape on the data
+      assert self.shape == (1,) # numpy returns tuples as shapes
+      self.grad = Tensor(np.ones(self.shape, dtype=self.dtype), gpu=self.gpu)
     assert self.grad is not None
     # NOTE: THIS IS WHERE AUTO GRAD IS DONE
     grads = self._ctx.backward(self._ctx, self.grad.data) # get gradients respective to what op happened
@@ -272,11 +273,7 @@ class Tensor:
         continue
       # Use tensor shape property instead of directly accessing shape on the data buffer
       # This handles Metal buffers which don't have a shape attribute
-      if is_buffer(t.data):
-        # For GPU buffers, use the tensor's shape property
-        t_shape = t.shape
-      else:
-        t_shape = t.data.shape
+      t_shape = t.shape
       
       if is_buffer(g):
         # For GPU buffers, get shape from device metadata

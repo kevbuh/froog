@@ -21,7 +21,7 @@ def is_gpu_buffer(data: Any) -> bool:
         return True
     
     # For Metal buffers, check if it has a length method
-    if hasattr(data, "length") and callable(data.length):
+    if hasattr(data, "length") and callable(getattr(data, "length")):
         return True
     
     return False
@@ -41,7 +41,8 @@ def get_buffer_data(buffer: Any) -> np.ndarray:
     if isinstance(buffer, np.ndarray):
         return buffer
         
-    from froog import get_device
+    # Import froog.gpu inside the function to avoid circular imports
+    from froog.gpu import get_device
     
     # Check if it's a GPU buffer
     if is_gpu_buffer(buffer):
@@ -55,21 +56,24 @@ def get_buffer_data(buffer: Any) -> np.ndarray:
                 if np_array is not None:
                     return np_array
         
-        # If no metadata or no cached NumPy array, download it
+        # If no metadata or no cached NumPy array, download it from device
         if device:
             try:
                 result = device.download_tensor(buffer)
                 # Ensure the result is a numpy array, not another buffer
                 if is_gpu_buffer(result):
-                    print("Warning: Device returned a buffer instead of numpy array")
+                    print(f"Warning: Device returned a buffer instead of numpy array from {buffer}")
                     return np.zeros((1,), dtype=np.float32)
                 return result
             except Exception as e:
                 print(f"Error downloading buffer: {e}")
                 return np.zeros((1,), dtype=np.float32)
+        
+        # If we got here, we have a GPU buffer but no device to download from
+        print(f"Warning: GPU buffer detected but no device available to download data")
+        return np.zeros((1,), dtype=np.float32)
     
-    # For NumPy arrays, return as is
-    # If we can't extract data from the buffer, return a default array
+    # For unknown types, return a default array
     print(f"Warning: Unknown buffer type {type(buffer)}, returning zeros")
     return np.zeros((1,), dtype=np.float32)
 
@@ -107,4 +111,30 @@ def buffer_relu(x: Any) -> np.ndarray:
     
 def buffer_reshape(x: Any, shape: Tuple[int, ...]) -> np.ndarray:
     """Reshape a buffer or array"""
-    return get_buffer_data(x).reshape(shape) 
+    return get_buffer_data(x).reshape(shape)
+
+def buffer_logsoftmax(x: Any) -> np.ndarray:
+    """Apply log softmax to a buffer or array"""
+    data = get_buffer_data(x)
+    # Subtract max for numerical stability
+    max_vals = np.max(data, axis=-1, keepdims=True)
+    exp_vals = np.exp(data - max_vals)
+    sum_exp = np.sum(exp_vals, axis=-1, keepdims=True)
+    return data - max_vals - np.log(sum_exp)
+
+def buffer_pad2d(x: Any, padding: Tuple[int, int, int, int]) -> np.ndarray:
+    """Pad a 4D tensor (N, C, H, W) with padding (left, right, top, bottom)"""
+    data = get_buffer_data(x)
+    # Check if we have a 4D tensor
+    if len(data.shape) != 4:
+        print(f"Warning: pad2d expects 4D tensor, got shape {data.shape}")
+        return data
+    
+    # Extract padding values
+    pad_left, pad_right, pad_top, pad_bottom = padding
+    
+    # Create padding config for np.pad
+    # Format is ((before_1, after_1), (before_2, after_2), ...)
+    pad_width = ((0, 0), (0, 0), (pad_top, pad_bottom), (pad_left, pad_right))
+    
+    return np.pad(data, pad_width, mode='constant') 
