@@ -11,6 +11,9 @@ from typing import Tuple, List, Union, Optional, Any, TypeVar, cast, Callable
 from froog.tensor import Function, register
 from froog.utils import im2col, col2im
 from froog.tensor import Tensor
+import os
+from inspect import signature
+from functools import partial
 
 # *****************************************************
 #     ____  ___   _____ __________   ____  ____  _____
@@ -25,6 +28,24 @@ from froog.tensor import Tensor
 class Add(Function):# x.add(y)
   @staticmethod     # @staticmethod doesn't require an instance of Add to work, so you can do x.add(y)
   def forward(ctx: Any, x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    # Check if we have GPU buffers
+    is_metal_buffer = lambda x: hasattr(x, '__pyobjc_object__') or str(type(x)).find('Buffer') >= 0
+    if is_metal_buffer(x) or is_metal_buffer(y):
+      # Import get_buffer_data helper for Metal buffers
+      try:
+        from froog.gpu.buffer_utils import get_buffer_data
+        x_data = get_buffer_data(x)
+        y_data = get_buffer_data(y)
+        ctx.save_for_backward(x_data, y_data)
+        return x_data + y_data
+      except ImportError:
+        print("Warning: buffer_utils not available")
+        # Fall back to regular implementation
+        ctx.save_for_backward(x, y)
+        return x + y
+    
+    # Regular implementation
+    ctx.save_for_backward(x, y)
     return x + y
   
   @staticmethod
@@ -45,6 +66,23 @@ register('sub', Sub)
 class Mul(Function): # x.mul(y)
   @staticmethod
   def forward(ctx: Any, x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    # Check if we have GPU buffers
+    is_metal_buffer = lambda x: hasattr(x, '__pyobjc_object__') or str(type(x)).find('Buffer') >= 0
+    if is_metal_buffer(x) or is_metal_buffer(y):
+      # Import get_buffer_data helper for Metal buffers
+      try:
+        from froog.gpu.buffer_utils import get_buffer_data
+        x_data = get_buffer_data(x)
+        y_data = get_buffer_data(y)
+        ctx.save_for_backward(x_data, y_data)
+        return x_data * y_data
+      except ImportError:
+        print("Warning: buffer_utils not available")
+        # Fall back to regular implementation
+        ctx.save_for_backward(x, y)
+        return x * y
+    
+    # Regular implementation
     ctx.save_for_backward(x, y)
     return x * y
 
@@ -61,6 +99,22 @@ class Sum(Function): # x.sum()
   """
   @staticmethod
   def forward(ctx: Any, input: np.ndarray) -> np.ndarray:
+    # Check if we have GPU buffers
+    is_metal_buffer = lambda x: hasattr(x, '__pyobjc_object__') or str(type(x)).find('Buffer') >= 0
+    if is_metal_buffer(input):
+      # Import get_buffer_data helper for Metal buffers
+      try:
+        from froog.gpu.buffer_utils import get_buffer_data
+        input_data = get_buffer_data(input)
+        ctx.save_for_backward(input_data)
+        return np.array([np.sum(input_data)])
+      except ImportError:
+        print("Warning: buffer_utils not available")
+        # Fall back to regular implementation
+        ctx.save_for_backward(input)
+        return np.array([input.sum()])
+    
+    # Regular implementation
     ctx.save_for_backward(input)
     return np.array([input.sum()])
 
@@ -96,14 +150,61 @@ class Dot(Function):  # x.dot(y)
   @staticmethod
   def forward(ctx: Any, input: np.ndarray, weight: np.ndarray) -> np.ndarray:
     ctx.save_for_backward(input, weight)
-    return input.dot(weight)
+    
+    # Check if we're working with GPU buffers
+    try:
+        from froog.tensor import is_buffer, tensor_to_cpu
+        
+        # Convert any GPU buffers to CPU for the operation
+        if is_buffer(input):
+            input_cpu = tensor_to_cpu(input)
+        else:
+            input_cpu = input
+            
+        if is_buffer(weight):
+            weight_cpu = tensor_to_cpu(weight)
+        else:
+            weight_cpu = weight
+            
+        return input_cpu.dot(weight_cpu)
+    except Exception as e:
+        import traceback
+        print(f"Error in dot operation: {str(e)}")
+        print(f"  Self: {input}")
+        print(f"  Arg 0: {weight}")
+        print(f"  Kwargs: {{}}")
+        traceback.print_exc()
+        # Try the original method as fallback
+        return input.dot(weight)
 
   @staticmethod
   def backward(ctx: Any, grad_output: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     input, weight = ctx.saved_tensors
-    grad_input = grad_output.dot(weight.T)
-    grad_weight = input.T.dot(grad_output)
-    return grad_input, grad_weight
+    
+    # Convert GPU buffers to CPU if needed
+    try:
+        from froog.tensor import is_buffer, tensor_to_cpu
+        
+        if is_buffer(input):
+            input_cpu = tensor_to_cpu(input)
+        else:
+            input_cpu = input
+            
+        if is_buffer(weight):
+            weight_cpu = tensor_to_cpu(weight)
+        else:
+            weight_cpu = weight
+            
+        if is_buffer(grad_output):
+            grad_output_cpu = tensor_to_cpu(grad_output)
+        else:
+            grad_output_cpu = grad_output
+            
+        return grad_output_cpu.dot(weight_cpu.T), input_cpu.T.dot(grad_output_cpu)
+    except Exception as e:
+        print(f"Error in dot backward: {str(e)}")
+        # Fallback
+        return grad_output.dot(weight.T), input.T.dot(grad_output)
 register('dot', Dot)
 register('matmul', Dot)
 
@@ -242,10 +343,10 @@ class Conv2D(Function): # TODO: understand group splits
     https://github.com/vdumoulin/conv_arithmetic/blob/master/README.md
     WARNING: doesn't handle padding or strides yet
     Args:
-      x.shape[0] 									  --> number of input examples (batch size)
-      cout 			 								    --> number of output channels
-      x.shape[2]-(H-1)					 	  --> non-padded height of conv output, need to subtract because this is an unpadded conv
-      x.shape[3]-(W-1)						  --> width of output
+      x.shape[0]                                                                        --> number of input examples (batch size)
+      cout                                                                                        --> number of output channels
+      x.shape[2]-(H-1)                                                  --> non-padded height of conv output, need to subtract because this is an unpadded conv
+      x.shape[3]-(W-1)                                                  --> width of output
     Shape: 
       (a, b, c, d)(e, f, g, h)      --> (a, e, c-(g-1), d-(h-1)) 
       in general, output x and y = [(W−K+2P)/S]+1
@@ -256,46 +357,102 @@ class Conv2D(Function): # TODO: understand group splits
     if isinstance(ctx.stride, int):                                                                       # ctx stores function params
       ctx.stride = (ctx.stride, ctx.stride)
 
-    cout, cin, H, W = w.shape
+    # Check if we're working with GPU buffers and convert to CPU
+    try:
+        from froog.tensor import is_buffer, tensor_to_cpu
+        
+        # Convert input to CPU if it's a GPU buffer
+        if is_buffer(x):
+            x_cpu = tensor_to_cpu(x)
+        else:
+            x_cpu = x
+            
+        # Convert weight to CPU if it's a GPU buffer
+        if is_buffer(w):
+            w_cpu = tensor_to_cpu(w)
+        else:
+            w_cpu = w
+            
+        # Now use the CPU tensors for the rest of the computation
+        cout, cin, H, W = w_cpu.shape
+        
+        tw = w_cpu.reshape(cout, -1).T                                                                        # slice of kernel 
+        y_stride, x_stride = ctx.stride
 
-    tw = w.reshape(cout, -1).T                                                                            # slice of kernel 
-    y_stride, x_stride = ctx.stride
+        bs,cin_,oy,ox = x_cpu.shape[0], x_cpu.shape[1], (x_cpu.shape[2]-(H-y_stride))//y_stride, (x_cpu.shape[3]-(W-x_stride))//x_stride
+        assert cin*ctx.groups == cin_                                                                         # ensures that the channel dimensions match appropriately for grouping
+        assert cout % ctx.groups == 0                                                                         # ensures that the number of output channels can be evenly divided among the groups
+        g_w_chans = cout//ctx.groups                                                                          # number of output channels per group
 
-    bs,cin_,oy,ox = x.shape[0], x.shape[1], (x.shape[2]-(H-y_stride))//y_stride, (x.shape[3]-(W-x_stride))//x_stride
-    assert cin*ctx.groups == cin_                                                                         # ensures that the channel dimensions match appropriately for grouping
-    assert cout % ctx.groups == 0                                                                         # ensures that the number of output channels can be evenly divided among the groups
-    g_w_chans = cout//ctx.groups                                                                          # number of output channels per group
-
-    ctx.save_for_backward(x, w)
-    ret = np.zeros((bs, cout, oy, ox), dtype=w.dtype)
-    
-    for g in range(ctx.groups):
-      tw = w[g*g_w_chans:(g*g_w_chans+g_w_chans)].reshape(g_w_chans, -1).T                                # transformed kernel weights
-      for Y in range(oy):
-        for X in range(ox):
-          iY,iX = Y*y_stride, X*x_stride
-          tx = x[:, g*cin:(g*cin+cin), iY:iY+H, iX:iX+W].reshape(bs, -1)
-          ret[:, g*g_w_chans:(g*g_w_chans+g_w_chans), Y, X] += tx.dot(tw)
-    return ret
+        ctx.save_for_backward(x_cpu, w_cpu)
+        ret = np.zeros((bs, cout, oy, ox), dtype=w_cpu.dtype)
+        
+        for g in range(ctx.groups):
+          tw = w_cpu[g*g_w_chans:(g*g_w_chans+g_w_chans)].reshape(g_w_chans, -1).T                           # transformed kernel weights
+          for Y in range(oy):
+            for X in range(ox):
+              iY,iX = Y*y_stride, X*x_stride
+              tx = x_cpu[:, g*cin:(g*cin+cin), iY:iY+H, iX:iX+W].reshape(bs, -1)
+              ret[:, g*g_w_chans:(g*g_w_chans+g_w_chans), Y, X] += tx.dot(tw)
+        return ret
+    except Exception as e:
+        import traceback
+        print(f"Error in conv2d operation: {str(e)}")
+        print(f"  Self: {x}")
+        print(f"  Arg 0: {w}")
+        print(f"  Kwargs: {{stride: {stride}, groups: {groups}}}")
+        traceback.print_exc()
+        raise
 
   @staticmethod
   def backward(ctx: Any, grad_output: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    x, w = ctx.saved_tensors
-    cout, cin, H, W = w.shape
-    dx, dw = np.zeros_like(x), np.zeros_like(w)                                         
-    y_stride, x_stride = ctx.stride
-    g_w_chans = cout//ctx.groups
+    try:
+        from froog.tensor import is_buffer, tensor_to_cpu
+        
+        # Convert grad_output to CPU if it's a GPU buffer
+        if is_buffer(grad_output):
+            grad_output_cpu = tensor_to_cpu(grad_output)
+        else:
+            grad_output_cpu = grad_output
+            
+        x, w = ctx.saved_tensors
+        cout, cin, H, W = w.shape
+        dx, dw = np.zeros_like(x), np.zeros_like(w)                                         
+        y_stride, x_stride = ctx.stride
+        g_w_chans = cout//ctx.groups
 
-    for g in range(ctx.groups):
-      tw = w[g*g_w_chans:(g*g_w_chans+g_w_chans)].reshape(g_w_chans, -1)
-      for Y in range(grad_output.shape[2]):
-        for X in range(grad_output.shape[3]):
-          iY,iX = Y*y_stride, X*x_stride
-          gg = grad_output[:, g*g_w_chans:(g*g_w_chans+g_w_chans), Y, X]                                  # current multiply element in chain rule
-          tx = x[:, g*cin:(g*cin+cin), iY:iY+H, iX:iX+W].reshape(x.shape[0], -1)                          # slice of tensor at current conv op        
-          dw[g*g_w_chans:(g*g_w_chans+g_w_chans)] += gg.T.dot(tx).reshape((g_w_chans,cin,H,W))            # gradient with respect to input
-          dx[:, g*cin:(g*cin+cin), iY:iY+H, iX:iX+W] += gg.dot(tw).reshape(dx.shape[0], cin, H, W)        # accumulate gradient with respect to weights 
-    return dx, dw
+        for g in range(ctx.groups):
+          tw = w[g*g_w_chans:(g*g_w_chans+g_w_chans)].reshape(g_w_chans, -1)
+          for Y in range(grad_output_cpu.shape[2]):
+            for X in range(grad_output_cpu.shape[3]):
+              iY,iX = Y*y_stride, X*x_stride
+              gg = grad_output_cpu[:, g*g_w_chans:(g*g_w_chans+g_w_chans), Y, X]                             # current multiply element in chain rule
+              tx = x[:, g*cin:(g*cin+cin), iY:iY+H, iX:iX+W].reshape(x.shape[0], -1)                         # slice of tensor at current conv op        
+              dw[g*g_w_chans:(g*g_w_chans+g_w_chans)] += gg.T.dot(tx).reshape((g_w_chans,cin,H,W))           # gradient with respect to input
+              dx[:, g*cin:(g*cin+cin), iY:iY+H, iX:iX+W] += gg.dot(tw).reshape(dx.shape[0], cin, H, W)       # accumulate gradient with respect to weights 
+        return dx, dw
+    except Exception as e:
+        import traceback
+        print(f"Error in conv2d backward: {str(e)}")
+        print(f"  Grad Output: {grad_output}")
+        traceback.print_exc()
+        # Fallback to original implementation
+        x, w = ctx.saved_tensors
+        cout, cin, H, W = w.shape
+        dx, dw = np.zeros_like(x), np.zeros_like(w)                                         
+        y_stride, x_stride = ctx.stride
+        g_w_chans = cout//ctx.groups
+
+        for g in range(ctx.groups):
+          tw = w[g*g_w_chans:(g*g_w_chans+g_w_chans)].reshape(g_w_chans, -1)
+          for Y in range(grad_output.shape[2]):
+            for X in range(grad_output.shape[3]):
+              iY,iX = Y*y_stride, X*x_stride
+              gg = grad_output[:, g*g_w_chans:(g*g_w_chans+g_w_chans), Y, X]                                  # current multiply element in chain rule
+              tx = x[:, g*cin:(g*cin+cin), iY:iY+H, iX:iX+W].reshape(x.shape[0], -1)                          # slice of tensor at current conv op        
+              dw[g*g_w_chans:(g*g_w_chans+g_w_chans)] += gg.T.dot(tx).reshape((g_w_chans,cin,H,W))            # gradient with respect to input
+              dx[:, g*cin:(g*cin+cin), iY:iY+H, iX:iX+W] += gg.dot(tw).reshape(dx.shape[0], cin, H, W)        # accumulate gradient with respect to weights 
+        return dx, dw
 register('conv2d', Conv2D)
 
 

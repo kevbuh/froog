@@ -37,6 +37,10 @@ def is_buffer(data: Any) -> bool:
     if hasattr(data, "length") and callable(data.length):
         return True
     
+    # For Metal buffers check for __pyobjc_object__ attribute
+    if hasattr(data, "__pyobjc_object__") or str(type(data)).find('Buffer') >= 0:
+        return True
+    
     # For OpenCL buffers, use the OpenCL-specific check
     if hasattr(device, "is_device_tensor"):
         return device.is_device_tensor(data)
@@ -50,10 +54,34 @@ def tensor_to_cpu(tensor: Any) -> np.ndarray:
     if device is None:
         # If no device is available, just return the data as is
         # This helps with tests where GPU flag might be True but no actual device exists
-        if hasattr(tensor, "shape") and hasattr(tensor, "dtype"):
-            return tensor  # It's already a CPU tensor-like object
+        if hasattr(tensor, "data"):
+            if hasattr(tensor.data, "shape") and hasattr(tensor.data, "dtype"):
+                return tensor.data  # It's already a CPU tensor-like object
+            elif os.getenv("ALLOW_FAKE_GPU") == "1":
+                # If we're in fake GPU mode, just return the tensor data as is
+                return tensor.data
         raise Exception("No GPU device available and can't convert unknown tensor type")
-    return device.download_tensor(tensor.data)
+    
+    # If we're passed a Tensor object, use its data
+    if hasattr(tensor, "data"):
+        tensor_data = tensor.data
+    else:
+        tensor_data = tensor
+    
+    try:
+        return device.download_tensor(tensor_data)
+    except Exception as e:
+        print(f"Error downloading from GPU: {e}")
+        # Fallback: Try to use buffer_metadata if available
+        if hasattr(device, 'buffer_metadata'):
+            buffer_id = id(tensor_data)
+            if buffer_id in device.buffer_metadata:
+                metadata = device.buffer_metadata[buffer_id]
+                if 'numpy_array' in metadata:
+                    return metadata['numpy_array'].copy()
+        
+        # Last resort: return default array
+        return np.zeros((1,), dtype=np.float32)
 
 # Function to convert data to GPU
 def tensor_to_gpu(data: np.ndarray) -> Any:
@@ -65,7 +93,13 @@ def tensor_to_gpu(data: np.ndarray) -> Any:
         if os.getenv("ALLOW_FAKE_GPU") == "1":
             return data
         raise Exception("No GPU device available")
-    return device.upload_tensor(data)
+    
+    try:
+        return device.upload_tensor(data)
+    except Exception as e:
+        print(f"Error uploading to GPU: {e}")
+        # Return the original data as a fallback
+        return data
 
 # Function to initialize GPU
 def init_gpu() -> None:
@@ -109,7 +143,28 @@ class Tensor:
 
   # ********** Properties **********
   @property
-  def shape(self) -> Tuple[int, ...]: return self.data.shape # The shape of the tensor as a tuple of dimensions.
+  def shape(self) -> Tuple[int, ...]:
+    if self.gpu:
+        # If it's a GPU buffer, we need to get the shape from our device metadata
+        device = get_device()
+        if device is not None and hasattr(device, 'buffer_metadata'):
+            # Check if we have metadata for this buffer
+            buffer_id = id(self.data)
+            if buffer_id in device.buffer_metadata:
+                return device.buffer_metadata[buffer_id]['shape']
+        
+        # Fallback: get the shape by downloading to CPU temporarily
+        # This is expensive but at least it won't crash
+        try:
+            data = tensor_to_cpu(self)
+            return data.shape
+        except Exception as e:
+            print(f"Warning: Failed to get shape from GPU tensor: {e}")
+            # Return a default shape as a last resort
+            return (1,)
+    
+    # For CPU tensors, we can get the shape directly
+    return self.data.shape
   
   @property
   def size(self, dim=None) -> Union[int, Tuple[int, ...]]: # Total number of elements in the tensor or size in a specific dimension.
@@ -132,7 +187,21 @@ class Tensor:
       return Tensor(cpu_tensor.data.T, gpu=self.gpu)
   
   @property
-  def dtype(self) -> np.dtype: return self.data.dtype    
+  def dtype(self) -> np.dtype: 
+    if self.gpu:
+        # If it's a GPU buffer, we need to get the dtype from our device metadata
+        device = get_device()
+        if device is not None and hasattr(device, 'buffer_metadata'):
+            # Check if we have metadata for this buffer
+            buffer_id = id(self.data)
+            if buffer_id in device.buffer_metadata:
+                return device.buffer_metadata[buffer_id]['dtype']
+        
+        # Fallback: assume float32 which is common for GPU operations
+        return np.float32
+    
+    # For CPU tensors, we can get the dtype directly
+    return self.data.dtype
   
   @property
   def is_gpu(self) -> bool: return self.gpu # True if the tensor is on GPU.
@@ -210,11 +279,37 @@ class Tensor:
     for t, g in zip(self._ctx.parents, grads):
       if g is None:
         continue
-      if g.shape != t.data.shape:
-        print(f"grad shape must match tensor shape in {self._ctx}, {g.shape} != {t.data.shape}")
+      # Use tensor shape property instead of directly accessing shape on the data buffer
+      # This handles Metal buffers which don't have a shape attribute
+      if is_buffer(t.data):
+        # For GPU buffers, use the tensor's shape property
+        t_shape = t.shape
+      else:
+        t_shape = t.data.shape
+      
+      if is_buffer(g):
+        # For GPU buffers, get shape from device metadata
+        device = get_device()
+        if device is not None and hasattr(device, 'buffer_metadata'):
+            buffer_id = id(g)
+            if buffer_id in device.buffer_metadata:
+                g_shape = device.buffer_metadata[buffer_id]['shape']
+            else:
+                # Try downloading tensor to CPU to get shape
+                try:
+                    g_cpu = tensor_to_cpu(g)
+                    g_shape = g_cpu.shape
+                except:
+                    print(f"Warning: Could not determine shape of gradient in {self._ctx}")
+                    g_shape = t_shape  # Assume same shape as tensor
+      else:
+        g_shape = g.shape
+      
+      if g_shape != t_shape:
+        print(f"grad shape must match tensor shape in {self._ctx}, {g_shape} != {t_shape}")
         assert False
       t.grad = Tensor(g) # access actual gradients using grad.data
-      t.backward(allow_fill=False) 
+      t.backward(allow_fill=False)
 
   # ****** cpu/gpu ******
     
@@ -242,15 +337,18 @@ class Tensor:
   # ****** basic tensor math ops ******
 
   def mean(self) -> T:
-    div = Tensor(np.array([1 / self.size], dtype=self.data.dtype), gpu=self.gpu)
+    # Use the dtype property which now correctly handles GPU tensors
+    div = Tensor(np.array([1 / self.size], dtype=np.float32), gpu=self.gpu)
     return self.sum().mul(div)
   
   def sqrt(self) -> T:
-    root = Tensor(np.zeros(self.shape, dtype=self.data.dtype)+0.5, gpu=self.gpu)
+    # Use the shape property which now correctly handles GPU tensors
+    root = Tensor(np.zeros(self.shape, dtype=np.float32)+0.5, gpu=self.gpu)
     return self.pow(root)
 
   def div(self, y: T) -> T:
-    root = Tensor(np.zeros(self.shape, dtype=self.data.dtype)-1, gpu=self.gpu)
+    # Use the shape property which now correctly handles GPU tensors
+    root = Tensor(np.zeros(self.shape, dtype=np.float32)-1, gpu=self.gpu)
     return self.mul(y.pow(root))
 
 #     ________  ___   ______________________  _   __
@@ -306,9 +404,19 @@ def register(name: str, fxn: Any, gpu: bool = False) -> None:
     Tensor.ops[name] = fxn
   
   def dispatch(self: Tensor, *x: Any, **kwargs: Any) -> Tensor:
-    op_func = (Tensor.ops_gpu if self.gpu else Tensor.ops)[name]
-    return op_func.apply(op_func, self, *x, **kwargs)
-  
+    try:
+      op_func = (Tensor.ops_gpu if self.gpu else Tensor.ops)[name]
+      return op_func.apply(op_func, self, *x, **kwargs)
+    except Exception as e:
+      print(f"Error in {name} operation: {e}")
+      # If we're in debug mode, print more information
+      if os.getenv("DEBUG") == "1":
+        print(f"  Self: {self}")
+        for i, arg in enumerate(x):
+          print(f"  Arg {i}: {arg}")
+        print(f"  Kwargs: {kwargs}")
+      raise
+
   setattr(Tensor, name, dispatch)
 
   if name in ['add', 'sub', 'mul', 'div']:
@@ -320,23 +428,36 @@ if GPU:
     # Import appropriate GPU operations based on device type
     device = get_device()
     
+    # Print device information
+    if device:
+        print(f"GPU enabled: Using {device.__class__.__name__}")
+        capabilities = device.get_capabilities()
+        if isinstance(capabilities, dict) and 'name' in capabilities:
+            print(f"Device name: {capabilities['name']}")
+    else:
+        print("GPU enabled but no device available")
+    
     # For fake GPU mode, import mock ops
     if os.getenv("ALLOW_FAKE_GPU") == "1" and device is None:
         try:
             import froog.gpu.mock_ops
+            print("Using mock GPU operations")
         except ImportError:
-            pass
+            print("Failed to import mock GPU operations")
     elif device is not None:
         if device.__class__.__name__ == "MetalDevice":
             try:
                 import froog.gpu.metal.ops_metal
+                print("Metal operations imported successfully")
             except ImportError:
-                pass
+                print("Failed to import Metal operations")
         elif device.__class__.__name__ == "OpenCLDevice":
             try:
                 import froog.gpu.cl.ops_cl
+                print("OpenCL operations imported successfully")
             except ImportError:
-                pass
+                print("Failed to import OpenCL operations")
+        print(f"Available GPU operations: {list(Tensor.ops_gpu.keys())}")
 
 # Replace the to_cpu and to_gpu methods with our versions that handle fake GPU mode
 

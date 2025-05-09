@@ -4,11 +4,32 @@ import functools
 
 # Check if Metal is available
 try:
+    import platform
     import Metal
     import objc
-    METAL_AVAILABLE = True
-except ImportError:
+    
+    # Verify we're on macOS
+    if platform.system() != "Darwin":
+        print("Metal is only supported on macOS")
+        METAL_AVAILABLE = False
+    else:
+        # Try to create a device to verify Metal is actually working
+        print("Checking Metal availability...")
+        test_device = Metal.MTLCreateSystemDefaultDevice()
+        if test_device is not None:
+            print(f"Metal device detected: {test_device.name()}")
+            METAL_AVAILABLE = True
+            METAL_GPU = True
+            # We don't need to manually release test_device in PyObjC
+            test_device = None
+        else:
+            print("Metal API available but no compatible GPU device found")
+            METAL_AVAILABLE = False
+            METAL_GPU = False
+except ImportError as e:
+    print(f"Metal not available: {str(e)}")
     METAL_AVAILABLE = False
+    METAL_GPU = False
     Metal = None
     objc = None
 
@@ -18,9 +39,9 @@ from .. import get_device, set_device
 _metal_device = None
 
 # GPU availability flag for Metal
-METAL_GPU = METAL_AVAILABLE
+METAL_GPU = METAL_GPU
 
-def init_metal() -> None:
+def init_metal() -> bool:
     """Initialize the Metal device if available"""
     global _metal_device
     
@@ -28,11 +49,19 @@ def init_metal() -> None:
         # Lazy import to avoid circular imports
         from .device_metal import MetalDevice
         try:
+            print("Initializing Metal device...")
             _metal_device = MetalDevice()
-            set_device(_metal_device)
-            return True
+            if _metal_device.device is not None:
+                print(f"Metal device initialized: {_metal_device.device.name()}")
+                set_device(_metal_device)
+                return True
+            else:
+                print("Failed to initialize Metal device: device is None")
+                return False
         except Exception as e:
             print(f"Failed to initialize Metal device: {e}")
+    elif not METAL_AVAILABLE:
+        print("Metal is not available on this system")
     
     return False
 

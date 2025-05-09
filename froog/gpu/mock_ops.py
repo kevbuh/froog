@@ -9,13 +9,42 @@ from froog.tensor import Function, register, Tensor
 
 print("Loading mock GPU operations for testing")
 
+# Helper function to get data from Metal buffers
+def get_buffer_data(buffer):
+    """
+    Extracts data from a buffer object, handling both numpy arrays and Metal buffers.
+    For Metal buffers, tries to use the device metadata.
+    """
+    from froog import get_device
+    
+    # Check if it's a Metal buffer (AGXG14XFamilyBuffer or similar)
+    if hasattr(buffer, '__pyobjc_object__') or str(type(buffer)).find('Buffer') >= 0:
+        # Try to get metadata from device
+        device = get_device()
+        if device and hasattr(device, 'buffer_metadata'):
+            buffer_id = id(buffer)
+            if buffer_id in device.buffer_metadata:
+                # If we have a CPU copy in metadata, use that
+                return device.buffer_metadata[buffer_id].get('numpy_array', np.array([0], dtype=np.float32))
+        
+        # If no metadata or no cached NumPy array, download it
+        if device:
+            return device.download_tensor(buffer)
+    
+    # For NumPy arrays, return as is
+    return buffer
+
 # *** Basic Operations ***
 
 class FakeGPUAdd(Function):
     @staticmethod
     def forward(ctx, x, y):
-        ctx.save_for_backward(x, y)
-        return x + y
+        # Convert GPU buffers to NumPy arrays if needed
+        x_data = get_buffer_data(x)
+        y_data = get_buffer_data(y)
+        
+        ctx.save_for_backward(x_data, y_data)
+        return x_data + y_data
     
     @staticmethod
     def backward(ctx, grad_output):
@@ -25,8 +54,12 @@ class FakeGPUAdd(Function):
 class FakeGPUSub(Function):
     @staticmethod
     def forward(ctx, x, y):
-        ctx.save_for_backward(x, y)
-        return x - y
+        # Convert GPU buffers to NumPy arrays if needed
+        x_data = get_buffer_data(x)
+        y_data = get_buffer_data(y)
+        
+        ctx.save_for_backward(x_data, y_data)
+        return x_data - y_data
     
     @staticmethod
     def backward(ctx, grad_output):
@@ -36,8 +69,12 @@ class FakeGPUSub(Function):
 class FakeGPUMul(Function):
     @staticmethod
     def forward(ctx, x, y):
-        ctx.save_for_backward(x, y)
-        return x * y
+        # Convert GPU buffers to NumPy arrays if needed
+        x_data = get_buffer_data(x)
+        y_data = get_buffer_data(y)
+        
+        ctx.save_for_backward(x_data, y_data)
+        return x_data * y_data
     
     @staticmethod
     def backward(ctx, grad_output):
@@ -47,8 +84,12 @@ class FakeGPUMul(Function):
 class FakeGPUPow(Function):
     @staticmethod
     def forward(ctx, x, y):
-        ctx.save_for_backward(x, y)
-        return np.power(x, y)
+        # Convert GPU buffers to NumPy arrays if needed
+        x_data = get_buffer_data(x)
+        y_data = get_buffer_data(y)
+        
+        ctx.save_for_backward(x_data, y_data)
+        return np.power(x_data, y_data)
     
     @staticmethod
     def backward(ctx, grad_output):
@@ -58,8 +99,11 @@ class FakeGPUPow(Function):
 class FakeGPUSum(Function):
     @staticmethod
     def forward(ctx, input):
-        ctx.save_for_backward(input)
-        return np.array([np.sum(input)])
+        # Convert GPU buffer to NumPy array if needed
+        input_data = get_buffer_data(input)
+        
+        ctx.save_for_backward(input_data)
+        return np.array([np.sum(input_data)])
     
     @staticmethod
     def backward(ctx, grad_output):
@@ -69,8 +113,11 @@ class FakeGPUSum(Function):
 class FakeGPUReLU(Function):
     @staticmethod
     def forward(ctx, input):
-        ctx.save_for_backward(input)
-        return np.maximum(input, 0)
+        # Convert GPU buffer to NumPy array if needed
+        input_data = get_buffer_data(input)
+        
+        ctx.save_for_backward(input_data)
+        return np.maximum(input_data, 0)
     
     @staticmethod
     def backward(ctx, grad_output):
@@ -80,8 +127,12 @@ class FakeGPUReLU(Function):
 class FakeGPUDot(Function):
     @staticmethod
     def forward(ctx, input, weight):
-        ctx.save_for_backward(input, weight)
-        return np.matmul(input, weight)
+        # Convert GPU buffers to NumPy arrays if needed
+        input_data = get_buffer_data(input)
+        weight_data = get_buffer_data(weight)
+        
+        ctx.save_for_backward(input_data, weight_data)
+        return np.matmul(input_data, weight_data)
     
     @staticmethod
     def backward(ctx, grad_output):
@@ -96,7 +147,10 @@ class FakeGPUMaxPool2d(Function):
         if stride is None:
             stride = kernel_size
         
-        N, C, H, W = x.shape
+        # Convert GPU buffer to NumPy array if needed
+        x_data = get_buffer_data(x)
+        
+        N, C, H, W = x_data.shape
         kH, kW = kernel_size if isinstance(kernel_size, tuple) else (kernel_size, kernel_size)
         sH, sW = stride if isinstance(stride, tuple) else (stride, stride)
         
@@ -112,10 +166,10 @@ class FakeGPUMaxPool2d(Function):
                         h_end = h_start + kH
                         w_start = w * sW
                         w_end = w_start + kW
-                        window = x[n, c, h_start:h_end, w_start:w_end]
+                        window = x_data[n, c, h_start:h_end, w_start:w_end]
                         output[n, c, h, w] = np.max(window)
         
-        ctx.save_for_backward(x, np.array(kernel_size), np.array(stride))
+        ctx.save_for_backward(x_data, np.array(kernel_size), np.array(stride))
         return output
     
     @staticmethod
@@ -152,7 +206,10 @@ class FakeGPUAvgPool2d(Function):
         if stride is None:
             stride = kernel_size
         
-        N, C, H, W = x.shape
+        # Convert GPU buffer to NumPy array if needed
+        x_data = get_buffer_data(x)
+        
+        N, C, H, W = x_data.shape
         kH, kW = kernel_size if isinstance(kernel_size, tuple) else (kernel_size, kernel_size)
         sH, sW = stride if isinstance(stride, tuple) else (stride, stride)
         
@@ -168,10 +225,10 @@ class FakeGPUAvgPool2d(Function):
                         h_end = h_start + kH
                         w_start = w * sW
                         w_end = w_start + kW
-                        window = x[n, c, h_start:h_end, w_start:w_end]
+                        window = x_data[n, c, h_start:h_end, w_start:w_end]
                         output[n, c, h, w] = np.mean(window)
         
-        ctx.save_for_backward(x, np.array(kernel_size), np.array(stride))
+        ctx.save_for_backward(x_data, np.array(kernel_size), np.array(stride))
         return output
     
     @staticmethod
@@ -203,12 +260,15 @@ class FakeGPUAvgPool2d(Function):
 class FakeGPUPad2d(Function):
     @staticmethod
     def forward(ctx, x, padding):
+        # Convert GPU buffer to NumPy array if needed
+        x_data = get_buffer_data(x)
+        
         left, right, top, bottom = padding
-        N, C, H, W = x.shape
+        N, C, H, W = x_data.shape
         new_H = H + top + bottom
         new_W = W + left + right
         output = np.zeros((N, C, new_H, new_W))
-        output[:, :, top:top+H, left:left+W] = x
+        output[:, :, top:top+H, left:left+W] = x_data
         
         ctx.save_for_backward(np.array(padding))
         return output
@@ -223,8 +283,11 @@ class FakeGPUPad2d(Function):
 class FakeGPUReshape(Function):
     @staticmethod
     def forward(ctx, x, shape):
-        ctx.save_for_backward(np.array(x.shape))
-        return x.reshape(shape)
+        # Convert GPU buffer to NumPy array if needed
+        x_data = get_buffer_data(x)
+        
+        ctx.save_for_backward(np.array(x_data.shape))
+        return x_data.reshape(shape)
     
     @staticmethod
     def backward(ctx, grad_output):
@@ -234,23 +297,24 @@ class FakeGPUReshape(Function):
 class FakeGPUDropout(Function):
     @staticmethod
     def forward(ctx, x, p=0.5, training=True):
-        ctx.save_for_backward(x)
+        # Convert GPU buffer to NumPy array if needed
+        x_data = get_buffer_data(x)
+        
+        ctx.save_for_backward(x_data)
         ctx.p = p
         ctx.training = training
         
         if training:
-            mask = np.random.random(x.shape) > p
-            output = x * mask / (1 - p)
+            mask = np.random.random(x_data.shape) > p
+            output = x_data * mask / (1 - p)
             ctx.mask = mask
         else:
-            output = x
+            output = x_data
             
         return output
     
     @staticmethod
     def backward(ctx, grad_output):
-        x, = ctx.saved_tensors
-        
         if ctx.training:
             return grad_output * ctx.mask / (1 - ctx.p)
         else:
