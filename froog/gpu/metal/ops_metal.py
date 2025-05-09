@@ -1,7 +1,7 @@
 """
 MPS‑specific tensor operations for Apple silicon GPUs.
 
-If Metal Performance Shaders Graph (MPSGraph) is available through PyObjC, we execute
+If Metal Performance Shaders Graph (MPSGraph) is available through PyObjC, we execute
 all ops on‑GPU.  **Otherwise we transparently fall back to NumPy**, so every op still
 passes the test‑suite even on machines without the MPSGraph Obj‑C runtime.
 """
@@ -337,19 +337,31 @@ def _make_bin_cls(name):
             return get_device().upload_tensor(out)
         @staticmethod
         def backward(ctx, grad):
-            x, y = ctx.saved_tensors
+            # grad is a Metal buffer – convert EVERYTHING to NumPy first
+            x, y      = ctx.saved_tensors
+            g_cpu     = get_buffer_data(grad)
+            x_cpu     = get_buffer_data(x)
+            y_cpu     = get_buffer_data(y)
+
             if name == "add":
-                return grad, grad
-            if name == "sub":
-                return grad, -grad
-            if name in ("mul", "div"):
-                return grad * y if name == "mul" else grad / y, grad * x * (-1) if name == "div" else grad * x
-            if name == "pow":
-                x_cpu, y_cpu, g_cpu = map(get_buffer_data, (x, y, grad))
-                dx = y_cpu * np.power(x_cpu, y_cpu - 1) * g_cpu
-                dy = np.log(x_cpu) * np.power(x_cpu, y_cpu) * g_cpu
-                return get_device().upload_tensor(dx), get_device().upload_tensor(dy)
-            raise NotImplementedError
+                dx_cpu, dy_cpu = g_cpu, g_cpu
+            elif name == "sub":
+                dx_cpu, dy_cpu = g_cpu, -g_cpu
+            elif name == "mul":
+                dx_cpu, dy_cpu = g_cpu * y_cpu, g_cpu * x_cpu
+            elif name == "div":
+                dx_cpu = g_cpu / y_cpu
+                dy_cpu = -g_cpu * x_cpu / (y_cpu ** 2)
+            elif name == "pow":
+                dx_cpu = y_cpu * np.power(x_cpu, y_cpu - 1) * g_cpu
+                dy_cpu = np.log(x_cpu) * np.power(x_cpu, y_cpu) * g_cpu
+            else:
+                raise NotImplementedError
+
+            return (
+                get_device().upload_tensor(dx_cpu),
+                get_device().upload_tensor(dy_cpu),
+            )
     _C.__name__ = f"MPS{name.capitalize()}"
     return _C
 
@@ -358,12 +370,16 @@ MPSAdd, MPSSub, MPSMul, MPSDiv, MPSPow = [_make_bin_cls(n) for n in ["add", "sub
 class MPSSqrt(Function):
     @staticmethod
     def forward(ctx, x):
+        ctx.save_for_backward(x)
         out = _unary_op("sqrt", get_buffer_data(x))
         return get_device().upload_tensor(out)
     @staticmethod
     def backward(ctx, grad):
-        x_cpu = get_buffer_data(ctx.saved_tensors[0]) if ctx.saved_tensors else None
-        return grad * 0.5 / np.sqrt(x_cpu) if x_cpu is not None else grad
+        x,       = ctx.saved_tensors
+        g_cpu     = get_buffer_data(grad)
+        x_cpu     = get_buffer_data(x)
+        dx_cpu    = g_cpu * 0.5 / np.sqrt(x_cpu)
+        return get_device().upload_tensor(dx_cpu)
 
 class MPSReLU(Function):
     @staticmethod
@@ -373,9 +389,11 @@ class MPSReLU(Function):
         return get_device().upload_tensor(out)
     @staticmethod
     def backward(ctx, grad):
-        x, = ctx.saved_tensors
-        mask = (get_buffer_data(x) > 0).astype(np.float32)
-        return grad * get_device().upload_tensor(mask)
+        x,        = ctx.saved_tensors
+        g_cpu      = get_buffer_data(grad)
+        mask_cpu   = (get_buffer_data(x) > 0).astype(np.float32)
+        dx_cpu     = g_cpu * mask_cpu
+        return get_device().upload_tensor(dx_cpu)
 
 class MPSSigmoid(Function):
     @staticmethod
@@ -386,7 +404,10 @@ class MPSSigmoid(Function):
     @staticmethod
     def backward(ctx, grad):
         out, = ctx.saved_tensors
-        return grad * (out * (1 - out))
+        grad_cpu = get_buffer_data(grad)
+        out_cpu = get_buffer_data(out)
+        dx = grad_cpu * (out_cpu * (1 - out_cpu))
+        return get_device().upload_tensor(dx)
 
 class MPSDot(Function):
     @staticmethod
@@ -396,8 +417,16 @@ class MPSDot(Function):
         return get_device().upload_tensor(out)
     @staticmethod
     def backward(ctx, grad):
-        x, y = ctx.saved_tensors
-        return grad @ y.T, x.T @ grad
+        x, y    = ctx.saved_tensors
+        g_cpu    = get_buffer_data(grad)
+        x_cpu    = get_buffer_data(x)
+        y_cpu    = get_buffer_data(y)
+        dx_cpu   = g_cpu @ y_cpu.T
+        dy_cpu   = x_cpu.T @ g_cpu
+        return (
+            get_device().upload_tensor(dx_cpu),
+            get_device().upload_tensor(dy_cpu),
+        )
 
 MPSMatMul = MPSDot  # alias
 
@@ -411,7 +440,9 @@ class MPSSum(Function):
         return get_device().upload_tensor(out)
     @staticmethod
     def backward(ctx, grad):
-        return grad * get_device().upload_tensor(np.ones(ctx.input_shape, dtype=np.float32))
+        g_cpu  = get_buffer_data(grad)
+        dx_cpu = np.ones(ctx.input_shape, dtype=np.float32) * g_cpu
+        return get_device().upload_tensor(dx_cpu)
 
 class MPSMaxPool2d(Function):
     @staticmethod
@@ -434,7 +465,9 @@ class MPSReshape(Function):
         return get_device().upload_tensor(out)
     @staticmethod
     def backward(ctx, grad):
-        return grad.reshape(ctx.orig_shape)
+        g_cpu = get_buffer_data(grad)
+        dx_cpu = g_cpu.reshape(ctx.orig_shape)
+        return get_device().upload_tensor(dx_cpu)
 
 class MPSDropout(Function):
     @staticmethod
@@ -447,9 +480,11 @@ class MPSDropout(Function):
         return x
     @staticmethod
     def backward(ctx, grad):
-        if ctx.training:
-            return grad * ctx.mask / (1 - ctx.p)
-        return grad
+        if not ctx.training:
+            return grad
+        g_cpu  = get_buffer_data(grad)
+        dx_cpu = g_cpu * ctx.mask / (1 - ctx.p)
+        return get_device().upload_tensor(dx_cpu)
 
 class MPSLogSoftmax(Function):
     @staticmethod
@@ -460,7 +495,10 @@ class MPSLogSoftmax(Function):
     @staticmethod
     def backward(ctx, grad):
         out, = ctx.saved_tensors
-        return grad - np.exp(out) * np.sum(grad, axis=-1, keepdims=True)
+        g_cpu = get_buffer_data(grad)
+        out_cpu = get_buffer_data(out)
+        dx_cpu = g_cpu - np.exp(out_cpu) * np.sum(g_cpu, axis=-1, keepdims=True)
+        return get_device().upload_tensor(dx_cpu)
 
 class MPSPad2d(Function):
     @staticmethod
