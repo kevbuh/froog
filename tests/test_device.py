@@ -1,39 +1,25 @@
 import numpy as np
-from froog import Device, OpenCLDevice, get_device, set_device
+from froog import get_device
 from froog.tensor import Tensor
 
 def test_device_abstraction():
-    print("Testing device abstraction...")
-    
     # Get the default device
     device = get_device()
-    print(f"Default device: {device.name if device else 'None'}")
-    
+    assert device is not None, "No default device found"
     # Test tensor creation and movement to GPU
-    if device and device.is_available():
-        try:
-            # Create a tensor on CPU
-            a = Tensor([1.0, 2.0, 3.0])
-            print(f"Created tensor on CPU: {a.data}")
-            
-            # Move to GPU
-            a_gpu = a.to_gpu()
-            print(f"Moved tensor to GPU, GPU flag: {a_gpu.gpu}")
-            
-            # Move back to CPU
-            a_cpu = a_gpu.to_cpu()
-            print(f"Moved tensor back to CPU: {a_cpu.data}")
-            
-            # Test basic operations on GPU
-            b = Tensor([4.0, 5.0, 6.0]).to_gpu()
-            c = a_gpu + b
-            print(f"Result of addition on GPU (after moving to CPU): {c.to_cpu().data}")
-            
-            print("All operations completed successfully!")
-        except Exception as e:
-            print(f"Error during GPU operations: {e}")
+    if device.is_available():
+        # Create a tensor on CPU
+        a = Tensor([1.0, 2.0, 3.0])
+        assert np.array_equal(a.data, [1.0, 2.0, 3.0]), "Tensor data mismatch on CPU"
+        # Move to GPU
+        a_gpu = a.to_gpu()
+        assert a_gpu.gpu, "Tensor not moved to GPU"
+        # Move back to CPU
+        a_cpu = a_gpu.to_cpu()
+        assert np.array_equal(a_cpu.data, [1.0, 2.0, 3.0]), "Tensor data mismatch after moving back to CPU"
+        # Test basic operations on GPU
+        b = Tensor([4.0, 5.0, 6.0]).to_gpu()
+        c = a_gpu + b
+        assert np.array_equal(c.to_cpu().data, [5.0, 7.0, 9.0]), "Addition result mismatch on GPU"
     else:
-        print("No GPU device available for testing")
-
-if __name__ == "__main__":
-    test_device_abstraction()
+        assert False, "No GPU device available for testing"

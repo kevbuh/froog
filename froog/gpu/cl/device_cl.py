@@ -35,10 +35,62 @@ class OpenCLDevice(Device):
         """Check if the OpenCL device is available."""
         return CL_AVAILABLE and self.cl_ctx is not None and self.cl_queue is not None
     
-    def tensor_to_device(self, data: np.ndarray) -> Any:
-        """Convert CPU data to OpenCL buffer."""
+    # Device class abstract method implementations
+    
+    def allocate_memory(self, size: int):
+        """Allocate memory on the device."""
         if not self.is_available():
             raise Exception("No OpenCL support! Install pyopencl")
+        buffer = cl.Buffer(self.cl_ctx, cl.mem_flags.READ_WRITE, size * 4)  # Assuming float32 (4 bytes)
+        return buffer
+    
+    def free_memory(self, buffer):
+        """Free device memory."""
+        # OpenCL buffers are automatically garbage collected
+        pass
+    
+    def upload_tensor(self, host_array) -> object:
+        """Copy data from host to device."""
+        return self.tensor_to_device(host_array)
+    
+    def download_tensor(self, buffer) -> object:
+        """Copy data from device to host."""
+        return self.tensor_to_cpu(buffer)
+    
+    def compile_kernel(self, source: str, kernel_name: str) -> object:
+        """Compile a kernel from source code."""
+        program = cl.Program(self.cl_ctx, source).build()
+        return getattr(program, kernel_name)
+    
+    def execute_kernel(self, compiled_kernel, grid_size: tuple, threadgroup_size: tuple, buffers: list):
+        """Execute a kernel on the device."""
+        global_size = grid_size
+        local_size = threadgroup_size
+        event = compiled_kernel(self.cl_queue, global_size, local_size, *buffers)
+        return event
+    
+    def synchronize(self):
+        """Wait for all pending operations to complete."""
+        self.cl_queue.finish()
+    
+    def get_capabilities(self) -> dict:
+        """Query device capabilities."""
+        if not self.is_available():
+            return {"name": "None", "available": False}
+        
+        device = self.cl_ctx.devices[0]
+        return {
+            "name": device.name,
+            "available": True,
+            "max_work_group_size": device.max_work_group_size,
+            "max_compute_units": device.max_compute_units
+        }
+    
+    # OpenCL-specific methods
+    
+    def tensor_to_device(self, data: np.ndarray) -> Any:
+        """Convert CPU data to OpenCL buffer."""
+        if not self.is_available(): raise Exception("No OpenCL support! Install pyopencl")
         
         assert data.dtype == np.float32  # GPU only allows float32
         gpu_buffer = cl.Buffer(
@@ -52,11 +104,12 @@ class OpenCLDevice(Device):
     
     def tensor_to_cpu(self, tensor: Any) -> np.ndarray:
         """Convert an OpenCL buffer to CPU."""
+        if hasattr(tensor, "data"): tensor = tensor.data
         data = np.empty(tensor.shape, dtype=np.float32)
         cl.enqueue_copy(self.cl_queue, data, tensor)
         return data
     
-    def is_device_tensor(self, data: Any) -> bool:
+    def is_buffer(self, data: Any) -> bool:
         """Check if data is an OpenCL buffer."""
         return CL_AVAILABLE and isinstance(data, cl._cl.Buffer)
     
@@ -137,25 +190,36 @@ class OpenCLDevice(Device):
     
     @functools.lru_cache
     def _build_pooling_kernel(self, iter_op: str, result_op: str, init_val: Union[int, str] = 0) -> Any:
-        """Build an OpenCL kernel for pooling operations."""
-        prg = """
-        __kernel void subsample(
-          __global float *output, __global const float *input, uint2 osize, uint2 isize, uint2 kernel_size, int nelem
-        ) {
-          int3 gid = (int3)(get_global_id(2), get_global_id(1), get_global_id(0));
-          int oid = gid.x + osize.x*(gid.y + osize.y*gid.z);
-          float group_res = """+str(init_val)+""";
-          for (uint j=0; j<kernel_size.y; ++j) {
-            for (uint i=0; i<kernel_size.x; ++i) {
-              int iid  = (gid.x*kernel_size.x+i) + isize.x*((gid.y*kernel_size.y+j) + isize.y*gid.z);
-              if (iid < nelem)
-                """+iter_op+""";
-            }
-          }
-          output[oid] = """+result_op+""";
-        }
+        """Build a pooling kernel."""
+        code = f"""
+        __kernel void pool2d(
+            __global const float *input, 
+            __global float *output,
+            int isize, int xsize, int ysize, 
+            int kernsize, int stride) 
+        {{
+            int x = get_global_id(0); int y = get_global_id(1); int b = get_global_id(2);
+            if (x >= xsize || y >= ysize) return;
+            
+            int start_idx = b * isize * isize;
+            int out_idx = (b * ysize * xsize) + (y * xsize) + x;
+            
+            int y_start = y * stride;
+            int x_start = x * stride;
+            int y_end = min(y_start + kernsize, isize);
+            int x_end = min(x_start + kernsize, isize);
+            
+            float result = {init_val};
+            for (int j = y_start; j < y_end; j++) {{
+                for (int i = x_start; i < x_end; i++) {{
+                    int in_idx = start_idx + j * isize + i;
+                    result = {iter_op};
+                }}
+            }}
+            output[out_idx] = {result_op};
+        }}
         """
-        return self.build_program(prg)
+        return self.build_program(code)
     
     def pooling_op(self, input: Any, kernel_size: Tuple[int, int], 
                   iter_op: str, result_op: str, init_val: Union[int, str] = 0) -> Any:

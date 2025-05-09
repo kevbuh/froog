@@ -1,29 +1,15 @@
 from froog.gpu.device import Device
 from froog.gpu.cl.device_cl import OpenCLDevice
-
-# Make device classes available at package level
-__all__ = ['Device', 'OpenCLDevice', 'get_device']
-
-# Global device instance
-_current_device = None
-
-def get_device() -> Device:
-    """
-    Get the current active device.
-    If no device is set, it defaults to OpenCL device if available.
-    """
-    global _current_device
-    if _current_device is None:
-        try:
-            _current_device = OpenCLDevice()
-            if not _current_device.is_available():
-                _current_device = None
-        except ImportError:
-            _current_device = None
-    
-    return _current_device
-
-def set_device(device: Device) -> None:
-    """Set the active device."""
-    global _current_device
-    _current_device = device 
+from froog.gpu.device_manager import get_device, set_device, upload_tensor, download_tensor,  is_buffer, allocate_buffer, synchronize, get_available_devices, _DEVICE_MANAGER as DeviceManager
+try:
+    from froog.gpu.metal.device_metal import MetalDevice
+    HAS_METAL = True
+except ImportError:
+    HAS_METAL = False
+    MetalDevice = None
+    METAL_AVAILABLE = False
+try: from froog.gpu import buffer_utils
+except ImportError: buffer_utils = None
+__all__ = [ 'Device', 'OpenCLDevice', 'get_device', 'set_device',  'upload_tensor', 'download_tensor', 'is_buffer', 'allocate_buffer', 'synchronize', 'get_available_devices',  'buffer_utils' ]
+if HAS_METAL: __all__.append('MetalDevice')
+get_device() 

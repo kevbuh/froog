@@ -3,7 +3,11 @@ import timeit
 import unittest
 import functools
 import numpy as np
-from froog.tensor import Tensor, GPU
+from froog.tensor import Tensor
+from froog import get_device
+
+# Check if GPU is available
+HAS_GPU = get_device() is not None and get_device().name != "CPU"
 
 def helper_test_op(shape, torch_func, froog_func, atol=1e-6, grad_atol=1e-6, gpu=False, forward_only=False):
   torch_tensors = [torch.rand(x, requires_grad=True) for x in shape]
@@ -62,7 +66,6 @@ class TestOps(unittest.TestCase):
     H,W = 3,3
     helper_test_op([(bs,cin,11,28), (4,cin,H,W)], lambda x,w: torch.nn.functional.conv2d(x,w,stride=2).relu(), lambda x,w: Tensor.conv2d(x,w,stride=2).relu(), atol=2e-5, grad_atol=2e-6, forward_only=self.gpu)
     helper_test_op([(bs,cin,11,28), (4,cin,H,W)], lambda x,w: torch.nn.functional.conv2d(x,w,stride=(2,1)).relu(), lambda x,w: Tensor.conv2d(x,w,stride=(2,1)).relu(), atol=2e-5, grad_atol=2e-6, forward_only=self.gpu)
-
   # **************** Max Pool ****************
   def test_maxpool_sizes(self):
     for size in [(2,2), (3,3), (3,2), (5,5), (5,1)]:
@@ -76,20 +79,17 @@ class TestOps(unittest.TestCase):
   def test_relu(self): helper_test_op([(45,65)], lambda x: x.relu(), Tensor.relu, gpu=self.gpu)
   # **************** Padding ****************
   def test_pad2d(self): helper_test_op([(3,3,3,3)], lambda x: torch.nn.functional.pad(x, (1,1,1,1)), lambda x: x.pad2d(padding=(1,1,1,1)), gpu=self.gpu, forward_only=True)
-
   # **************** Dropout ****************
   def test_dropout_eval_mode(self):
     helper_test_op([(10, 20)], lambda t: torch.nn.functional.dropout(t, p=0.5, training=False), lambda t: t.dropout(p=0.5, training=False), gpu=self.gpu)
     helper_test_op([(50, 50)], lambda t: torch.nn.functional.dropout(t, p=0.2, training=False), lambda t: t.dropout(p=0.2, training=False), gpu=self.gpu)
     helper_test_op([(10, 20)], lambda t: torch.nn.functional.dropout(t, p=0.0, training=False), lambda t: t.dropout(p=0.0, training=False), gpu=self.gpu)
-
   def test_dropout_train_mode_cpu(self):
     if self.gpu:
       self.skipTest("Training mode dropout test is CPU-only for now due to GPU random number generation.")
       return
     P_DROPOUT = 0.25
     SHAPE = (100, 200)
-
     # --- Test 1: Forward Pass Verification ---
     np.random.seed(1337)
     np_x = np.random.rand(*SHAPE).astype(np.float32)
@@ -105,7 +105,6 @@ class TestOps(unittest.TestCase):
     np.testing.assert_allclose(froog_y.data, expected_y_np, atol=1e-7, err_msg="Dropout forward pass output does not match expected (CPU).")
     internal_scaled_mask_data = froog_y._ctx.saved_tensors[0]
     np.testing.assert_allclose(internal_scaled_mask_data, expected_scaled_mask_np, atol=1e-7, err_msg="Internal scaled mask in context does not match expected (CPU).")
-    
     # --- Test 2: Backward Pass Verification ---
     np.random.seed(42)
     np_x_bp = np.random.rand(*SHAPE).astype(np.float32)
@@ -117,7 +116,7 @@ class TestOps(unittest.TestCase):
     expected_grad_np = (1.0 / np.prod(SHAPE)) * scaled_mask_for_bp
     np.testing.assert_allclose(froog_x_bp.grad.data, expected_grad_np, atol=1e-7, err_msg="Dropout backward pass gradient does not match expected (CPU).")
 
-if GPU:
+if HAS_GPU:
   class TestOpsGPU(TestOps):
     gpu = True
 

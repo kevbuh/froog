@@ -38,8 +38,10 @@ import numpy as np
 from froog.tensor import Tensor
 from froog.utils import fetch
 from froog.ops import swish, BatchNorm2D, DropoutLayer
+from froog import get_device
 
-GPU = os.getenv("GPU", None) is not None
+# Check if GPU is available
+HAS_GPU = get_device() is not None and get_device().name != "CPU"
 
 class MBConvBlock: 
   """
@@ -164,7 +166,7 @@ class EfficientNet:
           mv = eval(mk.replace(".bias", "_bias"))
       vnp = v.numpy().astype(np.float32)
       mv.data[:] = vnp if k != '_fc.weight' else vnp.T        # assigns data to enet
-      if GPU:
+      if HAS_GPU:
         mv.gpu_()
 
 def processImage(url):
@@ -190,43 +192,33 @@ if __name__ == "__main__":
   # instantiate and get weights
   model = EfficientNet()
   model.load_weights_from_torch() 
-
   # load image and preprocess
   from PIL import Image
-  if len(sys.argv) > 1:                                       
-    url = sys.argv[1]
-  else:
-    url = "https://cdn.britannica.com/34/233234-050-1649BFA9/Pug-dog.jpg"
-
+  if len(sys.argv) > 1: url = sys.argv[1]
+  else: url = "https://cdn.britannica.com/34/233234-050-1649BFA9/Pug-dog.jpg"
   # process image for pretrained weights
   img = processImage(url)
-
   if os.getenv('VIZ') == "1":
     import matplotlib.pyplot as plt
     plt.imshow(img[0].mean(axis=0))
     plt.show()
-
   # get imagenet labels into dictionary
-  with open('assets/imagenet_classes.txt', 'r') as f:
-    lbls = json.load(f)
-
+  with open('assets/imagenet_classes.txt', 'r') as f: lbls = json.load(f)
   # inference
   import time
   st = time.time()
-  if GPU:
-    out = model.forward(Tensor(img).to_gpu()).cpu()
-  else:
-    out = model.forward(Tensor(img))
-
+  if HAS_GPU:
+    out = model.forward(Tensor(img).to_gpu())
+    from froog.gpu.buffer_utils import get_buffer_data
+    result = get_buffer_data(out.data)
+  else: result = model.forward(Tensor(img)).data
   if os.getenv('VIZ') == "1":
-    # outputs
     import matplotlib.pyplot as plt
-    plt.plot(out.data[0])
+    plt.plot(result[0])
     plt.show()
-
   print("\n******************************")
   print(f"inference {float(time.time()-st):.2f} s\n")
-  print("imagenet class:", np.argmax(out.data))
-  print("prediction    :", lbls.get(str(np.argmax(out.data))))
-  print("probability   :", np.max(out.data) / 10)
+  print("imagenet class:", np.argmax(result))
+  print("prediction    :", lbls.get(str(np.argmax(result))))
+  print("probability   :", np.max(result) / 10)
   print("******************************\n")

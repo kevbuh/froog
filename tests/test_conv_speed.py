@@ -28,7 +28,7 @@ class TestConvSpeed(unittest.TestCase):
 
     # ****** torch baseline ******
     
-    torch.backends.mkldnn.enabled = False                             # disables the use of MKL-DNN 
+    torch.backends.mkldnn.enabled = False                              # disables the use of MKL-DNN 
     conv = 3
     intern_chan, out_chan = 32, 64
     num_time = 5
