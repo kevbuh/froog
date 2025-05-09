@@ -63,11 +63,9 @@ def check_and_initialize_metal(get_device_func, set_device_func) -> bool:
         try:
             _metal_device = MetalDevice()
             if _metal_device.device is not None:
-                # print("using METAL")
                 set_device_func(_metal_device)
                 return True
         except Exception as e:
-            # print(f"Failed to initialize Metal device: {e}")
             return False
 
     return METAL_AVAILABLE and _metal_device is not None

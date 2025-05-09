@@ -4,76 +4,16 @@ froog is an easy to read machine learning library. froog's driving philosophy is
 
 Tensorflow and PyTorch are insanely complex with enormous codebases and meant for expert development. Instead, froog is meant for those who are looking to get into machine learning, and want to actually understand how machine learning works before it is ultra-optimized (which all modern ml libraries are).
 
-### Where to start?
+# Installation 
 
-First, download froog using the [installation](https://github.com/kevbuh/froog/blob/main/docs/install.md) docs. 
-
-# How to build
-
-The most fundamental concept in all of froog and machine learning is the Tensor. A [tensor](https://en.wikipedia.org/wiki/Tensor_(machine_learning)) is simply a matrix of matrices (more accurately a multi-dimensional array). 
-
-You can create a Tensor in froog by:
-```python
-import numpy as np
-from froog.tensor import Tensor
-
-my_tensor = Tensor([1,2,3])
-```
-
-Notice how we had to import numpy. If you want to create a Tensor manually make sure that it is a Numpy array!
-
-Learn more about froog's Tensors [here](https://github.com/kevbuh/froog/blob/main/docs/tensors.md).
-
-### Actually creating something
-
-Okay cool, so now you know that froog's main datatype is a Tensor and uses NumPy in the background. How do I actually build a model? 
-
-We wanted to make it as simple as possible for you to do so.
-
-Here's an example of how to create an MNIST multi-layer perceptron (MLP)
-
-```python
-from froog.tensor import Tensor
-import froog.optim as optim
-from froog.nn import Linear
-
-class mnistMLP:
-  def __init__(self):
-    self.l1 = Tensor(Linear(784, 128))
-    self.l2 = Tensor(Linear(128, 10))
-
-  def forward(self, x):
-    return x.dot(self.l1).relu().dot(self.l2).logsoftmax()
-
-model = mnistMLP()
-optim = optim.SGD([model.l1, model.l2], lr=0.001)
-```
-
-You can also create a convolutional neural net by
-
-```python
-class SimpleConvNet:
-  def __init__(self):
-    conv_size = 5
-    channels = 17
-    self.c1 = Tensor(Linear(channels,1,conv_size,conv_size))     # (num_filters, color_channels, kernel_h, kernel_w)
-    self.l1 = Tensor(Linear((28-conv_size+1)**2*channels, 128))  # (28-conv+1)(28-conv+1) since kernel isn't padded
-    self.l2 = Tensor(Linear(128, 10))                            # MNIST output is 10 classes
-
-  def forward(self, x):
-    x.data = x.data.reshape((-1, 1, 28, 28))                          # get however many number of imgs in batch
-    x = x.conv2d(self.c1).relu()                                      # pass through conv first
-    x = x.reshape(shape=(x.shape[0], -1))
-    return x.dot(self.l1).relu().dot(self.l2).logsoftmax()
-```
-
-### Tests
-Tests are located [here](https://github.com/kevbuh/froog/tree/main/tests).
-
-You can run them in your terminal by going into the root folder and entering:
+simply install froog onto your local computer by entering the following into your terminal 
 
 ```bash
-python -m pytest
+pip install froog
+# OR
+git clone https://github.com/kevbuh/froog.git
+cd froog
+pip3 install -r requirements.txt
 ```
 
 # Overview
@@ -86,8 +26,6 @@ import numpy as np
 from froog.tensor import Tensor
 my_tensor = Tensor([1,2,3])
 ```
-
-Notice how we had to import NumPy. If you want to create a Tensor manually, make sure that it is a NumPy array!
 
 # Creating a model
 
@@ -141,10 +79,6 @@ class SimpleConvNet:
 
 So there are two quick examples to get you up and running. You might have noticed some operations like `reshape` and were wondering what else you can do with `froog`. We have many more operations that you can apply on tensors: 
 
-# Tensors
-
-Tensors are the fundamental datatype in froog, and one of the two main classes.
-
 - `def __init__(self, data)`:
 
   - Tensor takes in one param, which is the data. Since `froog` has a NumPy backend, the input data into tensors has to be a NumPy array.
@@ -189,7 +123,14 @@ The other base class in froog is the class `Function`. It keeps track of input t
 
 Multiple variables can be used together: `WARNING=1 DEBUG=1 GPU=1 python your_script.py` 
 
-# Bounties
+# Contributing
+
+Theres lots of work to be done!
+
+Here are some basic guidelines for contributing:
+1. increase simplicity
+2. increase efficiency
+3. increase functionality, must include [tests](https://github.com/kevbuh/froog/tree/main/tests)
 
 #### Small   <!-- ez money  -->
 - ensemble trees 
@@ -203,49 +144,19 @@ Multiple variables can be used together: `WARNING=1 DEBUG=1 GPU=1 python your_sc
 - faster conv
 - simplify how context and gradients are handled
 #### Large <!-- EXPERT LEVEL!!!  -->
-- ability to train
 - float16 support
 - transformers
 - stable diffusion
 - winograd convs
 - GPU Support
-  - OpenCL
-  - Metal
   - CUDA
+  - AMD
 
-# contributing
+### Tests
+Tests are located [here](https://github.com/kevbuh/froog/tree/main/tests).
 
-Theres lots of work to be done!
-
-Here are some basic guidelines for contributing:
-<!-- 1. reduce complexity 
-2. increase speed
-3. add features, must include <a href="https://github.com/kevbuh/froog/tree/main/tests">tests</a>
-4. rule #1 -->
-1. increase simplicity
-2. increase efficiency
-3. increase functionality, must include [tests](https://github.com/kevbuh/froog/tree/main/tests)
-
-if adding a line is worth one point, reducing complexity is worth 100
-
-# Installation 
-
-simply install froog onto your local computer by entering the following into your terminal 
+You can run them in your terminal by going into the root folder and entering:
 
 ```bash
-git clone https://github.com/kevbuh/froog.git
+python -m pytest
 ```
-
-once that has been completed, go into the folder
-
-```bash
-cd froog
-```
-
-one more step! froog is built with NumPy, which allows for general matrix operations. Make sure to install numpy by doing
-
-```bash
-pip3 install -r requirements.txt
-```
-
-once done, you're all ready to go! you can now resume the [tutorial](https://github.com/kevbuh/froog/blob/main/docs/README.md) 
