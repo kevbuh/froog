@@ -103,7 +103,7 @@ class TestModels(unittest.TestCase):
   def test_conv_cpu(self):
     model = SimpleConvNet()
     optimizer = optim.SGD(model.parameters(), lr=0.001)
-    train(model, optimizer, steps=200)
+    train(model, optimizer, steps=500)
     evaluate(model)
   def test_mnist_conv_adam(self):
     model = SimpleConvNet()
