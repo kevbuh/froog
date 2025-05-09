@@ -11,7 +11,7 @@
   <br/>
 </div>
 
-```froog``` is an easy-to-read tensor library (<a href="https://www.pepy.tech/projects/froog">25k pip installs!</a>) with OpenCL support for GPU acceleration. Inspired by pytorch, tinygrad, and micrograd.
+```froog``` is an easy-to-read tensor library (<a href="https://www.pepy.tech/projects/froog">25k pip installs!</a>) with support for GPU acceleration. Inspired by pytorch, tinygrad, and micrograd.
 
 # Installation
 ```bash
@@ -93,7 +93,7 @@ set_device("METAL")  # or "OPENCL"
 
 # EfficientNet in froog!
 
-<img src="assets/efficientnet_pug.png" alt="pug" height="300">
+<img src="https://github.com/kevbuh/froog/blob/main/assets/efficientnet_pug.png" alt="pug" height="300">
 
 We have an implementation of [EfficientNet v2](https://arxiv.org/abs/2104.00298) built entirely in ```froog``` using the official PyTorch weights! Run inference with:
 
