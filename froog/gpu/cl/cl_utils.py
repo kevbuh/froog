@@ -36,7 +36,7 @@ def is_buffer(data: Any) -> bool:
     device = get_device()
     if device is None:
         return False
-    return device.is_device_tensor(data)
+    return device.is_buffer(data)
 
 # Helper functions that delegate to the device instance
 

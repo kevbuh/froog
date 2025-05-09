@@ -5,7 +5,7 @@
 - `upload_tensor()`: Upload data to the current device
 - `download_tensor()`: Download data from the current device
 - `allocate_buffer()`: Allocate a buffer on the current device
-- `is_device_tensor()`: Check if data is a device buffer
+- `is_buffer()`: Check if data is a device buffer
 - `synchronize()`: Synchronize operations on the current device
 """
 
@@ -107,7 +107,7 @@ class CPUDevice(Device):
             "available": True
         }
         
-    def is_device_tensor(self, data):
+    def is_buffer(self, data):
         """Everything on CPU is a numpy array or can be converted to one."""
         return isinstance(data, np.ndarray)
 
@@ -192,7 +192,7 @@ class DeviceManager:
             if self._current_device is not None and not self._device_info_printed:
                 try:
                     device_info = self._current_device.get_capabilities()
-                    print(f"Using {device_info.get('name', 'unknown')} device")
+                    # print(f"Using {device_info.get('name', 'unknown')}")
                     self._device_info_printed = True
                 except Exception:
                     pass
@@ -293,21 +293,13 @@ class DeviceManager:
             
         return device.download_tensor(buffer)
     
-    def is_device_tensor(self, data: Any) -> bool:
+    def is_buffer(self, data: Any) -> bool:
         """Check if data is a device tensor/buffer."""
         device = self.default_device
-        if device is None:
-            return False
-            
-        if hasattr(device, 'is_device_tensor'):
-            return device.is_device_tensor(data)
-            
-        # Generic checks
-        if hasattr(data, "length") and callable(data.length):
-            return True
-        if hasattr(data, "__pyobjc_object__") or str(type(data)).find('Buffer') >= 0:
-            return True
-            
+        if device is None: return False
+        if hasattr(device, 'is_buffer'): return device.is_buffer(data)
+        if hasattr(data, "length") and callable(data.length): return True
+        if hasattr(data, "__pyobjc_object__") or str(type(data)).find('Buffer') >= 0: return True
         return False
 
 # Create the singleton instance
@@ -318,7 +310,7 @@ get_device = _DEVICE_MANAGER.get_device
 set_device = _DEVICE_MANAGER.set_device
 upload_tensor = _DEVICE_MANAGER.upload_tensor
 download_tensor = _DEVICE_MANAGER.download_tensor
-is_device_tensor = _DEVICE_MANAGER.is_device_tensor
+is_buffer = _DEVICE_MANAGER.is_buffer
 allocate_buffer = _DEVICE_MANAGER.allocate_buffer
 synchronize = _DEVICE_MANAGER.synchronize
 get_available_devices = _DEVICE_MANAGER.get_available_devices 

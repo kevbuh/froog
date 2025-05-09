@@ -14,7 +14,7 @@ except ImportError:
 # Import device management functions
 from froog.gpu import (
     Device, OpenCLDevice, get_device, set_device,
-    upload_tensor, download_tensor, is_device_tensor,
+    upload_tensor, download_tensor, is_buffer,
     allocate_buffer, synchronize, get_available_devices
 )
 
@@ -24,13 +24,13 @@ try:
     __all__ = [
         'Device', 'OpenCLDevice', 'MetalDevice', 
         'get_device', 'set_device', 'upload_tensor', 
-        'download_tensor', 'is_device_tensor', 
+        'download_tensor', 'is_buffer', 
         'allocate_buffer', 'synchronize', 'get_available_devices'
     ]
 except ImportError:
     __all__ = [
         'Device', 'OpenCLDevice', 
         'get_device', 'set_device', 'upload_tensor', 
-        'download_tensor', 'is_device_tensor', 
+        'download_tensor', 'is_buffer', 
         'allocate_buffer', 'synchronize', 'get_available_devices'
     ]

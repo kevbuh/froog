@@ -113,7 +113,7 @@ class OpenCLDevice(Device):
         cl.enqueue_copy(self.cl_queue, data, tensor)
         return data
     
-    def is_device_tensor(self, data: Any) -> bool:
+    def is_buffer(self, data: Any) -> bool:
         """Check if data is an OpenCL buffer."""
         return CL_AVAILABLE and isinstance(data, cl._cl.Buffer)
     

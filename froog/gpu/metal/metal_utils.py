@@ -14,17 +14,14 @@ try:
         test_device = Metal.MTLCreateSystemDefaultDevice()
         METAL_AVAILABLE = test_device is not None
 except ImportError as e:
-    if __name__ == "__main__":
-        print(f"Metal not available: {str(e)}")
+    if __name__ == "__main__": print(f"Metal not available: {str(e)}")
     METAL_AVAILABLE = False
     Metal = None
     objc = None
 
 def is_metal_buffer(data: Any) -> bool:
     """Check if the data is a Metal buffer."""
-    return (hasattr(data, "__pyobjc_object__") or 
-            (hasattr(data, "length") and callable(data.length)) or
-            str(type(data)).find('Metal.MTLBuffer') >= 0)
+    return (hasattr(data, "__pyobjc_object__") or (hasattr(data, "length") and callable(data.length)) or str(type(data)).find('Metal.MTLBuffer') >= 0)
 
 def get_buffer_data(buffer: Any) -> np.ndarray:
     """Get data from a Metal buffer."""
@@ -66,11 +63,11 @@ def check_and_initialize_metal(get_device_func, set_device_func) -> bool:
         try:
             _metal_device = MetalDevice()
             if _metal_device.device is not None:
-                print("using METAL")
+                # print("using METAL")
                 set_device_func(_metal_device)
                 return True
         except Exception as e:
-            print(f"Failed to initialize Metal device: {e}")
+            # print(f"Failed to initialize Metal device: {e}")
             return False
 
     return METAL_AVAILABLE and _metal_device is not None
@@ -78,22 +75,18 @@ def check_and_initialize_metal(get_device_func, set_device_func) -> bool:
 def tensor_to_cpu(tensor: Any, get_device_func) -> np.ndarray:
     device = get_device_func()
     if tensor.gpu:
-        if device is None:
-            raise Exception("No GPU device available")
+        if device is None: raise Exception("No GPU device available")
         return device.download_tensor(tensor.data)
     return tensor.data
 
 def tensor_to_gpu(data: np.ndarray, get_device_func) -> Any:
     device = get_device_func()
-    if device is None:
-        raise Exception("No GPU device available")
+    if device is None: raise Exception("No GPU device available")
     return device.upload_tensor(data)
 
 def is_buffer(data: Any) -> bool:
+    from froog.gpu import get_device
     device = get_device()
-    if device is None:
-        return False
-
-    if device.__class__.__name__ == "MetalDevice":
-        return hasattr(data, "length") and callable(data.length)
+    if device is None: return False
+    if device.__class__.__name__ == "MetalDevice": return hasattr(data, "length") and callable(data.length)
     return False 

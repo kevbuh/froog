@@ -8,7 +8,7 @@ from froog.gpu.cl.device_cl import OpenCLDevice, CL_AVAILABLE
 # Import the device manager
 from froog.gpu.device_manager import (
     get_device, set_device, upload_tensor, download_tensor, 
-    is_device_tensor, allocate_buffer, synchronize, get_available_devices,
+    is_buffer, allocate_buffer, synchronize, get_available_devices,
     _DEVICE_MANAGER as DeviceManager
 )
 
@@ -31,7 +31,7 @@ except ImportError:
 # Make device classes available at package level
 __all__ = [
     'Device', 'OpenCLDevice', 'get_device', 'set_device', 
-    'upload_tensor', 'download_tensor', 'is_device_tensor',
+    'upload_tensor', 'download_tensor', 'is_buffer',
     'allocate_buffer', 'synchronize', 'get_available_devices', 
     'buffer_utils'
 ]
