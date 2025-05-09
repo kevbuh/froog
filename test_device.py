@@ -8,20 +8,10 @@ import numpy as np
 # Set debug mode to see initialization messages
 os.environ["DEBUG"] = "1"
 
-# For testing without real GPU hardware, allow fake GPU mode
-os.environ["ALLOW_FAKE_GPU"] = "1" 
-
 # Import froog modules after setting environment variables
 from froog.tensor import Tensor
 from froog.gpu import get_device
 
-# Explicitly import mock ops when in fake GPU mode
-if os.environ.get("ALLOW_FAKE_GPU") == "1":
-    try:
-        import froog.gpu.mock_ops
-    except ImportError:
-        print("Failed to import mock GPU operations")
-        
 def run_tests():
     # Check if we have a device
     device = get_device()
@@ -30,7 +20,7 @@ def run_tests():
     if device:
         print(f"Device capabilities: {device.get_capabilities()}")
     else:
-        print("No GPU device available, using fake GPU mode for testing")
+        print("No GPU device available")
     
     # Test basic tensor operations on the device
     print("\n--- Testing basic tensor operations ---")

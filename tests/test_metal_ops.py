@@ -80,10 +80,6 @@ class TestMetalOps(unittest.TestCase):
     
     def test_basic_nn(self):
         """Test a basic neural network with Metal GPU."""
-        # Skip test in fake GPU mode
-        if os.getenv("ALLOW_FAKE_GPU") == "1":
-            self.skipTest("Skipping neural network test in fake GPU mode")
-        
         # Create a simple 2-layer network
         x = Tensor(np.random.randn(10, 5).astype(np.float32))
         w1 = Tensor(np.random.randn(5, 8).astype(np.float32))

@@ -22,10 +22,6 @@ try:
 except ImportError:
     GPU = CL_GPU
 
-# If ALLOW_FAKE_GPU is set, enable GPU mode even without a real device
-if os.getenv("ALLOW_FAKE_GPU") == "1" and not GPU:
-    GPU = True
-
 # Function to check if data is a device buffer
 def is_buffer(data: Any) -> bool:
     """Check if data is a GPU buffer"""
@@ -57,9 +53,6 @@ def tensor_to_cpu(tensor: Any) -> np.ndarray:
         if hasattr(tensor, "data"):
             if hasattr(tensor.data, "shape") and hasattr(tensor.data, "dtype"):
                 return tensor.data  # It's already a CPU tensor-like object
-            elif os.getenv("ALLOW_FAKE_GPU") == "1":
-                # If we're in fake GPU mode, just return the tensor data as is
-                return tensor.data
         raise Exception("No GPU device available and can't convert unknown tensor type")
     
     # If we're passed a Tensor object, use its data
@@ -90,8 +83,6 @@ def tensor_to_gpu(data: np.ndarray) -> Any:
     if device is None:
         # For testing purposes, if GPU flag is set but no device is available,
         # we can make the tests pass by just returning the data unchanged
-        if os.getenv("ALLOW_FAKE_GPU") == "1":
-            return data
         raise Exception("No GPU device available")
     
     try:
@@ -315,14 +306,6 @@ class Tensor:
     
   def to_cpu(self) -> T:
     if self.gpu:
-        if os.getenv("ALLOW_FAKE_GPU") == "1" and get_device() is None:
-            # In fake GPU mode, just return a copy of this tensor with gpu=False
-            ret = Tensor(self.data.copy())
-            ret.gpu = False
-            if self.grad:
-                ret.grad = self.grad.to_cpu() if self.grad.gpu else self.grad
-            return ret
-            
         data = tensor_to_cpu(self)
         ret = Tensor(data)
         if self.grad:
@@ -437,14 +420,7 @@ if GPU:
     else:
         print("GPU enabled but no device available")
     
-    # For fake GPU mode, import mock ops
-    if os.getenv("ALLOW_FAKE_GPU") == "1" and device is None:
-        try:
-            import froog.gpu.mock_ops
-            print("Using mock GPU operations")
-        except ImportError:
-            print("Failed to import mock GPU operations")
-    elif device is not None:
+    if device is not None:
         if device.__class__.__name__ == "MetalDevice":
             try:
                 import froog.gpu.metal.ops_metal
@@ -463,14 +439,6 @@ if GPU:
 
 def to_cpu(self) -> T:
     if self.gpu:
-        if os.getenv("ALLOW_FAKE_GPU") == "1" and get_device() is None:
-            # In fake GPU mode, just return a copy of this tensor with gpu=False
-            ret = Tensor(self.data.copy())
-            ret.gpu = False
-            if self.grad:
-                ret.grad = self.grad.to_cpu() if self.grad.gpu else self.grad
-            return ret
-            
         data = tensor_to_cpu(self)
         ret = Tensor(data)
         if self.grad:
@@ -484,13 +452,6 @@ def gpu_(self) -> None:
     # Initialize GPU if needed
     init_gpu()
     if not self.gpu and GPU:
-        # Handle fake GPU mode
-        if os.getenv("ALLOW_FAKE_GPU") == "1" and get_device() is None:
-            self.gpu = True
-            if self.grad:
-                self.grad.gpu_()
-            return
-                
         self.data = tensor_to_gpu(self.data)
         self.gpu = True
         if self.grad:
@@ -504,14 +465,6 @@ def to_gpu(self) -> T:
         # Initialize GPU if needed
         init_gpu()
         
-        # Handle fake GPU mode
-        if os.getenv("ALLOW_FAKE_GPU") == "1" and get_device() is None:
-            ret = Tensor(self.data.copy())
-            ret.gpu = True
-            if self.grad:
-                ret.grad = self.grad.to_gpu()
-            return ret
-            
         # Only attempt GPU conversion if we have a device
         device = get_device()
         if device is None:
