@@ -9,7 +9,7 @@
 import numpy as np
 from functools import lru_cache
 import pathlib, hashlib, os, tempfile, urllib
-from typing import Tuple, List, Union, Any, Optional, cast
+from typing import Tuple
 
 def fetch(url: str) -> pathlib.Path:
   if url.startswith(("/", ".")): return pathlib.Path(url)

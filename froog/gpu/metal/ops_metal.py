@@ -513,11 +513,6 @@ class MPSConv2d(Function):
         out = _conv2d(get_buffer_data(x), get_buffer_data(w), get_buffer_data(b) if b is not None else None, stride, padding)
         return get_device().upload_tensor(out)
 
-# ----------------------------------------------------------------------------
-# Register ops with Froog -----------------------------------------------------
-# ----------------------------------------------------------------------------
-
-# print("Registering MPS (or NumPy fallback) GPU operations …")
 register("add",        MPSAdd,        gpu=True)
 register("sub",        MPSSub,        gpu=True)
 register("mul",        MPSMul,        gpu=True)
@@ -537,11 +532,4 @@ register("logsoftmax", MPSLogSoftmax, gpu=True)
 register("pad2d",      MPSPad2d,      gpu=True)
 register("conv2d",     MPSConv2d,     gpu=True)
 
-# Register CPU fallbacks for ops the original CPU table lacks
-for _name, _cls in {
-    "div": MPSDiv,
-    "sqrt": MPSSqrt,
-}.items():
-    register(_name, _cls, gpu=False)
-
-# print(f"Tensor.ops_gpu keys → {sorted(Tensor.ops_gpu.keys())}")
+for _name, _cls in { "div": MPSDiv, "sqrt": MPSSqrt,}.items(): register(_name, _cls, gpu=False) # Register CPU fallbacks for ops the original CPU table lacks

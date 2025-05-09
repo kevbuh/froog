@@ -7,13 +7,9 @@
 # |___|    |___|  |_||_______||_______||_______|
 
 import numpy as np
-from typing import Tuple, List, Union, Optional, Any, TypeVar, cast, Callable
-from froog.tensor import Function, register
+from typing import Tuple, Union, Optional, Any, Callable
+from froog.tensor import Function, register, Tensor
 from froog.utils import im2col, col2im
-from froog.tensor import Tensor
-import os
-from inspect import signature
-from functools import partial
 
 # *****************************************************
 #     ____  ___   _____ __________   ____  ____  _____
