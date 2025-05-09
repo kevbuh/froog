@@ -3,6 +3,32 @@ name: Unit Tests
 on: [push, pull_request]
 
 jobs:
+  macos-test:
+    name: pytest
+    runs-on: macos-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v2
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.11
+    - name: Install macOS Specific Dependencies
+      run: |
+        pip install pyobjc pyobjc-framework-Metal pyobjc-framework-MetalPerformanceShaders
+        pip install -r requirements.txt
+    - name: Run Pytest
+      run: python -m pytest -s -v
+    - name: Run EfficientNet model
+      shell: bash
+      run: |
+        export PYTHONPATH=$GITHUB_WORKSPACE
+        python3 models/efficientnet.py > model_output.txt
+        cat model_output.txt
+        if ! grep -q "pug" model_output.txt; then
+          echo "Error: 'pug' not found in model output"
+          exit 1
+
   # test:
   #   name: pytest
   #   runs-on: ${{ matrix.os }}
@@ -20,32 +46,6 @@ jobs:
   #     run: pip install -r requirements.txt
   #   - name: Run Pytest 
   #     run: python -m pytest -s -v
-    # - name: Run EfficientNet model
-    #   shell: bash
-    #   run: |
-    #     export PYTHONPATH=$GITHUB_WORKSPACE
-    #     python3 models/efficientnet.py > model_output.txt
-    #     cat model_output.txt
-    #     if ! grep -q "pug" model_output.txt; then
-    #       echo "Error: 'pug' not found in model output"
-    #       exit 1
-
-  macos-test:
-    name: pytest
-    runs-on: macos-latest
-    steps:
-    - name: Checkout Code
-      uses: actions/checkout@v2
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.11
-    - name: Install macOS Specific Dependencies
-      run: |
-        pip install pyobjc pyobjc-framework-Metal pyobjc-framework-MetalPerformanceShaders
-        pip install -r requirements.txt
-    - name: Run Pytest
-      run: python -m pytest -s -v
     # - name: Run EfficientNet model
     #   shell: bash
     #   run: |
