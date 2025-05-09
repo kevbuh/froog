@@ -1,11 +1,15 @@
 import numpy as np
 from tqdm import trange
-from froog.tensor import Tensor, GPU
+from froog.tensor import Tensor
+from froog import get_device
 from froog.utils import fetch_mnist
 from froog.ops import Linear
 import froog.optim as optim
 import unittest
 import os
+
+# Check if GPU is available
+HAS_GPU = get_device() is not None and get_device().name != "CPU"
 
 # ********* load the mnist dataset *********
 X_train, Y_train, X_test, Y_test = fetch_mnist()

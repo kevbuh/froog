@@ -3,7 +3,11 @@ import timeit
 import unittest
 import functools
 import numpy as np
-from froog.tensor import Tensor, GPU
+from froog.tensor import Tensor
+from froog import get_device
+
+# Check if GPU is available
+HAS_GPU = get_device() is not None and get_device().name != "CPU"
 
 def helper_test_op(shape, torch_func, froog_func, atol=1e-6, grad_atol=1e-6, gpu=False, forward_only=False):
   torch_tensors = [torch.rand(x, requires_grad=True) for x in shape]
@@ -112,7 +116,7 @@ class TestOps(unittest.TestCase):
     expected_grad_np = (1.0 / np.prod(SHAPE)) * scaled_mask_for_bp
     np.testing.assert_allclose(froog_x_bp.grad.data, expected_grad_np, atol=1e-7, err_msg="Dropout backward pass gradient does not match expected (CPU).")
 
-if GPU:
+if HAS_GPU:
   class TestOpsGPU(TestOps):
     gpu = True
 

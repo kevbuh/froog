@@ -35,6 +35,7 @@ class MetalDevice(Device):
     
     def allocate_memory(self, size: int):
         """Allocate a Metal buffer of the given size (in bytes) on the GPU."""
+        import Metal
         options = Metal.MTLResourceStorageModeShared 
         buffer = self.device.newBufferWithLength_options_(size, options)
         return buffer
@@ -79,6 +80,10 @@ class MetalDevice(Device):
     def download_tensor(self, buffer) -> object:
         """Download data from a Metal buffer back to host memory as a NumPy array."""
         import numpy as np
+        
+        # If Tensor object, get the data
+        if hasattr(buffer, "data"):
+            buffer = buffer.data
         
         if buffer is None: raise ValueError("Cannot download from a None buffer")
             

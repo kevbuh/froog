@@ -11,68 +11,17 @@ import numpy as np
 from inspect import signature
 from typing import Tuple, List, Union, Optional, Any, TypeVar, cast
 
-from froog.gpu import get_device, set_device
-from froog.gpu.cl.cl_utils import GPU as CL_GPU
+from froog.gpu import (
+    get_device, set_device, upload_tensor, download_tensor, 
+    is_device_tensor, allocate_buffer, synchronize
+)
 
-try:
-    from froog.gpu.metal.metal_utils import METAL_GPU, check_and_initialize_metal
-    GPU = CL_GPU or METAL_GPU
-except ImportError:
-    GPU = CL_GPU
-
-# Function to check if data is a device buffer
-
-def is_buffer(data: Any) -> bool:
-    device = get_device()
-    if device is None:
-        return False
-    if hasattr(data, "length") and callable(data.length):
-        return True
-    if hasattr(data, "__pyobjc_object__") or str(type(data)).find('Buffer') >= 0:
-        return True
-    if hasattr(device, "is_device_tensor"):
-        return device.is_device_tensor(data)
-    return False
-
-# Function to convert tensor to CPU
-
-def tensor_to_cpu(tensor: Any) -> np.ndarray:
-    device = get_device()
-    if device is None:
-        if hasattr(tensor, "data"):
-            if hasattr(tensor.data, "shape") and hasattr(tensor.data, "dtype"):
-                return tensor.data
-        raise Exception("No GPU device available and can't convert unknown tensor type")
-    if hasattr(tensor, "data"):
-        tensor_data = tensor.data
-    else:
-        tensor_data = tensor
-    try:
-        return device.download_tensor(tensor_data)
-    except Exception as e:
-        print(f"Error downloading from GPU: {e}")
-        if hasattr(device, 'buffer_metadata'):
-            buffer_id = id(tensor_data)
-            if buffer_id in device.buffer_metadata:
-                metadata = device.buffer_metadata[buffer_id]
-                if 'numpy_array' in metadata:
-                    return metadata['numpy_array'].copy()
-        return np.zeros((1,), dtype=np.float32)
-
-# Function to convert data to GPU
-
-def tensor_to_gpu(data: np.ndarray) -> Any:
-    device = get_device()
-    if device is None:
-        raise Exception("No GPU device available")
-    try:
-        return device.upload_tensor(data)
-    except Exception as e:
-        print(f"Error uploading to GPU: {e}")
-        return data
+# For backward compatibility
+is_buffer = is_device_tensor
+tensor_to_cpu = download_tensor
+tensor_to_gpu = upload_tensor
 
 # Function to initialize GPU
-
 def init_gpu() -> None:
     get_device()
 
@@ -323,25 +272,25 @@ def register(name: str, fxn: Any, gpu: bool = False) -> None:
         setattr(Tensor, "__i%s__" % name, lambda self, x: self.assign(dispatch(self, x)))
 
 import froog.ops
-if GPU:
-    if check_and_initialize_metal(get_device, set_device):
-        device = get_device()
-        if device:
-            print(f"Using {device.__class__.__name__}")
-        else:
-            print("GPU enabled but no device available")
-    if device is not None:
-        if device.__class__.__name__ == "MetalDevice":
-            try:
-                import froog.gpu.metal.ops_metal
-            except ImportError:
-                pass
-        elif device.__class__.__name__ == "OpenCLDevice":
-            try:
-                import froog.gpu.cl.ops_cl
-                print("OpenCL operations imported successfully")
-            except ImportError:
-                print("Failed to import OpenCL operations")
+
+# Check for GPU availability using the device manager
+if get_device() is not None and get_device().name != "CPU":
+    # We have a GPU device
+    device = get_device()
+    print(f"Using {device.name}")
+    
+    # Import the device-specific operations based on device type
+    if device.__class__.__name__ == "MetalDevice":
+        try:
+            import froog.gpu.metal.ops_metal
+        except ImportError:
+            pass
+    elif device.__class__.__name__ == "OpenCLDevice":
+        try:
+            import froog.gpu.cl.ops_cl
+            print("OpenCL operations imported successfully")
+        except ImportError:
+            print("Failed to import OpenCL operations")
 
 def to_cpu(self) -> T:
     if self.gpu:
@@ -355,18 +304,18 @@ def to_cpu(self) -> T:
 
 def gpu_(self) -> None:
     init_gpu()
-    if not self.gpu and GPU:
+    if not self.gpu and get_device() is not None and get_device().name != "CPU":
         self.data = tensor_to_gpu(self.data)
         self.gpu = True
         if self.grad:
             self.grad.gpu_()
 
 def to_gpu(self) -> T:
-    if not GPU:
+    device = get_device()
+    if device is None or device.name == "CPU":
         raise Exception("no gpu support! install pyopencl or use a Metal-compatible device")
     if not self.gpu:
         init_gpu()
-        device = get_device()
         if device is None:
             raise Exception("No GPU device available")
         gpu_data = tensor_to_gpu(self.data)

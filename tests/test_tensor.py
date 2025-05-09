@@ -1,8 +1,12 @@
 import numpy as np
 import torch
 import unittest
-from froog.tensor import Tensor, GPU
+from froog.tensor import Tensor
+from froog import get_device
 from froog.gradient import numerical_jacobian, gradcheck, jacobian
+
+# Check if GPU is available
+HAS_GPU = get_device() is not None and get_device().name != "CPU"
 
 x_init = np.random.randn(1,3).astype(np.float32)
 W_init = np.random.randn(3,3).astype(np.float32)

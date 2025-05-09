@@ -105,6 +105,10 @@ class OpenCLDevice(Device):
     
     def tensor_to_cpu(self, tensor: Any) -> np.ndarray:
         """Convert an OpenCL buffer to CPU."""
+        # If Tensor object, get the data
+        if hasattr(tensor, "data"):
+            tensor = tensor.data
+            
         data = np.empty(tensor.shape, dtype=np.float32)
         cl.enqueue_copy(self.cl_queue, data, tensor)
         return data

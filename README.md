@@ -191,15 +191,50 @@ So there are two quick examples to get you up and running. You might have notice
 
 # GPU Support
 
-Have a GPU and need a speedup? You're in good luck because we have GPU support via OpenCL for our operations defined in <a href="https://github.com/kevbuh/froog/blob/main/froog/ops_gpu.py">```ops_gpu.py```</a>.
+Froog now includes a unified device management system that automatically selects the best available GPU device. The system supports:
 
-Here's how you can send data to the GPU during a forward pass and bring it back to the CPU.
+1. **Apple Metal** - For macOS systems with Apple Silicon or compatible GPUs
+2. **OpenCL** - For systems with OpenCL-compatible GPUs
+3. **CPU** - Fallback for systems without GPU support
+
+The device management is handled transparently. To use the GPU:
 
 ```python
-# ...
-GPU = os.getenv("GPU", None) is not None
-if GPU:
-  out = model.forward(Tensor(img).to_gpu()).cpu()
+from froog.tensor import Tensor
+from froog import get_device
+
+# Check if GPU is available
+has_gpu = get_device() is not None and get_device().name != "CPU"
+
+# Create a tensor
+x = Tensor([1, 2, 3])
+
+# Push to GPU if available
+if has_gpu:
+    x = x.to_gpu()
+
+# Operations run on GPU automatically
+y = x + x
+z = y * y
+
+# Bring back to CPU when needed
+result = z.to_cpu()
+print(result.data)
+```
+
+You can also check what devices are available:
+
+```python
+from froog import get_available_devices
+available_devices = get_available_devices()
+print(f"Available devices: {available_devices}")
+```
+
+Or set a specific device:
+
+```python
+from froog import set_device
+set_device("METAL")  # or "OPENCL"
 ```
 
 # EfficientNet in froog!
