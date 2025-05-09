@@ -33,7 +33,7 @@ class SGD(Optimizer):
         from froog.gpu import get_device
         from froog.tensor import tensor_to_cpu, tensor_to_gpu
         
-        device = get_device()
+        # device = get_device()
         t_cpu = tensor_to_cpu(t)
         grad_cpu = tensor_to_cpu(t.grad)
         lr_cpu = tensor_to_cpu(self.lr)

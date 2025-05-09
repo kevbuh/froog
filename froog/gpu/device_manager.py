@@ -181,18 +181,16 @@ class DeviceManager:
             # If still not set, use the first available
             if self._current_device is None and self._available_devices:
                 device_name = self._available_devices[0]
-                if device_name in self._devices:
-                    self._current_device = self._devices[device_name]
+                if device_name in self._devices: self._current_device = self._devices[device_name]
                     
             # If we still don't have a device, use CPU
-            if self._current_device is None:
-                self._current_device = self._devices.get("CPU")
+            if self._current_device is None: self._current_device = self._devices.get("CPU")
                     
             # If we found a device, print info
             if self._current_device is not None and not self._device_info_printed:
                 try:
                     device_info = self._current_device.get_capabilities()
-                    # print(f"Using {device_info.get('name', 'unknown')}")
+                    print(f"using {device_info.get('name', 'unknown')}")
                     self._device_info_printed = True
                 except Exception:
                     pass

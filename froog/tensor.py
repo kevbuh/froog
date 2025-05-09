@@ -231,19 +231,15 @@ def register(name: str, fxn: Any, gpu: bool = False) -> None:
 # Check for GPU availability using the device manager
 device = get_device()
 if device is not None and device.name != "CPU":
-    # We have a GPU device
-    print(f"Using {device.name}")
-    
-    # Import the device-specific operations based on device type
     if device.__class__.__name__ == "MetalDevice":
         try: import froog.gpu.metal.ops_metal
-        except ImportError:
+        except ImportError: 
             if os.getenv("DEBUG") == "1": print("Failed to import Metal operations")
     elif device.__class__.__name__ == "OpenCLDevice":
         try:
             import froog.gpu.cl.ops_cl
             if os.getenv("DEBUG") == "1": print("OpenCL operations imported successfully")
-        except ImportError:
+        except ImportError: 
             if os.getenv("DEBUG") == "1": print("Failed to import OpenCL operations")
 
 def to_cpu(self) -> T:

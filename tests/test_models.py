@@ -1,12 +1,12 @@
+import os
+import unittest
 import numpy as np
 from tqdm import trange
-from froog.tensor import Tensor
-from froog import get_device
-from froog.utils import fetch_mnist
-from froog.ops import Linear
 import froog.optim as optim
-import unittest
-import os
+from froog.ops import Linear
+from froog import get_device
+from froog.tensor import Tensor
+from froog.utils import fetch_mnist
 
 # Check if GPU is available
 HAS_GPU = get_device() is not None and get_device().name != "CPU"

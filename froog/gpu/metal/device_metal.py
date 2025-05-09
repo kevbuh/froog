@@ -43,14 +43,12 @@ class MetalDevice(Device):
     def free_memory(self, buffer):
         """Free a Metal buffer."""
         buffer_id = id(buffer)
-        if buffer_id in self.buffer_metadata:
-            del self.buffer_metadata[buffer_id]
+        if buffer_id in self.buffer_metadata: del self.buffer_metadata[buffer_id]
         buffer = None
     
     def upload_tensor(self, host_array) -> object:
         """Upload a NumPy array from host to a new Metal buffer on the device."""
         import numpy as np
-        
         host_array = np.ascontiguousarray(host_array, dtype=np.float32)
         
         if np.isnan(host_array).any() or np.isinf(host_array).any():
@@ -80,11 +78,7 @@ class MetalDevice(Device):
     def download_tensor(self, buffer) -> object:
         """Download data from a Metal buffer back to host memory as a NumPy array."""
         import numpy as np
-        
-        # If Tensor object, get the data
-        if hasattr(buffer, "data"):
-            buffer = buffer.data
-        
+        if hasattr(buffer, "data"): buffer = buffer.data
         if buffer is None: raise ValueError("Cannot download from a None buffer")
             
         try:
@@ -111,19 +105,15 @@ class MetalDevice(Device):
                         print(f"Warning: NaN or Inf values detected in buffer {buffer_id}")
                         result = np.nan_to_num(result, nan=0.0, posinf=0.0, neginf=0.0)
                     
-                    if shape != (float_count,):
-                        result = result.reshape(shape)
+                    if shape != (float_count,): result = result.reshape(shape)
                     
                     # Cache the result for future use
-                    if buffer_id not in self.buffer_metadata:
-                        self.buffer_metadata[buffer_id] = {}
+                    if buffer_id not in self.buffer_metadata: self.buffer_metadata[buffer_id] = {}
                     self.buffer_metadata[buffer_id]['numpy_array'] = result.copy()
                     
                     return result
-                else:
-                    raise ValueError("Buffer contents pointer is null")
-            else:
-                raise ValueError(f"Buffer does not have 'contents' attribute: {type(buffer)}")
+                else: raise ValueError("Buffer contents pointer is null")
+            else: raise ValueError(f"Buffer does not have 'contents' attribute: {type(buffer)}")
         
         except Exception as e:
             raise RuntimeError(f"Failed to download tensor from Metal: {e}")
@@ -136,8 +126,7 @@ class MetalDevice(Device):
             err_msg = str(error.localizedDescription()) if error else "Unknown error"
             raise RuntimeError(f"Metal kernel compilation failed: {err_msg}")
         kernel_func = library.newFunctionWithName_(kernel_name)
-        if kernel_func is None:
-            raise RuntimeError(f"Kernel function '{kernel_name}' not found in compiled library")
+        if kernel_func is None: raise RuntimeError(f"Kernel function '{kernel_name}' not found in compiled library")
         pipeline_state, err2 = self.device.newComputePipelineStateWithFunction_error_(kernel_func, None)
         if pipeline_state is None:
             err_msg = str(err2.localizedDescription()) if err2 else "Unknown error"

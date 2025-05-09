@@ -90,8 +90,7 @@ class OpenCLDevice(Device):
     
     def tensor_to_device(self, data: np.ndarray) -> Any:
         """Convert CPU data to OpenCL buffer."""
-        if not self.is_available():
-            raise Exception("No OpenCL support! Install pyopencl")
+        if not self.is_available(): raise Exception("No OpenCL support! Install pyopencl")
         
         assert data.dtype == np.float32  # GPU only allows float32
         gpu_buffer = cl.Buffer(
@@ -105,10 +104,7 @@ class OpenCLDevice(Device):
     
     def tensor_to_cpu(self, tensor: Any) -> np.ndarray:
         """Convert an OpenCL buffer to CPU."""
-        # If Tensor object, get the data
-        if hasattr(tensor, "data"):
-            tensor = tensor.data
-            
+        if hasattr(tensor, "data"): tensor = tensor.data
         data = np.empty(tensor.shape, dtype=np.float32)
         cl.enqueue_copy(self.cl_queue, data, tensor)
         return data

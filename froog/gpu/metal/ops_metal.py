@@ -213,26 +213,18 @@ def _sum_op(x_cpu: np.ndarray):
 
 def _matmul(x_cpu: np.ndarray, y_cpu: np.ndarray):
     if _HAS_MPS:
-        def build(ph):
-            return _mps_graph.matrixMultiplicationWithPrimaryTensor_secondaryTensor_name_(ph["x"], ph["y"], "matmul")
-        try:
-            return _run_graph(build, {"x": x_cpu, "y": y_cpu})
-        except Exception:
-            pass
+        def build(ph): return _mps_graph.matrixMultiplicationWithPrimaryTensor_secondaryTensor_name_(ph["x"], ph["y"], "matmul")
+        try: return _run_graph(build, {"x": x_cpu, "y": y_cpu})
+        except Exception: pass
     return _matmul_cpu(x_cpu, y_cpu)
-
 
 def _reshape(x_cpu: np.ndarray, shape):
     if _HAS_MPS:
         shape_td = np.array(shape, dtype=np.int32)
-        def build(ph):
-            return _mps_graph.reshapeTensor_withShape_name_(ph["x"], _to_td(shape_td), "reshape")
-        try:
-            return _run_graph(build, {"x": x_cpu})
-        except Exception:
-            pass
+        def build(ph): return _mps_graph.reshapeTensor_withShape_name_(ph["x"], _to_td(shape_td), "reshape")
+        try: return _run_graph(build, {"x": x_cpu})
+        except Exception: pass
     return _reshape_cpu(x_cpu, shape)
-
 
 def _logsoftmax(x_cpu: np.ndarray):
     if _HAS_MPS:
@@ -260,10 +252,8 @@ def _pool2d(x_cpu: np.ndarray, kernel, mode):
                 kW, kH, kW, kH, _mpsg.MPSGraphPaddingStyleValid, _mpsg.MPSGraphTensorNCHWLayout
             )
             def build(ph):
-                if mode == "max":
-                    return _mps_graph.maxPooling2DWithSourceTensor_descriptor_name_(ph["x"], desc, "maxpool")
-                else:
-                    return _mps_graph.averagePooling2DWithSourceTensor_descriptor_name_(ph["x"], desc, "avgpool")
+                if mode == "max": return _mps_graph.maxPooling2DWithSourceTensor_descriptor_name_(ph["x"], desc, "maxpool")
+                else: return _mps_graph.averagePooling2DWithSourceTensor_descriptor_name_(ph["x"], desc, "avgpool")
             return _run_graph(build, {"x": x_cpu})
         except Exception:
             pass
@@ -276,8 +266,7 @@ def _pad2d(x_cpu: np.ndarray, padding):
             l, r, t, b = padding
             pdims = np.array([(0,0),(0,0),(t,b),(l,r)], dtype=np.int32)
             def build(ph):
-                return _mps_graph.padWithTensor_constantValue_paddingMode_paddingDimensions_name_(
-                    ph["x"], 0.0, _mpsg.MPSGraphPaddingModeConstant, _to_td(pdims), "pad")
+                return _mps_graph.padWithTensor_constantValue_paddingMode_paddingDimensions_name_(ph["x"], 0.0, _mpsg.MPSGraphPaddingModeConstant, _to_td(pdims), "pad")
             return _run_graph(build, {"x": x_cpu})
         except Exception:
             pass
@@ -287,10 +276,8 @@ def _pad2d(x_cpu: np.ndarray, padding):
 def _conv2d(x_cpu: np.ndarray, w_cpu: np.ndarray, b_cpu: np.ndarray | None, stride, padding):
     if _HAS_MPS:
         try:
-            if isinstance(stride, int):
-                stride = (stride, stride)
-            if isinstance(padding, int):
-                padding = (padding, padding)
+            if isinstance(stride, int): stride = (stride, stride)
+            if isinstance(padding, int): padding = (padding, padding)
             sH, sW = stride
             pH, pW = padding
             N, C, H, W = x_cpu.shape
@@ -299,15 +286,13 @@ def _conv2d(x_cpu: np.ndarray, w_cpu: np.ndarray, b_cpu: np.ndarray | None, stri
                 sW, sH, 1, 1, 1, pW, pW, pH, pH, _mpsg.MPSGraphTensorNCHWLayout, _mpsg.MPSGraphTensorOHWIDataLayout
             )
             def build(ph):
-                conv = _mps_graph.convolution2DWithSourceTensor_weightsTensor_descriptor_name_(
-                    ph["x"], ph["w"], desc, "conv")
+                conv = _mps_graph.convolution2DWithSourceTensor_weightsTensor_descriptor_name_(ph["x"], ph["w"], desc, "conv")
                 if b_cpu is not None:
                     bias = _mps_graph.reshapeTensor_withShape_name_(ph["b"], _to_td(np.array([1, F, 1, 1], np.int32)), "reshape")
                     conv = _mps_graph.additionWithPrimaryTensor_secondaryTensor_name_(conv, bias, "bias")
                 return conv
             feeds = {"x": x_cpu, "w": w_cpu}
-            if b_cpu is not None:
-                feeds["b"] = b_cpu
+            if b_cpu is not None: feeds["b"] = b_cpu
             return _run_graph(build, feeds)
         except Exception:
             pass
