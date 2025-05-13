@@ -2,16 +2,14 @@
 <div align="center" >
   <img src="https://raw.githubusercontent.com/kevbuh/froog/main/assets/froog.png" alt="froog the frog" height="200">
   <br/>
-  froog: fast real-time optimization of gradients 
-  <br/>
-  a beautifully compact tensor library
+  froog: a gpu accelerated tensor library
   <br/>
   <a href="https://github.com/kevbuh/froog">homepage</a> | <a href="https://github.com/kevbuh/froog/tree/main/DOCS.md">documentation</a> | <a href="https://pypi.org/project/froog/">pip</a>
   <br/>
   <br/>
 </div>
 
-```froog``` is an easy-to-read tensor library (<a href="https://www.pepy.tech/projects/froog">25k pip installs!</a>) with support for GPU acceleration. Inspired by pytorch, tinygrad, and micrograd.
+```froog``` is an easy-to-read tensor library (<a href="https://www.pepy.tech/projects/froog">25k pip installs!</a>) with support for GPU acceleration with [OpenCL](https://www.khronos.org/opencl/) and [Apple Metal](https://developer.apple.com/metal/). Inspired by [tinygrad](https://github.com/tinygrad/tinygrad), and [micrograd](https://github.com/karpathy/micrograd).
 
 # Installation
 ```bash
@@ -33,7 +31,7 @@ pip install froog
 - <a href="https://github.com/kevbuh/froog/blob/main/docs/env.md">Configuration via Environment Variables</a>
 - and a bunch <a href="https://github.com/kevbuh/froog/tree/main/froog">more</a> 
 
-# Example
+# Quick Example
 
 Here's how you set up a simple multilayer perceptron for classification on MNIST. Looks pretty similar to pytorch, right?
 
