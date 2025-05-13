@@ -9,14 +9,14 @@
   <br/>
 </div>
 
-```froog``` is an easy-to-read tensor library (<a href="https://www.pepy.tech/projects/froog">25k pip installs!</a>) with support for GPU acceleration with [OpenCL](https://www.khronos.org/opencl/) and [Apple Metal](https://developer.apple.com/metal/). Inspired by [tinygrad](https://github.com/tinygrad/tinygrad), and [micrograd](https://github.com/karpathy/micrograd).
+```froog``` is an easy-to-read tensor library (<a href="https://www.pepy.tech/projects/froog">27k pip installs!</a>) with support for GPU acceleration with [OpenCL](https://www.khronos.org/opencl/) and [Apple Metal](https://developer.apple.com/metal/). Inspired by [tinygrad](https://github.com/tinygrad/tinygrad), and [micrograd](https://github.com/karpathy/micrograd).
 
-# Installation
+## Installation
 ```bash
 pip install froog
 ```
 
-# Features
+## Features
 - <a href="https://github.com/kevbuh/froog/blob/main/froog/tensor.py">Custom Tensors</a> 
   - Backpropagation
   - Automatic Differentiation (autograd)
@@ -27,11 +27,9 @@ pip install froog
   - Acceleration methods (Adam)
   - Avg & Max pooling
 - <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">EfficientNet</a> inference
-- <a href="https://github.com/kevbuh/froog/blob/main/froog/gpu/ops_gpu.py">GPU Support</a> 
-- <a href="https://github.com/kevbuh/froog/blob/main/docs/env.md">Configuration via Environment Variables</a>
-- and a bunch <a href="https://github.com/kevbuh/froog/tree/main/froog">more</a> 
+- <a href="https://github.com/kevbuh/froog/blob/main/froog/gpu">GPU Support</a> 
 
-# Quick Example
+## Quick Example
 
 Here's how you set up a simple multilayer perceptron for classification on MNIST. Looks pretty similar to pytorch, right?
 
@@ -53,7 +51,7 @@ model = mnistMLP() # create model
 optim = optim.SGD([model.l1, model.l2], lr=0.001) # stochastic gradient descent optimizer
 ```
 
-# GPU Support
+## GPU Support
 
 Device management is handled transparently and will automatically select one of ```[METAL, OPENCL, CPU]```. To use the GPU:
 
@@ -89,11 +87,12 @@ from froog import set_device
 set_device("METAL")  # or "OPENCL"
 ```
 
-# EfficientNet in froog!
+## EfficientNet in froog!
 
-<img src="https://github.com/kevbuh/froog/blob/main/assets/efficientnet_pug.png" alt="pug" height="300">
+<img src="https://github.com/kevbuh/froog/blob/main/assets/efficientnet_pug.png" alt="pug" height="200">
 
-We have an implementation of [EfficientNet v2](https://arxiv.org/abs/2104.00298) built entirely in ```froog``` using the official PyTorch weights! Run inference with:
+We have an implementation of [EfficientNet v2](https://arxiv.org/abs/2104.00298) built entirely in ```froog``` using the official PyTorch weights! Running inference on this pug...
+
 
 ```bash
 python3 models/efficientnet.py <https://optional_image_url>
@@ -103,25 +102,25 @@ inference 4.34 s
 
 imagenet class: 254
 prediction    : pug, pug-dog
-probability   : 0.8902361
+probability   : 0.9402361
 ******************************
 ```
 
 I would recommend checking out the <a href="https://github.com/kevbuh/froog/blob/main/models/efficientnet.py">code</a>, it's highly documented and pretty cool.
 
-# Contributing
+<!-- ## Contributing -->
 <!-- THERES LOT OF STUFF TO WORK ON! VISIT THE <a href="https://github.com/kevbuh/froog/blob/main/docs/bounties.md">BOUNTY SHOP</a>  -->
 
-Pull requests will be merged if they:
+<!-- Pull requests will be merged if they:
 * increase simplicity
 * increase functionality
 * increase efficiency
 
-More info on <a href="https://github.com/kevbuh/froog/blob/main/docs/contributing.md">contributing</a>. Make sure to run ```python -m pytest``` before creating a PR.
+More info on <a href="https://github.com/kevbuh/froog/blob/main/docs/contributing.md">contributing</a>. Make sure to run ```python -m pytest``` before creating a PR. -->
 
-# API
+## API
 
-## Basic Math Operations
+MATH
 - ```.add(y)``` - Addition with y
 - ```.sub(y)``` - Subtraction with y
 - ```.mul(y)``` - Multiplication with y
@@ -130,12 +129,10 @@ More info on <a href="https://github.com/kevbuh/froog/blob/main/docs/contributin
 - ```.sum()``` - Sum all elements
 - ```.mean()``` - Mean of all elements
 - ```.sqrt()``` - Square root
-
-## Linear Algebra Operations
 - ```.dot(y)``` - Matrix multiplication with y
 - ```.matmul(y)``` - Alias for dot
 
-## Neural Network Operations
+MACHINE LEARNING
 - ```.relu()``` - Rectified Linear Unit activation
 - ```.sigmoid()``` - Sigmoid activation
 - ```.dropout(p=0.5, training=True)``` - Dropout regularization
@@ -143,12 +140,28 @@ More info on <a href="https://github.com/kevbuh/froog/blob/main/docs/contributin
 - ```.swish()``` - Swish activation function (x * sigmoid(x))
 - ```.conv2d(w, stride=1, groups=1)``` - 2D convolution
 - ```.im2col2dconv(w)``` - Image to column for convolution
-
-## Pooling Operations
 - ```.max_pool2d(kernel_size=(2,2))``` - 2D max pooling
 - ```.avg_pool2d(kernel_size=(2,2))``` - 2D average pooling
 
-## Tensor Manipulation
+TENSOR
+- ```Tensor.zeros(*shape)``` - Create tensor of zeros
+- ```Tensor.ones(*shape)``` - Create tensor of ones
+- ```Tensor.randn(*shape)``` - Create tensor with random normal values
+- ```Tensor.eye(dim)``` - Create identity matrix
+- ```Tensor.arange(start, stop=None, step=1)``` - Create tensor with evenly spaced values
+
+TENSOR PROPERTIES
+- ```.shape``` - The shape of the tensor as a tuple
+- ```.size``` - Total number of elements in the tensor
+- ```.ndim``` - Number of dimensions (rank) of the tensor
+- ```.transpose``` - Transpose of the tensor
+- ```.dtype``` - Data type of the tensor
+- ```.is_gpu``` - Whether tensor is on GPU
+- ```.grad``` - Gradient of tensor with respect to some scalar value
+- ```.data``` - Underlying NumPy array (or GPU buffer)
+- ```.to_float()``` - Converts tensor to float32 data type
+- ```.to_int()``` - Converts tensor to int32 data type
+- ```.to_bool()``` - Converts tensor to boolean data type
 - ```.reshape(*shape)``` - Change tensor shape
 - ```.view(*shape)``` - Alternative to reshape
 - ```.pad2d(padding=None)``` - Pad 2D tensors
@@ -158,32 +171,10 @@ More info on <a href="https://github.com/kevbuh/froog/blob/main/docs/contributin
 - ```.detach()``` - Returns a tensor detached from computation graph
 - ```.assign(x)``` - Assign values from tensor x to this tensor
 
-## Tensor Properties
-- ```.shape``` - The shape of the tensor as a tuple
-- ```.size``` - Total number of elements in the tensor
-- ```.ndim``` - Number of dimensions (rank) of the tensor
-- ```.transpose``` - Transpose of the tensor
-- ```.dtype``` - Data type of the tensor
-- ```.is_gpu``` - Whether tensor is on GPU
-- ```.grad``` - Gradient of tensor with respect to some scalar value
-- ```.data``` - Underlying NumPy array (or GPU buffer)
-
-## Device Management
+GPU
 - ```.to_cpu()``` - Moves tensor to CPU
 - ```.to_gpu()``` - Moves tensor to GPU 
 - ```.gpu_()``` - In-place GPU conversion (modifies tensor)
 
-## Data Type Conversion
-- ```.to_float()``` - Converts tensor to float32 data type
-- ```.to_int()``` - Converts tensor to int32 data type
-- ```.to_bool()``` - Converts tensor to boolean data type
-
-## Autograd Operations
+AUTOGRAD
 - ```.backward(allow_fill=True)``` - Performs backpropagation
-
-## Tensor Creation Methods
-- ```Tensor.zeros(*shape)``` - Create tensor of zeros
-- ```Tensor.ones(*shape)``` - Create tensor of ones
-- ```Tensor.randn(*shape)``` - Create tensor with random normal values
-- ```Tensor.eye(dim)``` - Create identity matrix
-- ```Tensor.arange(start, stop=None, step=1)``` - Create tensor with evenly spaced values
