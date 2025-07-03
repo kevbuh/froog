@@ -1,6 +1,7 @@
 import froog.optim
 import froog.tensor
 import froog.utils
+import froog.ops  # ensure tensor operations are registered on import
 
 # Import GPU packages
 import froog.gpu.cl.cl_utils
