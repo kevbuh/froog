@@ -45,7 +45,7 @@ We support a few different optimizers, [here](https://github.com/kevbuh/froog/bl
 ```python
 from froog.tensor import Tensor
 import froog.optim as optim
-from froog.nn import Linear
+from froog.ops import Linear
 
 class mnistMLP:
   def __init__(self):
