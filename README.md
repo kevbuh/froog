@@ -35,7 +35,7 @@ Here's how you set up a simple multilayer perceptron for classification on MNIST
 
 ```python
 from froog.tensor import Tensor
-from froog.nn import Linear
+from froog.ops import Linear
 import froog.optim as optim
 
 class mnistMLP:
