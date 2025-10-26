@@ -10,12 +10,8 @@ from froog.gpu import get_device
 def is_gpu_buffer(data: Any) -> bool:
     """
     Check if data is a GPU buffer (Metal or OpenCL).
-    
-    Args:
-        data: The data to check
-        
-    Returns:
-        bool: True if data is a GPU buffer, False otherwise
+    Args: data: The data to check
+    Returns: bool: True if data is a GPU buffer, False otherwise
     """
     if hasattr(data, "__pyobjc_object__") or 'Buffer' in str(type(data)): return True
     if hasattr(data, "length") and callable(getattr(data, "length")): return True
@@ -25,12 +21,8 @@ def get_buffer_data(buffer: Any) -> np.ndarray:
     """
     Extracts data from a buffer object, handling both numpy arrays and GPU buffers.
     For GPU buffers, tries to use the device metadata.
-    
-    Args:
-        buffer: The buffer to extract data from
-        
-    Returns:
-        np.ndarray: The extracted data as a NumPy array
+    Args: buffer: The buffer to extract data from
+    Returns: np.ndarray: The extracted data as a NumPy array
     """
     if isinstance(buffer, np.ndarray): return buffer
     if is_gpu_buffer(buffer):
