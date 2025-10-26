@@ -9,7 +9,7 @@
   <br/>
 </div>
 
-```froog``` is an easy-to-read tensor library (<a href="https://www.pepy.tech/projects/froog">27k pip installs!</a>) with support for GPU acceleration with [OpenCL](https://www.khronos.org/opencl/) and [Apple Metal](https://developer.apple.com/metal/). Inspired by [tinygrad](https://github.com/tinygrad/tinygrad), and [micrograd](https://github.com/karpathy/micrograd).
+```froog``` is an easy-to-read tensor library (<a href="https://www.pepy.tech/projects/froog">31k pip installs!</a>) with support for GPU acceleration with [OpenCL](https://www.khronos.org/opencl/) and [Apple Metal](https://developer.apple.com/metal/). Inspired by [tinygrad](https://github.com/tinygrad/tinygrad), and [micrograd](https://github.com/karpathy/micrograd).
 
 ## Installation
 ```bash
